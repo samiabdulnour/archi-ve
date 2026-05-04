@@ -869,6 +869,79 @@
       display: block;
     }
 
+    /* Gallery — selection mode controls */
+    .gal-select-btn {
+      background: transparent;
+      color: var(--accent);
+      font-size: 0.95rem;
+      font-weight: 500;
+      letter-spacing: -0.005em;
+      padding: 0.4rem 0.6rem;
+      flex-shrink: 0;
+    }
+    .gal-select-btn:active { opacity: 0.6; }
+
+    /* Per-tile selection check (top-right circle, hollow when unselected). */
+    .photo-grid .tile-check {
+      position: absolute;
+      top: 6px; right: 6px;
+      width: 22px; height: 22px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.5);
+      border: 1.5px solid #fff;
+      display: none;
+      align-items: center; justify-content: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    }
+    .photo-grid.selecting .tile-check { display: inline-flex; }
+    .photo-grid .tile.selected .tile-check {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .photo-grid .tile.selected .tile-check::after {
+      content: "";
+      width: 7px; height: 7px;
+      border-right: 2px solid var(--accent-ink);
+      border-bottom: 2px solid var(--accent-ink);
+      transform: rotate(45deg) translate(-1px, -1px);
+    }
+    .photo-grid.selecting .tile.selected img { opacity: 0.65; }
+
+    /* Bottom action bar (slides up in selection mode) */
+    .gal-action-bar {
+      position: fixed;
+      left: 0; right: 0;
+      bottom: 0;
+      padding: 0.7rem 1rem max(env(safe-area-inset-bottom, 0.7rem), 0.7rem);
+      background: color-mix(in srgb, var(--bg) 88%, transparent);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 0.6rem;
+      z-index: 30;
+    }
+    .gal-action {
+      flex: 1;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+    }
+    .gal-action-share {
+      background: var(--accent);
+      color: var(--accent-ink);
+    }
+    .gal-action-share:disabled,
+    .gal-action-delete:disabled { opacity: 0.4; pointer-events: none; }
+    .gal-action-delete {
+      background: var(--bg-elev);
+      color: var(--danger);
+      border: 1px solid var(--border);
+    }
+    .gal-action:active { opacity: 0.85; }
+
     .photo-grid .type-badge {
       position: absolute;
       top: 6px;
@@ -1253,9 +1326,16 @@
 
   <!-- ============ GALLERY ============ -->
   <section id="view-gallery" class="view">
-    <header class="gallery-header">
+    <header class="gallery-header" id="gallery-header-default">
       <button class="back-btn" data-goto="home">&larr;</button>
       <input type="search" class="search-input" id="search-input" placeholder="Search (e.g. railing, school, colorful)">
+      <button class="gal-select-btn" id="gal-select-btn">Select</button>
+    </header>
+
+    <header class="gallery-header" id="gallery-header-select" hidden>
+      <button class="back-btn" id="gal-cancel">&times;</button>
+      <span class="meta-date" id="gal-select-count">0 selected</span>
+      <button class="gal-select-btn" id="gal-select-all">All</button>
     </header>
 
     <div class="type-filter-row" id="type-filter-row">
@@ -1270,6 +1350,12 @@
     <div id="count"></div>
     <div id="photo-grid" class="photo-grid"></div>
     <p id="empty" class="empty-state" hidden>No photos yet.</p>
+
+    <!-- Bottom action bar shown only in selection mode -->
+    <div class="gal-action-bar" id="gal-action-bar" hidden>
+      <button class="gal-action gal-action-share" id="gal-action-share">Share</button>
+      <button class="gal-action gal-action-delete" id="gal-action-delete">Delete</button>
+    </div>
   </section>
 
   <!-- ============ DETAIL / ENRICH ============ -->
@@ -1964,6 +2050,8 @@
     }
 
     document.getElementById('cam-thumb').addEventListener('click', async () => {
+      // Always start with a clean (non-selecting) gallery.
+      if (selectionMode) exitSelectionMode();
       showView('gallery');
       await renderGallery();
     });
@@ -3039,6 +3127,96 @@
       });
     });
 
+    // ----- Gallery: selection mode -----
+    let selectionMode = false;
+    let selectedIds = new Set();
+    // Cache the most recently rendered set of records so the Select-All / Share /
+    // Delete handlers can act on whatever the user is currently filtering to.
+    let lastRenderedRecs = [];
+
+    function enterSelectionMode() {
+      selectionMode = true;
+      selectedIds = new Set();
+      document.getElementById('gallery-header-default').hidden = true;
+      document.getElementById('gallery-header-select').hidden  = false;
+      document.getElementById('gal-action-bar').hidden         = false;
+      updateSelectionUI();
+      renderGallery();
+    }
+    function exitSelectionMode() {
+      selectionMode = false;
+      selectedIds = new Set();
+      document.getElementById('gallery-header-default').hidden = false;
+      document.getElementById('gallery-header-select').hidden  = true;
+      document.getElementById('gal-action-bar').hidden         = true;
+      renderGallery();
+    }
+    function toggleTileSelection(id) {
+      if (selectedIds.has(id)) selectedIds.delete(id);
+      else selectedIds.add(id);
+      // Lightweight: just toggle classes on the affected tile + update count.
+      const tile = document.querySelector(`#photo-grid .tile[data-id="${id}"]`);
+      if (tile) tile.classList.toggle('selected', selectedIds.has(id));
+      updateSelectionUI();
+    }
+    function updateSelectionUI() {
+      const n = selectedIds.size;
+      document.getElementById('gal-select-count').textContent =
+        `${n} selected`;
+      document.getElementById('gal-action-share').disabled  = n === 0;
+      document.getElementById('gal-action-delete').disabled = n === 0;
+    }
+
+    document.getElementById('gal-select-btn').addEventListener('click', enterSelectionMode);
+    document.getElementById('gal-cancel').addEventListener('click', exitSelectionMode);
+    document.getElementById('gal-select-all').addEventListener('click', () => {
+      const allSelected = lastRenderedRecs.length > 0 && selectedIds.size === lastRenderedRecs.length;
+      selectedIds = new Set(allSelected ? [] : lastRenderedRecs.map(r => r.id));
+      updateSelectionUI();
+      renderGallery();
+    });
+
+    document.getElementById('gal-action-delete').addEventListener('click', async () => {
+      const ids = [...selectedIds];
+      if (ids.length === 0) return;
+      if (!confirm(`Delete ${ids.length} ${ids.length === 1 ? 'photo' : 'photos'}? This can't be undone.`)) return;
+      for (const id of ids) await dbDelete(id);
+      toast(`Deleted ${ids.length}`);
+      exitSelectionMode();
+    });
+
+    document.getElementById('gal-action-share').addEventListener('click', async () => {
+      const ids = [...selectedIds];
+      if (ids.length === 0) return;
+      // Build File objects for the Web Share API.
+      const recs = lastRenderedRecs.filter(r => selectedIds.has(r.id));
+      try {
+        const files = await Promise.all(recs.map(async (r, i) => {
+          const blob = r.blob;
+          const ext = (blob.type && blob.type.split('/')[1]) || 'jpg';
+          return new File([blob], `archi-${r.id || i}.${ext}`, {
+            type: blob.type || 'image/jpeg',
+            lastModified: r.created_at || Date.now(),
+          });
+        }));
+        if (navigator.canShare && navigator.canShare({ files })) {
+          await navigator.share({
+            files,
+            title: `${files.length} from archi-archive`,
+          });
+        } else if (navigator.share) {
+          // Fallback: share at least the title (no files supported).
+          await navigator.share({ title: `${files.length} from archi-archive` });
+          toast('Files not supported by share — copy manually');
+        } else {
+          toast('Sharing not supported on this browser');
+        }
+      } catch (err) {
+        // User-cancelled share or other error — silent unless it's a real failure.
+        if (err && err.name !== 'AbortError') toast('Share failed');
+      }
+    });
+
     async function renderGallery() {
       // free old object urls
       objectUrls.forEach(URL.revokeObjectURL);
@@ -3064,12 +3242,16 @@
         return true;
       });
       filtered.sort((a, b) => b.created_at - a.created_at);
+      lastRenderedRecs = filtered;
 
       const grid = document.getElementById('photo-grid');
       grid.innerHTML = '';
+      grid.classList.toggle('selecting', selectionMode);
       filtered.forEach(rec => {
         const tile = document.createElement('div');
         tile.className = 'tile';
+        if (selectedIds.has(rec.id)) tile.classList.add('selected');
+        tile.dataset.id = String(rec.id);
         const img = document.createElement('img');
         const url = URL.createObjectURL(rec.blob);
         objectUrls.push(url);
@@ -3079,7 +3261,13 @@
         badge.className = 'type-badge';
         badge.textContent = (rec.tags_human.type || '?').slice(0, 1).toUpperCase();
         tile.appendChild(badge);
-        tile.addEventListener('click', () => openDetail(rec.id));
+        const check = document.createElement('span');
+        check.className = 'tile-check';
+        tile.appendChild(check);
+        tile.addEventListener('click', () => {
+          if (selectionMode) toggleTileSelection(rec.id);
+          else openDetail(rec.id);
+        });
         grid.appendChild(tile);
       });
 
