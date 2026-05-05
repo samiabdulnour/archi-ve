@@ -1744,6 +1744,19 @@
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           throw new Error('Camera API unavailable. The site must be served over HTTPS.');
         }
+        // If the Permissions API tells us camera is already denied, surface a
+        // clearer message before getUserMedia rejects with the same name.
+        if (navigator.permissions && navigator.permissions.query) {
+          try {
+            const status = await navigator.permissions.query({ name: 'camera' });
+            if (status.state === 'denied') {
+              throw Object.assign(new Error('Camera permission is set to Block for this site.'), { name: 'NotAllowedError' });
+            }
+          } catch (e) {
+            // Some browsers throw on { name: 'camera' } — ignore and let getUserMedia decide.
+            if (e && e.name === 'NotAllowedError') throw e;
+          }
+        }
         mediaStream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: cameraFacing },
@@ -1754,8 +1767,6 @@
         });
         const video = document.getElementById('cam-video');
         video.srcObject = mediaStream;
-        // Don't await play(); the autoplay attribute starts it. Awaiting here
-        // can swallow iOS NotAllowedError silently when the doc isn't yet visible.
         const p = video.play();
         if (p && p.catch) p.catch(err => showCameraError('PlayBlocked', err && err.message));
       } catch (err) {
