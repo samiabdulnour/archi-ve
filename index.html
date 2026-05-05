@@ -461,12 +461,42 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 2rem;
+      padding: 1.5rem;
       text-align: center;
-      color: #eee;
-      background: rgba(0,0,0,0.85);
+      color: #fff;
+      background: rgba(0,0,0,0.92);
       z-index: 20;
     }
+    .cam-error-card {
+      max-width: 360px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .cam-error-card h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .cam-error-card p {
+      margin: 0;
+      color: rgba(255,255,255,0.78);
+      font-size: 0.9rem;
+      line-height: 1.4;
+      letter-spacing: -0.005em;
+    }
+    .cam-error-retry {
+      margin-top: 0.4rem;
+      padding: 0.7rem 1rem;
+      border-radius: 12px;
+      background: #A8EFB7;
+      color: #0F0F0E;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .cam-error-retry:active { opacity: 0.85; }
 
     /* ============ CAPTURE — paper-shell tagger with green tiles ============ */
     /* Always paper + ink, regardless of the device theme. The colour shows
@@ -1727,10 +1757,9 @@
         // Don't await play(); the autoplay attribute starts it. Awaiting here
         // can swallow iOS NotAllowedError silently when the doc isn't yet visible.
         const p = video.play();
-        if (p && p.catch) p.catch(err => showCameraError('Preview blocked: ' + (err.message || err.name)));
+        if (p && p.catch) p.catch(err => showCameraError('PlayBlocked', err && err.message));
       } catch (err) {
-        const name = (err && err.name) ? err.name + ': ' : '';
-        showCameraError(name + (err && err.message ? err.message : 'Could not start the camera.'));
+        showCameraError(err && err.name, err && err.message);
         if (mediaStream) {
           mediaStream.getTracks().forEach(t => t.stop());
           mediaStream = null;
@@ -1749,13 +1778,47 @@
       if (video) video.srcObject = null;
     }
 
-    function showCameraError(msg) {
+    function showCameraError(name, message) {
       const el = document.getElementById('cam-error');
-      el.textContent = msg;
+      let title, body;
+      if (name === 'NotAllowedError' || name === 'SecurityError') {
+        title = 'Camera permission denied';
+        body  = 'Allow camera access for this site. In Brave/Chrome, tap the camera/lock icon in the address bar and set Camera to Allow. On iOS Safari, Settings → Safari → Camera → Allow. Then Retry.';
+      } else if (name === 'NotFoundError' || name === 'OverconstrainedError' || name === 'DevicesNotFoundError') {
+        title = 'No camera available';
+        body  = 'No camera was found, or another app is using it. Close other apps using the camera and try again.';
+      } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+        title = 'Camera busy';
+        body  = 'Another app is already using the camera. Close it and Retry.';
+      } else if (name === 'PlayBlocked') {
+        title = 'Preview blocked';
+        body  = 'The browser blocked the live preview from auto-playing. Tap Retry.';
+      } else if (name) {
+        title = name;
+        body  = message || 'Could not start the camera.';
+      } else {
+        title = 'Camera unavailable';
+        body  = message || 'Could not start the camera.';
+      }
+      el.innerHTML = '';
+      const card = document.createElement('div');
+      card.className = 'cam-error-card';
+      card.innerHTML = `<h3>${title}</h3><p>${body}</p>`;
+      const retry = document.createElement('button');
+      retry.className = 'cam-error-retry';
+      retry.textContent = 'Retry';
+      retry.addEventListener('click', async () => {
+        hideCameraError();
+        await startCameraStream();
+      });
+      card.appendChild(retry);
+      el.appendChild(card);
       el.hidden = false;
     }
     function hideCameraError() {
-      document.getElementById('cam-error').hidden = true;
+      const el = document.getElementById('cam-error');
+      el.hidden = true;
+      el.innerHTML = '';
     }
 
     document.getElementById('cam-options').addEventListener('click', async () => {
