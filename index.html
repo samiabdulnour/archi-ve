@@ -1231,26 +1231,57 @@
       line-height: 1.45;
       letter-spacing: -0.005em;
     }
-    .welcome-card {
-      background: var(--bg-elev);
-      border-radius: 14px;
-      padding: 0.9rem 1rem;
+    .welcome-diagram-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 0.4rem 0 0.4rem;
+    }
+    .welcome-diagram {
+      width: 100%;
+      max-width: 280px;
+      height: auto;
+      display: block;
+    }
+
+    .welcome-legend {
+      list-style: none;
+      padding: 0;
+      margin: 0;
       display: flex;
       flex-direction: column;
-      gap: 0.4rem;
+      gap: 0.6rem;
     }
-    .welcome-card p {
-      margin: 0;
-      font-size: 0.92rem;
-      line-height: 1.45;
+    .welcome-legend li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.7rem;
+      background: var(--bg-elev);
+      border-radius: 12px;
+      padding: 0.7rem 0.8rem;
+    }
+    .welcome-legend li > div {
+      flex: 1;
+      font-size: 0.88rem;
+      line-height: 1.4;
       letter-spacing: -0.005em;
     }
-    .welcome-card-label {
-      font-size: 0.72rem;
-      font-weight: 500;
-      color: var(--text-muted);
+    .welcome-legend li > div b {
+      font-weight: 600;
+    }
+    .welcome-num {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: #A8EFB7;
+      color: #0F0F0E;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 700;
       letter-spacing: -0.005em;
-      text-transform: none;
+      margin-top: 1px;
     }
     .welcome-cta {
       margin-top: 0.4rem;
@@ -1551,44 +1582,108 @@
         tag them in two taps, find them later.
       </p>
 
-      <div class="welcome-card">
-        <p class="welcome-card-label">Reference vs Project</p>
-        <p>
-          <b>Reference</b> — anything that catches your eye out there. Tag it
-          briefly, drop it into the archive.<br>
-          <b>Project</b> — photos tied to a specific job, client meeting, or
-          site visit. Pick the project once and shoot a sequence into it.
-        </p>
+      <!-- Schematic of the camera UI with numbered call-outs.
+           Drawn as a single inline SVG so it scales cleanly and stays
+           in the same DOM as the legend below. -->
+      <div class="welcome-diagram-wrap">
+        <svg class="welcome-diagram" viewBox="0 0 300 560" xmlns="http://www.w3.org/2000/svg" aria-label="Camera screen diagram">
+          <!-- Phone shell -->
+          <rect x="10" y="10" width="280" height="540" rx="36" fill="#0F0F0E"/>
+          <rect x="18" y="18" width="264" height="524" rx="28" fill="#2a2a26"/>
+          <!-- Status bar pill (Dynamic Island feel) -->
+          <rect x="125" y="28" width="50" height="10" rx="5" fill="#0F0F0E"/>
+
+          <!-- Live-preview backdrop with a subtle gradient -->
+          <defs>
+            <linearGradient id="prevGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#7c7268"/>
+              <stop offset="1" stop-color="#33302b"/>
+            </linearGradient>
+          </defs>
+          <rect x="18" y="18" width="264" height="524" rx="28" fill="url(#prevGrad)"/>
+          <!-- Soft top + bottom darkening for the chrome to read -->
+          <rect x="18" y="18" width="264" height="80" rx="0" fill="rgba(0,0,0,0.32)"/>
+          <rect x="18" y="430" width="264" height="112" rx="0" fill="rgba(0,0,0,0.40)"/>
+
+          <!-- Top bar: type pill + reuse button + L/F + options -->
+          <g font-family="Inter,system-ui,sans-serif">
+            <!-- Type pill -->
+            <rect x="32" y="58" width="78" height="26" rx="13" fill="rgba(0,0,0,0.55)"/>
+            <text x="44" y="75" font-size="12" fill="white" font-weight="500">Building</text>
+            <text x="98" y="76" font-size="11" fill="rgba(255,255,255,0.7)">▾</text>
+            <!-- Reuse circle -->
+            <circle cx="124" cy="71" r="13" fill="rgba(0,0,0,0.55)"/>
+            <text x="124" y="76" font-size="13" fill="white" text-anchor="middle">↻</text>
+
+            <!-- L/F pill -->
+            <rect x="200" y="58" width="44" height="26" rx="13" fill="rgba(0,0,0,0.55)"/>
+            <circle cx="213" cy="71" r="10" fill="white"/>
+            <text x="213" y="75" font-size="11" fill="#0F0F0E" text-anchor="middle" font-weight="600">L</text>
+            <text x="234" y="76" font-size="11" fill="rgba(255,255,255,0.55)" text-anchor="middle" font-weight="600">F</text>
+            <!-- Options dots -->
+            <circle cx="262" cy="71" r="13" fill="rgba(0,0,0,0.55)"/>
+            <text x="262" y="76" font-size="14" fill="white" text-anchor="middle" letter-spacing="-1">⋯</text>
+
+            <!-- Shutter -->
+            <circle cx="150" cy="430" r="28" fill="white" stroke="rgba(255,255,255,0.5)" stroke-width="4"/>
+
+            <!-- Bottom bar -->
+            <!-- Thumbnail circle -->
+            <circle cx="42" cy="500" r="18" fill="#3a342c" stroke="white" stroke-width="2"/>
+            <!-- Mode toggle pill -->
+            <rect x="100" y="486" width="100" height="28" rx="14" fill="rgba(0,0,0,0.55)"/>
+            <rect x="103" y="489" width="48" height="22" rx="11" fill="#A8EFB7"/>
+            <text x="127" y="504" font-size="10" fill="#0F0F0E" text-anchor="middle" font-weight="600" letter-spacing="0.06em">REF</text>
+            <text x="175" y="504" font-size="10" fill="rgba(255,255,255,0.6)" text-anchor="middle" font-weight="600" letter-spacing="0.06em">PROJ</text>
+            <!-- Flip / selfie button -->
+            <circle cx="258" cy="500" r="15" fill="rgba(0,0,0,0.55)"/>
+            <text x="258" y="505" font-size="14" fill="white" text-anchor="middle">⟲</text>
+          </g>
+
+          <!-- Numbered call-outs (mint pills with number + tail line to control) -->
+          <g class="welcome-callouts" font-family="Inter,system-ui,sans-serif">
+            <!-- 1 — Type & Reuse (points down at type pill) -->
+            <line x1="78" y1="100" x2="78" y2="86" stroke="#A8EFB7" stroke-width="1.5"/>
+            <circle cx="78" cy="108" r="11" fill="#A8EFB7"/>
+            <text x="78" y="113" font-size="13" fill="#0F0F0E" text-anchor="middle" font-weight="700">1</text>
+
+            <!-- 2 — L/F + Settings -->
+            <line x1="222" y1="100" x2="222" y2="86" stroke="#A8EFB7" stroke-width="1.5"/>
+            <circle cx="222" cy="108" r="11" fill="#A8EFB7"/>
+            <text x="222" y="113" font-size="13" fill="#0F0F0E" text-anchor="middle" font-weight="700">2</text>
+
+            <!-- 3 — Shutter -->
+            <line x1="195" y1="430" x2="180" y2="430" stroke="#A8EFB7" stroke-width="1.5"/>
+            <circle cx="208" cy="430" r="11" fill="#A8EFB7"/>
+            <text x="208" y="435" font-size="13" fill="#0F0F0E" text-anchor="middle" font-weight="700">3</text>
+
+            <!-- 4 — Gallery thumbnail -->
+            <line x1="42" y1="465" x2="42" y2="481" stroke="#A8EFB7" stroke-width="1.5"/>
+            <circle cx="42" cy="455" r="11" fill="#A8EFB7"/>
+            <text x="42" y="460" font-size="13" fill="#0F0F0E" text-anchor="middle" font-weight="700">4</text>
+
+            <!-- 5 — Mode toggle -->
+            <line x1="150" y1="465" x2="150" y2="486" stroke="#A8EFB7" stroke-width="1.5"/>
+            <circle cx="150" cy="455" r="11" fill="#A8EFB7"/>
+            <text x="150" y="460" font-size="13" fill="#0F0F0E" text-anchor="middle" font-weight="700">5</text>
+
+            <!-- 6 — Selfie -->
+            <line x1="258" y1="465" x2="258" y2="485" stroke="#A8EFB7" stroke-width="1.5"/>
+            <circle cx="258" cy="455" r="11" fill="#A8EFB7"/>
+            <text x="258" y="460" font-size="13" fill="#0F0F0E" text-anchor="middle" font-weight="700">6</text>
+          </g>
+        </svg>
       </div>
 
-      <div class="welcome-card">
-        <p class="welcome-card-label">L vs F (Lite vs Full)</p>
-        <p>
-          <b>L</b> — save now, tag later. The photo lands in the archive
-          tagged with just its Type; a green toast lets you tag now if you
-          want.<br>
-          <b>F</b> — open the tagger right after the shutter and pick the
-          tags in the moment. Best for considered shots.
-        </p>
-      </div>
-
-      <div class="welcome-card">
-        <p class="welcome-card-label">Where things live</p>
-        <p>
-          Top-left chooses what kind of thing you're capturing
-          (Building / Detail / Graphic). Top-right is L/F + Settings.
-          Bottom-left is the gallery, bottom-right is selfie.
-        </p>
-      </div>
-
-      <div class="welcome-card">
-        <p class="welcome-card-label">Browse</p>
-        <p>
-          Tap the gallery thumbnail, then the filter icon for type and
-          project. Tap <b>Select</b> to share or delete in batches.
-          Search hits everything: tag names, project, notes, location.
-        </p>
-      </div>
+      <!-- Legend keyed to the numbered call-outs above -->
+      <ol class="welcome-legend">
+        <li><span class="welcome-num">1</span><div><b>Type &amp; Reuse</b><br>Pick what you're capturing — Building, Detail, or Graphic. The ↻ button reuses the tags from your last reference photo for fast repeats.</div></li>
+        <li><span class="welcome-num">2</span><div><b>Lite vs Full · Settings</b><br><b>L</b> saves now, tag later. <b>F</b> opens the tagger right after the shutter. The ⋯ icon opens settings.</div></li>
+        <li><span class="welcome-num">3</span><div><b>Shutter</b><br>Tap to capture. In Reference Lite, a green toast lets you tag now or in the gallery later.</div></li>
+        <li><span class="welcome-num">4</span><div><b>Gallery</b><br>Latest photo as a circular thumbnail. Tap to browse, search, filter, or share/delete in batches.</div></li>
+        <li><span class="welcome-num">5</span><div><b>Reference vs Project</b><br><b>Reference</b> for found photos out there. <b>Project</b> for site-specific shoots — pick the project once, shoot a sequence into it.</div></li>
+        <li><span class="welcome-num">6</span><div><b>Flip camera</b><br>Switch between rear and front cameras.</div></li>
+      </ol>
 
       <button class="welcome-cta" id="welcome-cta">Get started</button>
     </div>
