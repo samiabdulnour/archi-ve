@@ -828,7 +828,31 @@
 
 
     /* ============ GALLERY ============ */
-    #view-gallery { padding: 0 0 2rem; }
+    /* Paper-and-ink theme, pinned regardless of system color scheme so the
+       gallery reads like the printed-monograph contents page from the design.
+       The detail view does the same trick a few sections below. */
+    #view-gallery {
+      --bg:           #F2EEE6;
+      --bg-elev:      #FFFFFF;
+      --bg-elev-2:    #EAE5DC;
+      --bg-input:     #FFFFFF;
+      --text:         #0F0F0E;
+      --text-muted:   rgba(15,15,14,0.62);
+      --text-faint:   rgba(15,15,14,0.38);
+      --border:       rgba(15,15,14,0.10);
+      --border-strong:rgba(15,15,14,0.32);
+      --accent:       #0F0F0E;
+      --accent-ink:   #F2EEE6;
+      --pill-bg:      rgba(15,15,14,0.06);
+      --pill-active-bg: #0F0F0E;
+      --pill-active-text: #F2EEE6;
+      background: #F2EEE6;
+      color: #0F0F0E;
+      padding: 0 0 2rem;
+    }
+    #view-gallery .gallery-header {
+      background: rgba(242,238,230,0.85);
+    }
 
     .gallery-header {
       display: flex;
@@ -875,13 +899,15 @@
       font-family: var(--font-mono);
       color: var(--text-faint);
       font-size: 0.78rem;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
     }
 
     .photo-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 2px;
-      padding: 0 2px;
+      gap: 3px;
+      padding: 0 3px;
     }
 
     .photo-grid .tile {
@@ -890,6 +916,7 @@
       background: var(--bg-elev-2);
       cursor: pointer;
       overflow: hidden;
+      border-radius: 2px;
     }
 
     .photo-grid img {
@@ -898,6 +925,28 @@
       object-fit: cover;
       display: block;
     }
+
+    /* Corner dots — yellow for project, red for fully untagged.
+       The only colored bits in the gallery: quietness is the default. */
+    .gallery-body .tile-dot {
+      position: absolute;
+      width: 7px; height: 7px;
+      border-radius: 999px;
+      pointer-events: none;
+    }
+    .gallery-body .tile-dot-project {
+      top: 6px; left: 6px;
+      background: #F2E961;
+      box-shadow: 0 0 0 1.5px rgba(15,15,14,0.4);
+    }
+    .gallery-body .tile-dot-untagged {
+      top: 6px; right: 6px;
+      background: #FF5A4D;
+      box-shadow: 0 0 0 1.5px rgba(255,255,255,0.85);
+    }
+    /* In selection mode the check rides in the same corner as the untagged
+       dot — hide both dots while selecting so nothing collides. */
+    .gallery-body.selecting .tile-dot { display: none; }
 
     /* ---- Lens switcher (Time / Project / Typology / Map) ---- */
     .gal-lens-tabs {
@@ -1141,8 +1190,8 @@
     .gal-strip .tile {
       position: relative;
       flex-shrink: 0;
-      width: 88px;
-      height: 88px;
+      width: 84px;
+      height: 84px;
       background: var(--bg-elev-2);
       border-radius: 2px;
       overflow: hidden;
@@ -4148,7 +4197,9 @@
 
     // Build a tile element for a record. Tiles are reused by every lens, and
     // the tile-level selection / openDetail behavior is the same everywhere.
-    function buildPhotoTile(rec, opts = {}) {
+    // Status dots replace the old letter type-badge: yellow corner = project,
+    // red corner = fully untagged, nothing = a normal reference photo.
+    function buildPhotoTile(rec) {
       const tile = document.createElement('div');
       tile.className = 'tile';
       if (selectedIds.has(rec.id)) tile.classList.add('selected');
@@ -4158,12 +4209,19 @@
       objectUrls.push(url);
       img.src = url;
       tile.appendChild(img);
-      if (opts.badge !== false) {
-        const badge = document.createElement('span');
-        badge.className = 'type-badge';
-        badge.textContent = (rec.tags_human.type || '?').slice(0, 1).toUpperCase();
-        tile.appendChild(badge);
+
+      const t = rec.tags_human || {};
+      if (t.project) {
+        const d = document.createElement('span');
+        d.className = 'tile-dot tile-dot-project';
+        tile.appendChild(d);
       }
+      if (!t.type && !t.project) {
+        const d = document.createElement('span');
+        d.className = 'tile-dot tile-dot-untagged';
+        tile.appendChild(d);
+      }
+
       const check = document.createElement('span');
       check.className = 'tile-check';
       tile.appendChild(check);
@@ -4473,7 +4531,7 @@
         row.appendChild(head);
         const strip = document.createElement('div');
         strip.className = 'gal-strip';
-        b.recs.slice(0, 12).forEach(rec => strip.appendChild(buildPhotoTile(rec, { badge: false })));
+        b.recs.slice(0, 12).forEach(rec => strip.appendChild(buildPhotoTile(rec)));
         row.appendChild(strip);
         body.appendChild(row);
       });
@@ -4567,7 +4625,7 @@
         const strip = document.createElement('div');
         strip.className = 'gal-strip';
         c.recs.slice().sort((a,b) => b.created_at - a.created_at)
-          .forEach(rec => strip.appendChild(buildPhotoTile(rec, { badge: false })));
+          .forEach(rec => strip.appendChild(buildPhotoTile(rec)));
         row.appendChild(strip);
         body.appendChild(row);
       });
@@ -4586,7 +4644,7 @@
         row.appendChild(head);
         const strip = document.createElement('div');
         strip.className = 'gal-strip';
-        unlocated.slice(0, 24).forEach(rec => strip.appendChild(buildPhotoTile(rec, { badge: false })));
+        unlocated.slice(0, 24).forEach(rec => strip.appendChild(buildPhotoTile(rec)));
         row.appendChild(strip);
         body.appendChild(row);
       }
