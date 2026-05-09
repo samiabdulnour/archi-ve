@@ -1008,7 +1008,11 @@
       border-bottom: 1px solid var(--border);
       margin-bottom: 0.5rem;
       align-items: center;
+      overflow-x: auto;
+      scrollbar-width: none;
+      white-space: nowrap;
     }
+    .gal-lens-tabs::-webkit-scrollbar { display: none; }
     .gal-lens-tab {
       position: relative;
       background: transparent;
@@ -1019,6 +1023,7 @@
       letter-spacing: -0.005em;
       border: 0;
       cursor: pointer;
+      flex-shrink: 0;
     }
     .gal-lens-tab.active {
       color: var(--text);
@@ -1067,6 +1072,78 @@
       color: var(--text-faint);
       font-size: 0.82rem;
       font-variant-numeric: tabular-nums;
+    }
+
+    /* ---- Time lens scrubber: thin paper rule on the right edge,
+       year ticks at band offsets, ink bullet + pill thumb tracks scroll. ---- */
+    .gal-scrubber {
+      position: fixed;
+      top: 100px;
+      right: 0;
+      bottom: 20px;
+      width: 28px;
+      z-index: 9;
+      pointer-events: none;
+    }
+    .gal-scrubber .scrubber-rail {
+      position: absolute;
+      top: 0; bottom: 0;
+      left: 50%;
+      width: 1px;
+      background: rgba(15,15,14,0.18);
+    }
+    .gal-scrubber .scrubber-tick {
+      position: absolute;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 9px; height: 1px;
+    }
+    .gal-scrubber .tick-mark {
+      position: absolute;
+      inset: 0;
+      background: #0F0F0E;
+    }
+    .gal-scrubber .tick-label {
+      position: absolute;
+      right: 9px;
+      top: 50%;
+      transform: translateY(-50%);
+      padding-right: 5px;
+      font-size: 0.62rem;
+      color: rgba(15,15,14,0.62);
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.005em;
+      white-space: nowrap;
+    }
+    .gal-scrubber .scrubber-thumb {
+      position: absolute;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 7px; height: 7px;
+      transition: top 0.05s linear;
+    }
+    .gal-scrubber .thumb-bullet {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: #0F0F0E;
+      box-shadow: 0 0 0 3px #F2EEE6;
+    }
+    .gal-scrubber .thumb-pill {
+      position: absolute;
+      right: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #0F0F0E;
+      color: #F2EEE6;
+      padding: 4px 7px;
+      border-radius: 6px;
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
     }
 
     /* ---- Time lens — month bands ---- */
@@ -2290,12 +2367,16 @@
       <button class="gal-search-close" id="gal-search-close" aria-label="Close search">&times;</button>
     </div>
 
-    <!-- Lens switcher: Time · Project · Typology · Map share the same axis. -->
+    <!-- Lens switcher: Time · Project · References · Element · Graphic · Map.
+         Six tabs may not fit at 390px wide — the row scrolls horizontally
+         when needed; the active tab carries the ink underline. -->
     <nav class="gal-lens-tabs" id="gal-lens-tabs" role="tablist">
-      <button class="gal-lens-tab active" data-lens="time"     role="tab">Time</button>
-      <button class="gal-lens-tab"        data-lens="project"  role="tab">Project</button>
-      <button class="gal-lens-tab"        data-lens="typology" role="tab">Typology</button>
-      <button class="gal-lens-tab"        data-lens="map"      role="tab">Map</button>
+      <button class="gal-lens-tab active" data-lens="time"       role="tab">Time</button>
+      <button class="gal-lens-tab"        data-lens="project"    role="tab">Project</button>
+      <button class="gal-lens-tab"        data-lens="references" role="tab">References</button>
+      <button class="gal-lens-tab"        data-lens="element"    role="tab">Element</button>
+      <button class="gal-lens-tab"        data-lens="graphic"    role="tab">Graphic</button>
+      <button class="gal-lens-tab"        data-lens="map"        role="tab">Map</button>
     </nav>
 
     <!-- Active filter summary (shown only when a filter is set) -->
@@ -2304,6 +2385,10 @@
     <div id="count"></div>
     <div id="gallery-body" class="gallery-body"></div>
     <p id="empty" class="empty-state" hidden>No photos yet.</p>
+
+    <!-- Right-edge year scrubber (Time lens only). Year ticks distributed by
+         band offset, ink bullet thumb tracks scroll, pill follows the thumb. -->
+    <aside class="gal-scrubber" id="gal-scrubber" hidden></aside>
 
     <!-- Bottom action bar shown only in selection mode -->
     <div class="gal-action-bar" id="gal-action-bar" hidden>
@@ -2437,7 +2522,7 @@
     let captureStep = null;       // current step name
     let captureBackStack = [];    // history of steps visited (for back button)
 
-    let activeFilters = { type: 'all', search: '', project: null, lens: 'time', projectTab: 'projects' };
+    let activeFilters = { type: 'all', search: '', project: null, lens: 'time', referencesTab: 'typology' };
     let currentDetailId = null;
     let currentDetailRecord = null;
     let objectUrls = [];
@@ -2680,6 +2765,10 @@
       } else {
         stopCameraStream();
         closeProjectPopup();
+      }
+      // The fixed-position scrubber would otherwise float over other views.
+      if (name !== 'gallery' && typeof teardownTimeScrubber === 'function') {
+        teardownTimeScrubber();
       }
     }
 
@@ -4476,10 +4565,15 @@
       body.classList.toggle('selecting', selectionMode);
 
       const lens = activeFilters.lens;
-      if      (lens === 'time')     renderLensTime(body, filtered);
-      else if (lens === 'project')  await renderLensProject(body, filtered, all);
-      else if (lens === 'typology') renderLensTypology(body, filtered);
-      else if (lens === 'map')      renderLensMap(body, filtered);
+      // Tear down the scrubber whenever the lens changes; renderLensTime
+      // re-installs it from scratch.
+      teardownTimeScrubber();
+      if      (lens === 'time')       renderLensTime(body, filtered);
+      else if (lens === 'project')    renderLensProject(body, filtered);
+      else if (lens === 'references') renderLensReferences(body, filtered);
+      else if (lens === 'element')    renderLensElement(body, filtered);
+      else if (lens === 'graphic')    renderLensGraphic(body, filtered);
+      else if (lens === 'map')        renderLensMap(body, filtered);
 
       // Body-level count line ("12 of 47 photos") only shows when a filter
       // narrows things; otherwise the header meta carries the total.
@@ -4525,6 +4619,7 @@
         }
         buckets.get(key).recs.push(r);
       });
+      const bandList = [];
       order.forEach(key => {
         const b = buckets.get(key);
         const band = document.createElement('div');
@@ -4544,153 +4639,157 @@
         b.recs.forEach(rec => grid.appendChild(buildPhotoTile(rec)));
         band.appendChild(grid);
         body.appendChild(band);
+        bandList.push({ y: b.y, m: b.m, count: b.recs.length, el: band });
       });
+      // Hand the band list to the scrubber after the DOM has settled.
+      requestAnimationFrame(() => setupTimeScrubber(bandList));
+    }
+
+    // ---------- Time scrubber ----------
+    let scrubberCleanup = null;
+    function teardownTimeScrubber() {
+      if (scrubberCleanup) { scrubberCleanup(); scrubberCleanup = null; }
+      const el = document.getElementById('gal-scrubber');
+      if (el) { el.hidden = true; el.innerHTML = ''; }
+    }
+
+    function setupTimeScrubber(bands) {
+      teardownTimeScrubber();
+      const scrubber = document.getElementById('gal-scrubber');
+      if (!scrubber || !bands || bands.length === 0) return;
+      // Selection mode shows a fixed bottom action bar that would overlap.
+      if (selectionMode) return;
+
+      // Find first band of each year (newest year is at the top).
+      const yearMarkers = [];
+      let lastYear = null;
+      bands.forEach(b => {
+        if (b.y !== lastYear) { yearMarkers.push(b); lastYear = b.y; }
+      });
+
+      const rail = document.createElement('div');
+      rail.className = 'scrubber-rail';
+      scrubber.appendChild(rail);
+
+      const thumb = document.createElement('div');
+      thumb.className = 'scrubber-thumb';
+      thumb.innerHTML = `<span class="thumb-pill"></span><span class="thumb-bullet"></span>`;
+      rail.appendChild(thumb);
+      const pillEl = thumb.querySelector('.thumb-pill');
+
+      const tickEls = [];
+      yearMarkers.forEach(m => {
+        const tick = document.createElement('div');
+        tick.className = 'scrubber-tick';
+        tick.innerHTML = `<span class="tick-mark"></span><span class="tick-label">'${String(m.y).slice(-2)}</span>`;
+        rail.appendChild(tick);
+        tickEls.push({ tick, band: m });
+      });
+
+      function positionTicks() {
+        // Distribute ticks proportionally to each year's band offset within
+        // the gallery body's total scrollable range.
+        const first = bands[0].el;
+        const last = bands[bands.length - 1].el;
+        const top = first.offsetTop;
+        const bottom = last.offsetTop + last.offsetHeight;
+        const total = Math.max(1, bottom - top);
+        tickEls.forEach(({ tick, band }) => {
+          const pct = ((band.el.offsetTop - top) / total) * 100;
+          tick.style.top = pct + '%';
+        });
+      }
+
+      function update() {
+        const docH = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = docH > 0 ? Math.max(0, Math.min(1, window.scrollY / docH)) : 0;
+        thumb.style.top = (progress * 100) + '%';
+        // Find the band whose top is just above the viewport top.
+        let current = bands[0];
+        for (const b of bands) {
+          const t = b.el.getBoundingClientRect().top;
+          if (t < 80) current = b; else break;
+        }
+        pillEl.textContent =
+          `${MONTH_NAMES[current.m]} '${String(current.y).slice(-2)} · ${current.count}`;
+      }
+
+      scrubber.hidden = false;
+      positionTicks();
+      update();
+
+      window.addEventListener('scroll',  update, { passive: true });
+      window.addEventListener('resize',  positionTicks);
+      scrubberCleanup = () => {
+        window.removeEventListener('scroll', update);
+        window.removeEventListener('resize', positionTicks);
+      };
     }
 
     // ---------- Lens: PROJECT ----------
-    // Two sub-tabs:
-    //   Projects    — one cover card per project (latest photo as cover).
-    //                 Tap → set project filter and switch to Time lens.
-    //   References  — every photo with no project assigned, year-grouped.
-    async function renderLensProject(body, recs, all) {
-      // Sub-tab strip
-      const sub = document.createElement('nav');
-      sub.className = 'gal-subtabs';
-      const projTab = document.createElement('button');
-      projTab.className = 'gal-subtab' + (activeFilters.projectTab === 'projects' ? ' active' : '');
-      projTab.textContent = 'Projects';
-      const refTab = document.createElement('button');
-      refTab.className = 'gal-subtab' + (activeFilters.projectTab === 'references' ? ' active' : '');
-      refTab.textContent = 'References';
-      const spacer = document.createElement('span');
-      spacer.className = 'spacer';
-      const cnt = document.createElement('span');
-      cnt.className = 'count';
-
-      // Build project buckets from the FILTERED set so search narrows them.
-      const projBuckets = new Map();
-      const refRecs = [];
+    // Cover-led browse hub. One card per project; tap → monograph page.
+    function renderLensProject(body, recs) {
+      const buckets = new Map();
       recs.forEach(r => {
         const p = r.tags_human && r.tags_human.project;
-        if (p) {
-          if (!projBuckets.has(p)) projBuckets.set(p, []);
-          projBuckets.get(p).push(r);
-        } else {
-          refRecs.push(r);
-        }
+        if (!p) return;
+        if (!buckets.has(p)) buckets.set(p, []);
+        buckets.get(p).push(r);
       });
-      cnt.textContent = activeFilters.projectTab === 'projects'
-        ? String(projBuckets.size)
-        : String(refRecs.length);
-
-      projTab.addEventListener('click', () => {
-        if (activeFilters.projectTab === 'projects') return;
-        activeFilters.projectTab = 'projects';
-        renderGallery();
+      const arr = [...buckets.entries()].sort((a, b) => {
+        const aMax = Math.max(...a[1].map(r => r.created_at));
+        const bMax = Math.max(...b[1].map(r => r.created_at));
+        return bMax - aMax;
       });
-      refTab.addEventListener('click', () => {
-        if (activeFilters.projectTab === 'references') return;
-        activeFilters.projectTab = 'references';
-        renderGallery();
-      });
-      sub.appendChild(projTab);
-      sub.appendChild(refTab);
-      sub.appendChild(spacer);
-      sub.appendChild(cnt);
-      body.appendChild(sub);
-
-      if (activeFilters.projectTab === 'projects') {
-        const list = document.createElement('div');
-        list.className = 'gal-project-list';
-        // Sort projects by most-recent photo first.
-        const arr = [...projBuckets.entries()].sort((a, b) => {
-          const aMax = Math.max(...a[1].map(r => r.created_at));
-          const bMax = Math.max(...b[1].map(r => r.created_at));
-          return bMax - aMax;
-        });
-        if (arr.length === 0) {
-          const empty = document.createElement('p');
-          empty.className = 'empty-state';
-          empty.style.padding = '2rem 1rem';
-          empty.textContent = 'No projects yet.';
-          list.appendChild(empty);
-        }
-        arr.forEach(([name, rs]) => {
-          const card = document.createElement('div');
-          card.className = 'gal-project-card';
-          const cover = document.createElement('div');
-          cover.className = 'gal-project-cover';
-          // Pick the most recent photo as the cover.
-          const top = rs.slice().sort((a,b) => b.created_at - a.created_at)[0];
-          if (top) {
-            const img = document.createElement('img');
-            const url = URL.createObjectURL(top.blob);
-            objectUrls.push(url);
-            img.src = url;
-            cover.appendChild(img);
-          } else {
-            cover.classList.add('empty');
-            cover.textContent = '—';
-          }
-          const dot = document.createElement('span');
-          dot.className = 'gal-project-dot';
-          cover.appendChild(dot);
-          const cap = document.createElement('div');
-          cap.className = 'gal-project-cap';
-          cap.innerHTML = `
-            <span class="gal-project-name"></span>
-            <span class="gal-project-count"></span>
-          `;
-          cap.querySelector('.gal-project-name').textContent = name;
-          cap.querySelector('.gal-project-count').textContent = rs.length;
-          // Date range
-          const ts = rs.map(r => r.created_at);
-          const lo = new Date(Math.min(...ts));
-          const hi = new Date(Math.max(...ts));
-          const dateRange = formatDateRange(lo, hi);
-          const dates = document.createElement('div');
-          dates.className = 'gal-project-dates';
-          dates.textContent = dateRange;
-          card.appendChild(cover);
-          card.appendChild(cap);
-          card.appendChild(dates);
-          card.addEventListener('click', () => {
-            // Tap a project card → open the dedicated monograph-style page.
-            openProjectDetail(name);
-          });
-          list.appendChild(card);
-        });
-        body.appendChild(list);
-      } else {
-        // References — photos with no project, year-grouped, 3-col grid.
-        if (refRecs.length === 0) {
-          const empty = document.createElement('p');
-          empty.className = 'empty-state';
-          empty.style.padding = '2rem 1rem';
-          empty.textContent = 'Nothing yet.';
-          body.appendChild(empty);
-          return;
-        }
-        const byYear = new Map();
-        const yearOrder = [];
-        refRecs.forEach(r => {
-          const y = new Date(r.created_at).getFullYear();
-          if (!byYear.has(y)) { byYear.set(y, []); yearOrder.push(y); }
-          byYear.get(y).push(r);
-        });
-        const thisYear = new Date().getFullYear();
-        yearOrder.forEach(y => {
-          const head = document.createElement('div');
-          head.className = 'gal-section-head';
-          const label = y === thisYear ? `${y} · so far` : `${y}`;
-          head.innerHTML = `${label}<span class="num">${byYear.get(y).length}</span>`;
-          body.appendChild(head);
-          const grid = document.createElement('div');
-          grid.className = 'photo-grid';
-          byYear.get(y).forEach(rec => grid.appendChild(buildPhotoTile(rec)));
-          body.appendChild(grid);
-        });
+      if (arr.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'empty-state';
+        empty.style.padding = '2rem 1rem';
+        empty.textContent = 'No projects yet.';
+        body.appendChild(empty);
+        return;
       }
+      const list = document.createElement('div');
+      list.className = 'gal-project-list';
+      arr.forEach(([name, rs]) => {
+        const card = document.createElement('div');
+        card.className = 'gal-project-card';
+        const cover = document.createElement('div');
+        cover.className = 'gal-project-cover';
+        const top = rs.slice().sort((a,b) => b.created_at - a.created_at)[0];
+        if (top) {
+          const img = document.createElement('img');
+          const url = URL.createObjectURL(top.blob);
+          objectUrls.push(url);
+          img.src = url;
+          cover.appendChild(img);
+        } else {
+          cover.classList.add('empty');
+          cover.textContent = '—';
+        }
+        const dot = document.createElement('span');
+        dot.className = 'gal-project-dot';
+        cover.appendChild(dot);
+        const cap = document.createElement('div');
+        cap.className = 'gal-project-cap';
+        cap.innerHTML = `
+          <span class="gal-project-name"></span>
+          <span class="gal-project-count"></span>
+        `;
+        cap.querySelector('.gal-project-name').textContent = name;
+        cap.querySelector('.gal-project-count').textContent = rs.length;
+        const ts = rs.map(r => r.created_at);
+        const dateRange = formatDateRange(new Date(Math.min(...ts)), new Date(Math.max(...ts)));
+        const dates = document.createElement('div');
+        dates.className = 'gal-project-dates';
+        dates.textContent = dateRange;
+        card.appendChild(cover);
+        card.appendChild(cap);
+        card.appendChild(dates);
+        card.addEventListener('click', () => openProjectDetail(name));
+        list.appendChild(card);
+      });
+      body.appendChild(list);
     }
 
     function formatDateRange(lo, hi) {
@@ -4876,70 +4975,38 @@
       }
     });
 
-    // ---------- Lens: TYPOLOGY ----------
-    // Each typology row gets a numbered head and a horizontal photo strip.
-    // Tap the row head → set type=building + typology + switch to Time lens.
-    // The Element-type photos and Graphic-type photos get their own rows at
-    // the end so Materials and Graphic kinds also have a place here.
-    function renderLensTypology(body, recs) {
-      const buckets = new Map();
-      const order = [];
-      const push = (key, rec) => {
-        if (!buckets.has(key)) {
-          buckets.set(key, { key, recs: [] });
-          order.push(key);
-        }
-        buckets.get(key).recs.push(rec);
-      };
-      recs.forEach(rec => {
-        const t = rec.tags_human || {};
-        if (t.type === 'building' && t.typology) push('typology:' + t.typology, rec);
-        else if (t.type === 'element' && t.material) push('material:' + t.material, rec);
-        else if (t.type === 'graphic' && t.graphic_kind) {
-          const gk = (GRAPHIC_KINDS.find(g => g.id === t.graphic_kind) || {}).label || t.graphic_kind;
-          push('graphic:' + gk, rec);
-        } else if (t.type === 'building') push('typology:Other', rec);
-        else if (t.type === 'element')   push('material:Other', rec);
-        else if (t.type === 'graphic')   push('graphic:Other', rec);
-        else push('untagged:', rec);
-      });
-      // Sort buckets by count descending so the biggest piles surface first.
-      order.sort((a, b) => buckets.get(b).recs.length - buckets.get(a).recs.length);
-
-      if (order.length === 0) return;
-      order.forEach((key, i) => {
-        const b = buckets.get(key);
-        const [kind, name] = key.split(':');
+    // ---------- Shared: numbered-row index ----------
+    // Renders a typeset contents-page list: each row a numbered head + name +
+    // leader rule + count + arrow, with a horizontal photo strip below.
+    // Tapping a row narrows the gallery via the existing search pipeline and
+    // jumps to the Time lens.
+    function renderRowIndex(body, buckets, opts = {}) {
+      // buckets: Map<displayName, photo[]>
+      const arr = [...buckets.entries()].sort((a, b) => b[1].length - a[1].length);
+      if (arr.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'empty-state';
+        empty.style.padding = '2rem 1rem';
+        empty.textContent = opts.empty || 'Nothing yet.';
+        body.appendChild(empty);
+        return;
+      }
+      arr.forEach(([name, recs], i) => {
         const row = document.createElement('div');
         row.className = 'gal-typology-row';
         const head = document.createElement('div');
         head.className = 'gal-typology-head';
-        const niceLabel = name || (kind === 'untagged' ? 'Untagged' : '');
-        const kindBadge = kind === 'material' ? ' · Detail'
-                         : kind === 'graphic'  ? ' · Graphic'
-                         : kind === 'untagged' ? ''
-                         : '';
         head.innerHTML = `
           <span class="gal-typology-num">${String(i + 1).padStart(2, '0')}</span>
-          <span class="gal-typology-name">${niceLabel}<span style="color:var(--text-faint);font-size:0.7em;font-weight:500;letter-spacing:0;">${kindBadge}</span></span>
+          <span class="gal-typology-name"></span>
           <span class="gal-typology-rule"></span>
-          <span class="gal-typology-count">${b.recs.length}</span>
+          <span class="gal-typology-count">${recs.length}</span>
           <span class="gal-typology-arrow">→</span>
         `;
+        head.querySelector('.gal-typology-name').textContent = name;
         head.addEventListener('click', () => {
-          // Drop into Time lens, scoped by this row's bucket.
-          if (kind === 'typology') {
-            activeFilters.type = 'building';
-          } else if (kind === 'material') {
-            activeFilters.type = 'element';
-          } else if (kind === 'graphic') {
-            activeFilters.type = 'graphic';
-          }
-          // We don't have a typology / material / graphic-kind level filter
-          // in activeFilters — the existing search box already covers that.
-          // To narrow further, push the row's name into the search input so
-          // the existing search pipeline does the work.
-          if (kind !== 'untagged') {
+          if (opts.scopeType) activeFilters.type = opts.scopeType;
+          if (name && name !== 'Untagged') {
             const input = document.getElementById('search-input');
             input.value = name;
             activeFilters.search = name.toLowerCase();
@@ -4953,10 +5020,98 @@
         row.appendChild(head);
         const strip = document.createElement('div');
         strip.className = 'gal-strip';
-        b.recs.slice(0, 12).forEach(rec => strip.appendChild(buildPhotoTile(rec)));
+        recs.slice(0, 12).forEach(rec => strip.appendChild(buildPhotoTile(rec)));
         row.appendChild(strip);
         body.appendChild(row);
       });
+    }
+
+    function renderSubtabs(body, items, current, onPick) {
+      const sub = document.createElement('nav');
+      sub.className = 'gal-subtabs';
+      items.forEach(it => {
+        const b = document.createElement('button');
+        b.className = 'gal-subtab' + (current === it.id ? ' active' : '');
+        b.textContent = it.label;
+        b.addEventListener('click', () => { if (current !== it.id) onPick(it.id); });
+        sub.appendChild(b);
+      });
+      const spacer = document.createElement('span');
+      spacer.className = 'spacer';
+      sub.appendChild(spacer);
+      body.appendChild(sub);
+    }
+
+    // ---------- Lens: REFERENCES (buildings only) ----------
+    // Two sub-tabs: Typology (8 building types) and Concept (8 building-scale
+    // concepts). Both list numbered rows of the photos in that bucket.
+    function renderLensReferences(body, recs) {
+      const buildings = recs.filter(r => (r.tags_human || {}).type === 'building');
+      renderSubtabs(body,
+        [{ id: 'typology', label: 'Typology' }, { id: 'concept', label: 'Concept' }],
+        activeFilters.referencesTab,
+        id => { activeFilters.referencesTab = id; renderGallery(); }
+      );
+      const buckets = new Map();
+      if (activeFilters.referencesTab === 'concept') {
+        // Concepts are multi-valued per photo (t.concepts is an array).
+        buildings.forEach(r => {
+          const cs = (r.tags_human && r.tags_human.concepts) || [];
+          if (cs.length === 0) {
+            if (!buckets.has('Other')) buckets.set('Other', []);
+            buckets.get('Other').push(r);
+            return;
+          }
+          cs.forEach(cid => {
+            const m = CONCEPTS.find(c => c.id === cid);
+            const label = m ? m.label : cid;
+            if (!buckets.has(label)) buckets.set(label, []);
+            buckets.get(label).push(r);
+          });
+        });
+      } else {
+        buildings.forEach(r => {
+          const t = r.tags_human || {};
+          const k = t.typology || 'Other';
+          if (!buckets.has(k)) buckets.set(k, []);
+          buckets.get(k).push(r);
+        });
+      }
+      renderRowIndex(body, buckets, { scopeType: 'building', empty: 'No reference photos yet.' });
+    }
+
+    // ---------- Lens: ELEMENT (elements only) ----------
+    // Numbered rows by Material — the most visually distinctive axis for
+    // detail photos. The element_name (Column / Stair / etc.) lives in the
+    // detail view; this lens groups by what the surface is made of.
+    function renderLensElement(body, recs) {
+      const elements = recs.filter(r => (r.tags_human || {}).type === 'element');
+      const buckets = new Map();
+      elements.forEach(r => {
+        const t = r.tags_human || {};
+        const k = t.material || 'Other';
+        if (!buckets.has(k)) buckets.set(k, []);
+        buckets.get(k).push(r);
+      });
+      renderRowIndex(body, buckets, { scopeType: 'element', empty: 'No element photos yet.' });
+    }
+
+    // ---------- Lens: GRAPHIC (graphics only) ----------
+    // Numbered rows by graphic kind (Artwork, Book, Drawing, ...).
+    function renderLensGraphic(body, recs) {
+      const graphics = recs.filter(r => (r.tags_human || {}).type === 'graphic');
+      const buckets = new Map();
+      graphics.forEach(r => {
+        const t = r.tags_human || {};
+        let label = 'Other';
+        if (t.graphic_kind) {
+          const m = GRAPHIC_KINDS.find(g => g.id === t.graphic_kind);
+          label = m ? m.label : t.graphic_kind;
+        }
+        if (!buckets.has(label)) buckets.set(label, []);
+        buckets.get(label).push(r);
+      });
+      renderRowIndex(body, buckets, { scopeType: 'graphic', empty: 'No graphic photos yet.' });
     }
 
     // ---------- Lens: MAP ----------
