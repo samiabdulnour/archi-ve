@@ -887,6 +887,58 @@
     .search-input::placeholder { color: var(--text-faint); }
     .search-input:focus { outline: 2px solid var(--accent); }
 
+    /* Three-zone gallery header: left (back+search), center title, right (meta+filter+select).
+       Matches the design's "Archive  ·  667 · 2 YR" layout from Gallery at Scale. */
+    .gal-header {
+      justify-content: space-between;
+      gap: 0.4rem;
+      padding: 0.5rem 0.6rem;
+    }
+    .gal-header .back-btn {
+      font-size: 1.25rem;
+      padding: 0.15rem 0.35rem;
+    }
+    .gal-header .gal-header-left,
+    .gal-header .gal-header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      flex: 0 0 auto;
+    }
+    .gal-title {
+      flex: 1;
+      text-align: center;
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 500;
+      letter-spacing: -0.005em;
+      color: var(--text);
+    }
+    .gal-meta {
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-variant-numeric: tabular-nums;
+      margin-right: 0.15rem;
+      white-space: nowrap;
+    }
+    /* Search row drops in below the header when the search icon is tapped. */
+    .gal-search-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem 0.6rem;
+    }
+    .gal-search-close {
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 1.4rem;
+      line-height: 1;
+      padding: 0 0.2rem;
+    }
+
     .type-filter-row {
       display: flex;
       gap: 0.4rem;
@@ -1263,6 +1315,127 @@
       color: var(--text-muted);
       font-variant-numeric: tabular-nums;
     }
+
+    /* ---- Project detail page ---- */
+    /* The "monograph entry" layout from the design: square cover hero,
+       title block with eyebrow, leader-dotted typology stats, notes field,
+       Recent grid. Pinned to the same paper-and-ink palette as the gallery. */
+    #view-project-detail {
+      --bg:           #F2EEE6;
+      --bg-elev:      #FFFFFF;
+      --bg-elev-2:    #EAE5DC;
+      --text:         #0F0F0E;
+      --text-muted:   rgba(15,15,14,0.62);
+      --text-faint:   rgba(15,15,14,0.38);
+      --border:       rgba(15,15,14,0.10);
+      --accent:       #0F0F0E;
+      --accent-ink:   #F2EEE6;
+      background: #F2EEE6;
+      color: #0F0F0E;
+      padding: 0 0 2rem;
+    }
+    #view-project-detail .gallery-header {
+      background: rgba(242,238,230,0.85);
+    }
+    .pd-body {
+      padding: 0 14px 2rem;
+    }
+    .pd-cover {
+      width: 100%;
+      aspect-ratio: 1/1;
+      border-radius: 4px;
+      background: var(--bg-elev-2);
+      background-size: cover;
+      background-position: center;
+      margin-top: 6px;
+    }
+    .pd-title-block { padding: 18px 2px 10px; }
+    .pd-eyebrow {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-variant-numeric: tabular-nums;
+    }
+    .pd-eyebrow .pd-dot {
+      width: 7px; height: 7px;
+      border-radius: 999px;
+      background: #F2E961;
+      box-shadow: 0 0 0 1px rgba(15,15,14,0.4);
+    }
+    .pd-eyebrow .sep { color: var(--text-faint); }
+    .pd-title {
+      font-size: 1.85rem;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      margin: 8px 0 0;
+      color: var(--text);
+      line-height: 1.1;
+    }
+    .pd-subtitle {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-top: 6px;
+      letter-spacing: -0.005em;
+      font-variant-numeric: tabular-nums;
+    }
+    /* Typology stats — leader-dotted contents-page rows. */
+    .pd-stats {
+      padding: 14px 2px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .pd-stats .pd-stat {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 12px;
+      font-size: 0.88rem;
+      letter-spacing: -0.005em;
+    }
+    .pd-stats .pd-stat-name { color: var(--text); font-weight: 500; }
+    .pd-stats .pd-stat-rule {
+      flex: 1; height: 1px;
+      background: rgba(15,15,14,0.12);
+      transform: translateY(-3px);
+    }
+    .pd-stats .pd-stat-count {
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+      font-weight: 500;
+    }
+    .pd-section { padding: 18px 2px 10px; }
+    .pd-section-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .pd-notes-input {
+      width: 100%;
+      background: transparent;
+      color: var(--text);
+      border: 0;
+      resize: vertical;
+      min-height: 4.5em;
+      font-family: inherit;
+      font-size: 0.92rem;
+      line-height: 1.5;
+      letter-spacing: -0.005em;
+      padding: 0;
+    }
+    .pd-notes-input:focus { outline: 0; }
+    .pd-notes-input::placeholder { color: var(--text-faint); }
+    .pd-recent-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      padding: 0 2px 10px;
+    }
+    .pd-recent-head .label { font-size: 0.85rem; font-weight: 600; letter-spacing: -0.005em; }
+    .pd-recent-head .all   { font-size: 0.78rem; color: var(--text-faint); font-weight: 500; cursor: pointer; }
 
     /* Selection mode — works on tiles in any lens. */
     .gallery-body.selecting .tile-check { display: inline-flex; }
@@ -2082,16 +2255,27 @@
 
   <!-- ============ GALLERY ============ -->
   <section id="view-gallery" class="view">
-    <header class="gallery-header" id="gallery-header-default">
-      <button class="back-btn" data-goto="home">&larr;</button>
-      <input type="search" class="search-input" id="search-input" placeholder="Search (e.g. railing, school, colorful)">
-      <button class="gal-icon-btn" id="gal-filter-btn" aria-label="Filter">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path d="M3 5h14M5 10h10M8 15h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-        </svg>
-        <span class="gal-filter-dot" id="gal-filter-dot" hidden></span>
-      </button>
-      <button class="gal-select-btn" id="gal-select-btn">Select</button>
+    <header class="gallery-header gal-header" id="gallery-header-default">
+      <div class="gal-header-left">
+        <button class="back-btn" data-goto="home">&larr;</button>
+        <button class="gal-icon-btn" id="gal-search-toggle" aria-label="Search">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <circle cx="8" cy="8" r="5" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M12 12 L16 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <h1 class="gal-title">Archive</h1>
+      <div class="gal-header-right">
+        <span class="gal-meta" id="gal-meta"></span>
+        <button class="gal-icon-btn" id="gal-filter-btn" aria-label="Filter">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M5 10h10M8 15h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          <span class="gal-filter-dot" id="gal-filter-dot" hidden></span>
+        </button>
+        <button class="gal-select-btn" id="gal-select-btn">Select</button>
+      </div>
     </header>
 
     <header class="gallery-header" id="gallery-header-select" hidden>
@@ -2099,6 +2283,12 @@
       <span class="meta-date" id="gal-select-count">0 selected</span>
       <button class="gal-select-btn" id="gal-select-all">All</button>
     </header>
+
+    <!-- Search row: hidden by default, toggled by the magnifying-glass icon. -->
+    <div class="gal-search-row" id="gal-search-row" hidden>
+      <input type="search" class="search-input" id="search-input" placeholder="Search">
+      <button class="gal-search-close" id="gal-search-close" aria-label="Close search">&times;</button>
+    </div>
 
     <!-- Lens switcher: Time · Project · Typology · Map share the same axis. -->
     <nav class="gal-lens-tabs" id="gal-lens-tabs" role="tablist">
@@ -2139,6 +2329,25 @@
       </div>
       <button class="gal-sheet-done" id="gal-sheet-done">Done</button>
     </div>
+  </section>
+
+  <!-- ============ PROJECT DETAIL — monograph-entry layout ============ -->
+  <section id="view-project-detail" class="view">
+    <header class="gallery-header gal-header">
+      <div class="gal-header-left">
+        <button class="back-btn" id="proj-back">&larr;</button>
+      </div>
+      <h1 class="gal-title" id="proj-bar-title"></h1>
+      <div class="gal-header-right">
+        <button class="gal-icon-btn" id="proj-share" aria-label="Share">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M9 11 V2 M5 6 L9 2 L13 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 9 V14 a1 1 0 0 0 1 1 H14 a1 1 0 0 0 1 -1 V9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+    <div id="project-detail-body"></div>
   </section>
 
   <!-- ============ DETAIL / ENRICH ============ -->
@@ -3989,6 +4198,24 @@
       renderGallery();
     });
 
+    // Search row toggles open/closed via the magnifying-glass icon. Closing
+    // also clears the active query so the gallery reverts to "everything."
+    document.getElementById('gal-search-toggle').addEventListener('click', () => {
+      const row   = document.getElementById('gal-search-row');
+      const input = document.getElementById('search-input');
+      const opening = row.hidden;
+      row.hidden = !opening;
+      if (opening) setTimeout(() => input.focus(), 0);
+    });
+    document.getElementById('gal-search-close').addEventListener('click', () => {
+      const row   = document.getElementById('gal-search-row');
+      const input = document.getElementById('search-input');
+      input.value = '';
+      activeFilters.search = '';
+      row.hidden = true;
+      renderGallery();
+    });
+
     // ----- Gallery: filter sheet -----
     const TYPE_FILTERS = [
       { id: 'all',      label: 'All' },
@@ -4254,8 +4481,29 @@
       else if (lens === 'typology') renderLensTypology(body, filtered);
       else if (lens === 'map')      renderLensMap(body, filtered);
 
-      document.getElementById('count').textContent =
-        `${filtered.length}${all.length !== filtered.length ? ' of ' + all.length : ''} ${filtered.length === 1 ? 'photo' : 'photos'}`;
+      // Body-level count line ("12 of 47 photos") only shows when a filter
+      // narrows things; otherwise the header meta carries the total.
+      const countEl = document.getElementById('count');
+      if (all.length === filtered.length) {
+        countEl.textContent = '';
+        countEl.hidden = true;
+      } else {
+        countEl.hidden = false;
+        countEl.textContent =
+          `${filtered.length} of ${all.length} ${filtered.length === 1 ? 'photo' : 'photos'}`;
+      }
+
+      // Header meta: total count + year span (e.g. "47 · 2 YR"), matching the
+      // design's right-aligned "667 · 2 YR" treatment.
+      const metaEl = document.getElementById('gal-meta');
+      if (all.length === 0) {
+        metaEl.textContent = '';
+      } else {
+        const years = all.map(r => new Date(r.created_at).getFullYear());
+        const span = (Math.max(...years) - Math.min(...years)) + 1;
+        metaEl.textContent = `${all.length} · ${span} YR`;
+      }
+
       document.getElementById('empty').hidden = all.length !== 0;
     }
 
@@ -4407,12 +4655,8 @@
           card.appendChild(cap);
           card.appendChild(dates);
           card.addEventListener('click', () => {
-            // Tap a project card → drop into Time lens, scoped to that project.
-            activeFilters.project = name;
-            activeFilters.lens = 'time';
-            document.querySelectorAll('#gal-lens-tabs .gal-lens-tab')
-              .forEach(b => b.classList.toggle('active', b.dataset.lens === 'time'));
-            renderGallery();
+            // Tap a project card → open the dedicated monograph-style page.
+            openProjectDetail(name);
           });
           list.appendChild(card);
         });
@@ -4434,10 +4678,12 @@
           if (!byYear.has(y)) { byYear.set(y, []); yearOrder.push(y); }
           byYear.get(y).push(r);
         });
+        const thisYear = new Date().getFullYear();
         yearOrder.forEach(y => {
           const head = document.createElement('div');
           head.className = 'gal-section-head';
-          head.innerHTML = `${y}<span class="num">${byYear.get(y).length}</span>`;
+          const label = y === thisYear ? `${y} · so far` : `${y}`;
+          head.innerHTML = `${label}<span class="num">${byYear.get(y).length}</span>`;
           body.appendChild(head);
           const grid = document.createElement('div');
           grid.className = 'photo-grid';
@@ -4454,6 +4700,181 @@
       if (sameYear) return `${MONTH_NAMES[lo.getMonth()]} – ${MONTH_NAMES[hi.getMonth()]} ${lo.getFullYear()}`;
       return `${MONTH_NAMES[lo.getMonth()]} ${lo.getFullYear()} – ${MONTH_NAMES[hi.getMonth()]} ${hi.getFullYear()}`;
     }
+
+    // ---------- Project detail page ----------
+    // Per-project Notes live in localStorage. The capture flow stays gestural;
+    // these notes are the slow, second-pass surface — the kind of thing you
+    // write back at the studio.
+    const PROJECT_NOTES_KEY = 'archi-archive:project-notes';
+    function getProjectNotes(name) {
+      try {
+        const all = JSON.parse(localStorage.getItem(PROJECT_NOTES_KEY) || '{}');
+        return all[name] || '';
+      } catch { return ''; }
+    }
+    function setProjectNotes(name, value) {
+      try {
+        const all = JSON.parse(localStorage.getItem(PROJECT_NOTES_KEY) || '{}');
+        if (value) all[name] = value; else delete all[name];
+        localStorage.setItem(PROJECT_NOTES_KEY, JSON.stringify(all));
+      } catch {}
+    }
+
+    let currentProjectName = null;
+
+    async function openProjectDetail(name) {
+      currentProjectName = name;
+      await renderProjectDetail();
+      showView('project-detail');
+    }
+
+    async function renderProjectDetail() {
+      const name = currentProjectName;
+      if (!name) return;
+      const all = await dbGetAll();
+      const recs = all
+        .filter(r => r.tags_human && r.tags_human.project === name)
+        .sort((a, b) => b.created_at - a.created_at);
+
+      document.getElementById('proj-bar-title').textContent = name;
+
+      const body = document.getElementById('project-detail-body');
+      body.innerHTML = '';
+      const wrap = document.createElement('div');
+      wrap.className = 'pd-body';
+
+      // Hero — most recent photo as cover.
+      const hero = document.createElement('div');
+      hero.className = 'pd-cover';
+      if (recs[0]) {
+        const url = URL.createObjectURL(recs[0].blob);
+        objectUrls.push(url);
+        hero.style.backgroundImage = `url("${url}")`;
+      }
+      wrap.appendChild(hero);
+
+      // Title block — eyebrow with yellow project dot, title, count + visits.
+      const block = document.createElement('div');
+      block.className = 'pd-title-block';
+      const ts = recs.map(r => r.created_at);
+      let dateLine = '';
+      if (ts.length) {
+        dateLine = formatDateRange(new Date(Math.min(...ts)), new Date(Math.max(...ts)));
+      }
+      const visits = new Set(recs.map(r => new Date(r.created_at).toDateString())).size;
+      block.innerHTML = `
+        <div class="pd-eyebrow">
+          <span class="pd-dot"></span>
+          <span>Project</span>
+          <span class="sep">·</span>
+          <span>${dateLine}</span>
+        </div>
+        <h2 class="pd-title"></h2>
+        <div class="pd-subtitle">${recs.length} ${recs.length === 1 ? 'photo' : 'photos'}${visits ? ` · ${visits} site visit${visits === 1 ? '' : 's'}` : ''}</div>
+      `;
+      block.querySelector('.pd-title').textContent = name;
+      wrap.appendChild(block);
+
+      // Typology stats — leader-dotted contents-page rows.
+      // Buildings → typology, elements → "Detail" (plus material breakdown),
+      // graphics → graphic_kind label. Aggregated.
+      const counts = new Map();
+      recs.forEach(r => {
+        const t = r.tags_human || {};
+        let bucket = null;
+        if (t.type === 'building' && t.typology)         bucket = t.typology;
+        else if (t.type === 'building')                  bucket = 'Building';
+        else if (t.type === 'element')                   bucket = 'Detail';
+        else if (t.type === 'graphic' && t.graphic_kind) {
+          const m = GRAPHIC_KINDS.find(g => g.id === t.graphic_kind);
+          bucket = m ? m.label : 'Graphic';
+        } else if (t.type === 'graphic')                 bucket = 'Graphic';
+        else                                             bucket = 'Untagged';
+        counts.set(bucket, (counts.get(bucket) || 0) + 1);
+      });
+      if (counts.size > 0) {
+        const stats = document.createElement('div');
+        stats.className = 'pd-stats';
+        [...counts.entries()].sort((a, b) => b[1] - a[1]).forEach(([k, n]) => {
+          const row = document.createElement('div');
+          row.className = 'pd-stat';
+          row.innerHTML = `
+            <span class="pd-stat-name"></span>
+            <span class="pd-stat-rule"></span>
+            <span class="pd-stat-count">${n}</span>
+          `;
+          row.querySelector('.pd-stat-name').textContent = k;
+          stats.appendChild(row);
+        });
+        wrap.appendChild(stats);
+      }
+
+      // Notes — editable, stored per-project in localStorage.
+      const notes = document.createElement('div');
+      notes.className = 'pd-section';
+      notes.innerHTML = `
+        <div class="pd-section-label">Notes</div>
+        <textarea class="pd-notes-input" placeholder="Observations to come back to."></textarea>
+      `;
+      const ta = notes.querySelector('textarea');
+      ta.value = getProjectNotes(name);
+      ta.addEventListener('input', () => setProjectNotes(name, ta.value.trim()));
+      wrap.appendChild(notes);
+
+      // Recent grid — first 9 photos. Tap "See all" to drop into Time lens
+      // already filtered to this project (the older flow path).
+      if (recs.length > 0) {
+        const recent = document.createElement('div');
+        recent.className = 'pd-section';
+        const head = document.createElement('div');
+        head.className = 'pd-recent-head';
+        head.innerHTML = `<span class="label">Recent</span><span class="all">See all →</span>`;
+        head.querySelector('.all').addEventListener('click', () => {
+          activeFilters.project = name;
+          activeFilters.lens = 'time';
+          document.querySelectorAll('#gal-lens-tabs .gal-lens-tab')
+            .forEach(b => b.classList.toggle('active', b.dataset.lens === 'time'));
+          showView('gallery');
+          renderGallery();
+        });
+        recent.appendChild(head);
+        const grid = document.createElement('div');
+        grid.className = 'photo-grid gallery-body';
+        recs.slice(0, 9).forEach(rec => grid.appendChild(buildPhotoTile(rec)));
+        recent.appendChild(grid);
+        wrap.appendChild(recent);
+      }
+
+      body.appendChild(wrap);
+    }
+
+    // Wire the project-detail header buttons.
+    document.getElementById('proj-back').addEventListener('click', () => {
+      showView('gallery');
+    });
+    document.getElementById('proj-share').addEventListener('click', async () => {
+      // Share the project hero photo if Web Share API is available.
+      if (!currentProjectName) return;
+      const all = await dbGetAll();
+      const rec = all
+        .filter(r => r.tags_human && r.tags_human.project === currentProjectName)
+        .sort((a, b) => b.created_at - a.created_at)[0];
+      if (!rec) return;
+      try {
+        const ext = (rec.blob.type && rec.blob.type.split('/')[1]) || 'jpg';
+        const file = new File([rec.blob], `archi-${rec.id}.${ext}`,
+          { type: rec.blob.type || 'image/jpeg', lastModified: rec.created_at || Date.now() });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: currentProjectName });
+        } else if (navigator.share) {
+          await navigator.share({ title: currentProjectName });
+        } else {
+          toast('Sharing not supported on this browser');
+        }
+      } catch (err) {
+        if (err && err.name !== 'AbortError') toast('Share failed');
+      }
+    });
 
     // ---------- Lens: TYPOLOGY ----------
     // Each typology row gets a numbered head and a horizontal photo strip.
@@ -4522,6 +4943,7 @@
             const input = document.getElementById('search-input');
             input.value = name;
             activeFilters.search = name.toLowerCase();
+            document.getElementById('gal-search-row').hidden = false;
           }
           activeFilters.lens = 'time';
           document.querySelectorAll('#gal-lens-tabs .gal-lens-tab')
