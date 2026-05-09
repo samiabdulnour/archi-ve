@@ -8,6 +8,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Leaflet (used by the gallery's Map lens). Loaded from a CDN; this is the
+       one external runtime dependency in the app. When we move to a native
+       wrapper this will be swapped for MapKit. -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin="">
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+          crossorigin=""></script>
   <title>archi-archive</title>
   <style>
     /* ============ THEME — paper & ink, with mode-color accents ============ */
@@ -1351,18 +1360,34 @@
     .gal-map-plot {
       position: relative;
       margin: 0.6rem 1rem 1rem;
-      height: 180px;
+      height: 300px;
       background: var(--bg-elev);
       border: 1px solid var(--border);
       border-radius: 8px;
       overflow: hidden;
       color: var(--accent);
     }
-    .gal-map-plot svg {
-      width: 100%; height: 100%; display: block;
+    .gal-map-plot .leaflet-container {
+      width: 100%; height: 100%;
+      background: var(--bg-elev);
+      font-family: inherit;
+      font-size: 0.78rem;
     }
-    .gal-map-plot .axis {
-      stroke: var(--border);
+    /* Cluster pins — drawn as circleMarkers, but the popup chrome needs to
+       match the rest of the theme. */
+    .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+      background: var(--bg-elev);
+      color: var(--text);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+    }
+    .leaflet-popup-content { margin: 0.55rem 0.7rem; line-height: 1.35; }
+    .leaflet-control-attribution {
+      background: rgba(255,255,255,0.78) !important;
+      font-size: 0.62rem !important;
+    }
+    @media (prefers-color-scheme: dark) {
+      .leaflet-control-attribution { background: rgba(15,15,14,0.7) !important; }
+      .leaflet-control-attribution a { color: var(--text-muted) !important; }
     }
     .gal-map-empty {
       padding: 1.2rem 1rem;
@@ -1394,6 +1419,15 @@
       letter-spacing: -0.01em;
       color: var(--text);
       font-variant-numeric: tabular-nums;
+      text-decoration: none;
+    }
+    a.gal-place-name:hover { text-decoration: underline; }
+    .gal-place-row.flash {
+      animation: gal-place-flash 1.1s ease-out;
+    }
+    @keyframes gal-place-flash {
+      0%   { background: var(--bg-elev-2); }
+      100% { background: transparent; }
     }
     .gal-place-rule {
       flex: 1;
@@ -2788,6 +2822,9 @@
       // The fixed-position scrubber would otherwise float over other views.
       if (name !== 'gallery' && typeof teardownTimeScrubber === 'function') {
         teardownTimeScrubber();
+      }
+      if (name !== 'gallery' && typeof teardownMap === 'function') {
+        teardownMap();
       }
     }
 
@@ -4585,8 +4622,10 @@
 
       const lens = activeFilters.lens;
       // Tear down the scrubber whenever the lens changes; renderLensTime
-      // re-installs it from scratch.
+      // re-installs it from scratch. Same story for the Leaflet map — the
+      // container element is about to be discarded by innerHTML='' above.
       teardownTimeScrubber();
+      teardownMap();
       if      (lens === 'time')      renderLensTime(body, filtered);
       else if (lens === 'reference') renderLensReference(body, filtered);
       else if (lens === 'project')   renderLensProject(body, filtered);
@@ -4668,6 +4707,18 @@
       if (scrubberCleanup) { scrubberCleanup(); scrubberCleanup = null; }
       const el = document.getElementById('gal-scrubber');
       if (el) { el.hidden = true; el.innerHTML = ''; }
+    }
+
+    // ---------- Map (Leaflet) lifecycle ----------
+    // Leaflet attaches listeners to window/document; if we drop its container
+    // without calling .remove() those listeners leak and zoom/drag breaks the
+    // next time the lens is opened.
+    let mapInstance = null;
+    function teardownMap() {
+      if (mapInstance) {
+        try { mapInstance.remove(); } catch (e) { /* container already gone */ }
+        mapInstance = null;
+      }
     }
 
     function setupTimeScrubber(bands) {
@@ -5162,23 +5213,25 @@
     }
 
     // ---------- Lens: MAP ----------
-    // No external tile service (CLAUDE.md: "no external CDNs unless necessary").
-    // Instead: a simple SVG scatter plot, normalized to the bounding box of
-    // photos that have GPS, plus a list of clustered places below with
-    // horizontal photo strips. Photos with no GPS go into a "No location"
-    // group at the end.
+    // Real tiles via Leaflet + OpenStreetMap. The map auto-fits to the
+    // bounding box of GPS-tagged photos and drops a circle marker per
+    // cluster (clustering is still useful — it dedupes pins at the same
+    // street and gives the place rows below a sensible grouping).
+    // Photos without GPS go into a "No location" group at the end.
     function renderLensMap(body, recs) {
       const located = recs.filter(r => r.location && r.location.lat != null && r.location.lng != null);
       const unlocated = recs.filter(r => !(r.location && r.location.lat != null && r.location.lng != null));
 
       if (located.length === 0 && unlocated.length === 0) return;
 
-      // Cluster located photos by 0.1° cells (~11 km).
+      // Cluster located photos by 0.01° cells (~1 km). Tighter than the old
+      // ~11 km grouping so that, for example, two different museums in the
+      // same city don't collapse into one pin.
       const cells = new Map();
       const cellOrder = [];
       located.forEach(r => {
-        const cellLat = Math.round(r.location.lat * 10) / 10;
-        const cellLng = Math.round(r.location.lng * 10) / 10;
+        const cellLat = Math.round(r.location.lat * 100) / 100;
+        const cellLng = Math.round(r.location.lng * 100) / 100;
         const key = cellLat + ',' + cellLng;
         if (!cells.has(key)) {
           cells.set(key, { lat: cellLat, lng: cellLng, recs: [] });
@@ -5188,41 +5241,73 @@
       });
       cellOrder.sort((a, b) => cells.get(b).recs.length - cells.get(a).recs.length);
 
-      // SVG scatter — only useful when there are at least 1 GPS-tagged photo.
       if (located.length > 0) {
-        const lats = located.map(r => r.location.lat);
-        const lngs = located.map(r => r.location.lng);
-        const latMin = Math.min(...lats), latMax = Math.max(...lats);
-        const lngMin = Math.min(...lngs), lngMax = Math.max(...lngs);
-        const latPad = (latMax - latMin) * 0.15 || 0.1;
-        const lngPad = (lngMax - lngMin) * 0.15 || 0.1;
-        const lo = latMin - latPad, hi = latMax + latPad;
-        const lf = lngMin - lngPad, rg = lngMax + lngPad;
-        const W = 100, H = 60;
-        const norm = (lat, lng) => {
-          const x = ((lng - lf) / (rg - lf || 1)) * W;
-          const y = H - ((lat - lo) / (hi - lo || 1)) * H;
-          return [x, y];
+        const mapEl = document.createElement('div');
+        mapEl.className = 'gal-map-plot';
+        mapEl.id = 'gal-leaflet';
+        body.appendChild(mapEl);
+
+        const initMap = () => {
+          if (typeof L === 'undefined') {
+            // Leaflet hasn't finished loading yet — try again shortly. The
+            // <script> tag is `defer`, so on first gallery open this can race.
+            setTimeout(initMap, 80);
+            return;
+          }
+          // If something already rendered (rare double-init), drop it.
+          teardownMap();
+
+          const map = L.map(mapEl, {
+            zoomControl: true,
+            attributionControl: true,
+            // Tap-and-drag is fine, but a touch-only flick should still be
+            // able to scroll the page past the map. Leaflet's defaults handle
+            // this acceptably on iOS Safari.
+          });
+          mapInstance = map;
+
+          L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          }).addTo(map);
+
+          // One circle marker per cluster, sized by photo count. Tapping a
+          // marker scrolls to the matching place row below the map.
+          cellOrder.forEach((k) => {
+            const c = cells.get(k);
+            const radius = Math.max(7, Math.min(20, Math.sqrt(c.recs.length) * 3 + 6));
+            const marker = L.circleMarker([c.lat, c.lng], {
+              radius,
+              color: '#ffffff',
+              weight: 2,
+              fillColor: '#bf3f3f',
+              fillOpacity: 0.9,
+            }).addTo(map);
+            marker.bindTooltip(
+              `${c.recs.length} ${c.recs.length === 1 ? 'photo' : 'photos'}`,
+              { direction: 'top', offset: [0, -radius] }
+            );
+            marker.on('click', () => {
+              const row = body.querySelector(`[data-place-key="${CSS.escape(k)}"]`);
+              if (row) {
+                row.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                row.classList.add('flash');
+                setTimeout(() => row.classList.remove('flash'), 1200);
+              }
+            });
+          });
+
+          const bounds = L.latLngBounds(located.map(r => [r.location.lat, r.location.lng]));
+          // Single-point case: fitBounds collapses to maxZoom; clamp to a
+          // sensible neighbourhood-level zoom so the user has context.
+          map.fitBounds(bounds, { padding: [24, 24], maxZoom: 13 });
+
+          // The container's pixel size isn't always known at construction
+          // time when it's just been inserted into a hidden tab; force a
+          // re-measure on the next frame.
+          requestAnimationFrame(() => map.invalidateSize());
         };
-        const dots = cellOrder.map(k => {
-          const c = cells.get(k);
-          const [x, y] = norm(c.lat, c.lng);
-          const r = Math.max(1.4, Math.min(4, Math.sqrt(c.recs.length) * 0.9));
-          return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r.toFixed(2)}" fill="currentColor" fill-opacity="0.85"/>`;
-        }).join('');
-        const plot = document.createElement('div');
-        plot.className = 'gal-map-plot';
-        plot.innerHTML = `
-          <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
-            <rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>
-            <g class="axis" stroke-width="0.15">
-              <line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}"/>
-              <line x1="${W/2}" y1="0" x2="${W/2}" y2="${H}"/>
-            </g>
-            ${dots}
-          </svg>
-        `;
-        body.appendChild(plot);
+        initMap();
       } else {
         const note = document.createElement('div');
         note.className = 'gal-map-empty';
@@ -5235,13 +5320,14 @@
         const c = cells.get(k);
         const row = document.createElement('div');
         row.className = 'gal-place-row';
+        row.dataset.placeKey = k;
         const head = document.createElement('div');
         head.className = 'gal-place-head';
         const lat = c.lat.toFixed(2);
         const lng = c.lng.toFixed(2);
         head.innerHTML = `
           <span class="gal-place-num">${String(i + 1).padStart(2, '0')}</span>
-          <span class="gal-place-name">${lat}°, ${lng}°</span>
+          <a class="gal-place-name" href="https://maps.apple.com/?q=${c.lat},${c.lng}" target="_blank" rel="noopener">${lat}°, ${lng}°</a>
           <span class="gal-place-rule"></span>
           <span class="gal-place-count">${c.recs.length}</span>
         `;
