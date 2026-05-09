@@ -1073,6 +1073,20 @@
       font-size: 0.82rem;
       font-variant-numeric: tabular-nums;
     }
+    /* Inner sub-tab strip — sits below the outer one (e.g. inside Reference >
+       Building). Quieter visually so the levels read distinct. */
+    .gal-subtabs--inner {
+      gap: 0.9rem;
+      padding: 0.05rem 1rem 0.45rem;
+      border-bottom: 0;
+    }
+    .gal-subtabs--inner .gal-subtab {
+      font-size: 0.78rem;
+    }
+    .gal-subtabs--inner .gal-subtab.active::after {
+      bottom: -7px;
+      height: 1px;
+    }
 
     /* ---- Time lens scrubber: thin paper rule on the right edge,
        year ticks at band offsets, ink bullet + pill thumb tracks scroll. ---- */
@@ -2367,16 +2381,15 @@
       <button class="gal-search-close" id="gal-search-close" aria-label="Close search">&times;</button>
     </div>
 
-    <!-- Lens switcher: Time · Project · References · Element · Graphic · Map.
-         Six tabs may not fit at 390px wide — the row scrolls horizontally
-         when needed; the active tab carries the ink underline. -->
+    <!-- Lens switcher: Time · Reference · Project · Map.
+         Reference nests further: Building / Element / Graphic, and Building
+         + Element each have their own Typology/Concept and Element/Material
+         sub-tabs. The active tab carries an ink underline. -->
     <nav class="gal-lens-tabs" id="gal-lens-tabs" role="tablist">
-      <button class="gal-lens-tab active" data-lens="time"       role="tab">Time</button>
-      <button class="gal-lens-tab"        data-lens="project"    role="tab">Project</button>
-      <button class="gal-lens-tab"        data-lens="references" role="tab">References</button>
-      <button class="gal-lens-tab"        data-lens="element"    role="tab">Element</button>
-      <button class="gal-lens-tab"        data-lens="graphic"    role="tab">Graphic</button>
-      <button class="gal-lens-tab"        data-lens="map"        role="tab">Map</button>
+      <button class="gal-lens-tab active" data-lens="time"      role="tab">Time</button>
+      <button class="gal-lens-tab"        data-lens="reference" role="tab">Reference</button>
+      <button class="gal-lens-tab"        data-lens="project"   role="tab">Project</button>
+      <button class="gal-lens-tab"        data-lens="map"       role="tab">Map</button>
     </nav>
 
     <!-- Active filter summary (shown only when a filter is set) -->
@@ -2522,7 +2535,13 @@
     let captureStep = null;       // current step name
     let captureBackStack = [];    // history of steps visited (for back button)
 
-    let activeFilters = { type: 'all', search: '', project: null, lens: 'time', referencesTab: 'typology' };
+    let activeFilters = {
+      type: 'all', search: '', project: null,
+      lens: 'time',
+      referenceTab: 'building',  // building | element | graphic  (Reference outer)
+      buildingTab: 'typology',   // typology | concept            (Reference > Building)
+      elementTab:  'element',    // element  | material           (Reference > Element)
+    };
     let currentDetailId = null;
     let currentDetailRecord = null;
     let objectUrls = [];
@@ -4568,12 +4587,10 @@
       // Tear down the scrubber whenever the lens changes; renderLensTime
       // re-installs it from scratch.
       teardownTimeScrubber();
-      if      (lens === 'time')       renderLensTime(body, filtered);
-      else if (lens === 'project')    renderLensProject(body, filtered);
-      else if (lens === 'references') renderLensReferences(body, filtered);
-      else if (lens === 'element')    renderLensElement(body, filtered);
-      else if (lens === 'graphic')    renderLensGraphic(body, filtered);
-      else if (lens === 'map')        renderLensMap(body, filtered);
+      if      (lens === 'time')      renderLensTime(body, filtered);
+      else if (lens === 'reference') renderLensReference(body, filtered);
+      else if (lens === 'project')   renderLensProject(body, filtered);
+      else if (lens === 'map')       renderLensMap(body, filtered);
 
       // Body-level count line ("12 of 47 photos") only shows when a filter
       // narrows things; otherwise the header meta carries the total.
@@ -5026,9 +5043,9 @@
       });
     }
 
-    function renderSubtabs(body, items, current, onPick) {
+    function renderSubtabs(body, items, current, onPick, opts = {}) {
       const sub = document.createElement('nav');
-      sub.className = 'gal-subtabs';
+      sub.className = 'gal-subtabs' + (opts.variant === 'inner' ? ' gal-subtabs--inner' : '');
       items.forEach(it => {
         const b = document.createElement('button');
         b.className = 'gal-subtab' + (current === it.id ? ' active' : '');
@@ -5045,16 +5062,37 @@
     // ---------- Lens: REFERENCES (buildings only) ----------
     // Two sub-tabs: Typology (8 building types) and Concept (8 building-scale
     // concepts). Both list numbered rows of the photos in that bucket.
-    function renderLensReferences(body, recs) {
+    // ---------- Lens: REFERENCE ----------
+    // Outer sub-tab picks the type (Building / Element / Graphic). Building
+    // and Element each carry an inner sub-tab strip — Typology/Concept and
+    // Element-name/Material respectively. Graphic is a single rows-by-kind
+    // list with no inner level.
+    function renderLensReference(body, recs) {
+      renderSubtabs(body, [
+        { id: 'building', label: 'Building' },
+        { id: 'element',  label: 'Element'  },
+        { id: 'graphic',  label: 'Graphic'  },
+      ], activeFilters.referenceTab,
+         id => { activeFilters.referenceTab = id; renderGallery(); });
+
+      if      (activeFilters.referenceTab === 'building') renderRefBuilding(body, recs);
+      else if (activeFilters.referenceTab === 'element')  renderRefElement(body, recs);
+      else                                                renderRefGraphic(body, recs);
+    }
+
+    function renderRefBuilding(body, recs) {
       const buildings = recs.filter(r => (r.tags_human || {}).type === 'building');
-      renderSubtabs(body,
-        [{ id: 'typology', label: 'Typology' }, { id: 'concept', label: 'Concept' }],
-        activeFilters.referencesTab,
-        id => { activeFilters.referencesTab = id; renderGallery(); }
-      );
+      renderSubtabs(body, [
+        { id: 'typology', label: 'Typology' },
+        { id: 'concept',  label: 'Concept'  },
+      ], activeFilters.buildingTab,
+         id => { activeFilters.buildingTab = id; renderGallery(); },
+         { variant: 'inner' });
+
       const buckets = new Map();
-      if (activeFilters.referencesTab === 'concept') {
-        // Concepts are multi-valued per photo (t.concepts is an array).
+      if (activeFilters.buildingTab === 'concept') {
+        // Concepts are multi-valued per photo — a photo with [form, light]
+        // appears in both rows.
         buildings.forEach(r => {
           const cs = (r.tags_human && r.tags_human.concepts) || [];
           if (cs.length === 0) {
@@ -5071,34 +5109,40 @@
         });
       } else {
         buildings.forEach(r => {
-          const t = r.tags_human || {};
-          const k = t.typology || 'Other';
+          const k = (r.tags_human && r.tags_human.typology) || 'Other';
           if (!buckets.has(k)) buckets.set(k, []);
           buckets.get(k).push(r);
         });
       }
-      renderRowIndex(body, buckets, { scopeType: 'building', empty: 'No reference photos yet.' });
+      renderRowIndex(body, buckets, {
+        scopeType: 'building',
+        empty: 'No building photos yet.',
+      });
     }
 
-    // ---------- Lens: ELEMENT (elements only) ----------
-    // Numbered rows by Material — the most visually distinctive axis for
-    // detail photos. The element_name (Column / Stair / etc.) lives in the
-    // detail view; this lens groups by what the surface is made of.
-    function renderLensElement(body, recs) {
+    function renderRefElement(body, recs) {
       const elements = recs.filter(r => (r.tags_human || {}).type === 'element');
+      renderSubtabs(body, [
+        { id: 'element',  label: 'Element'  },
+        { id: 'material', label: 'Material' },
+      ], activeFilters.elementTab,
+         id => { activeFilters.elementTab = id; renderGallery(); },
+         { variant: 'inner' });
+
       const buckets = new Map();
+      const field = activeFilters.elementTab === 'material' ? 'material' : 'element_name';
       elements.forEach(r => {
-        const t = r.tags_human || {};
-        const k = t.material || 'Other';
+        const k = (r.tags_human && r.tags_human[field]) || 'Other';
         if (!buckets.has(k)) buckets.set(k, []);
         buckets.get(k).push(r);
       });
-      renderRowIndex(body, buckets, { scopeType: 'element', empty: 'No element photos yet.' });
+      renderRowIndex(body, buckets, {
+        scopeType: 'element',
+        empty: 'No element photos yet.',
+      });
     }
 
-    // ---------- Lens: GRAPHIC (graphics only) ----------
-    // Numbered rows by graphic kind (Artwork, Book, Drawing, ...).
-    function renderLensGraphic(body, recs) {
+    function renderRefGraphic(body, recs) {
       const graphics = recs.filter(r => (r.tags_human || {}).type === 'graphic');
       const buckets = new Map();
       graphics.forEach(r => {
@@ -5111,7 +5155,10 @@
         if (!buckets.has(label)) buckets.set(label, []);
         buckets.get(label).push(r);
       });
-      renderRowIndex(body, buckets, { scopeType: 'graphic', empty: 'No graphic photos yet.' });
+      renderRowIndex(body, buckets, {
+        scopeType: 'graphic',
+        empty: 'No graphic photos yet.',
+      });
     }
 
     // ---------- Lens: MAP ----------
