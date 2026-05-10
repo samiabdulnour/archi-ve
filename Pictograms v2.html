@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>archi-archive · Pictograms v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:#0a0a09;font-family:'Inter',-apple-system,system-ui,sans-serif;}
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="archi-tokens.jsx"></script>
+<script type="text/babel" src="archi-tagger.jsx"></script>
+<script type="text/babel" src="archi-glyphs-v2.jsx"></script>
+<script type="text/babel" src="archi-glyphs-showcase.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+
+function Frame({ children }) {
+  return (
+    <IOSDevice width={390} height={844} dark={false}>
+      <div style={{ position: 'relative', width: '100%', height: 844, background: C.paper }}>
+        {children}
+      </div>
+    </IOSDevice>
+  );
+}
+
+function Note({ title, body }) {
+  return (
+    <div style={{
+      padding: '16px 18px', maxWidth: 380,
+      fontFamily: FONT, background: C.paper,
+      borderRadius: 14, color: C.ink
+    }}>
+      <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6, letterSpacing: '-0.01em' }}>{title}</div>
+      <div style={{ fontSize: 14, lineHeight: 1.5, color: C.inkMuted, letterSpacing: '-0.005em' }}>{body}</div>
+    </div>
+  );
+}
+
+function NotesPanel({ children }) {
+  return (
+    <div style={{
+      padding: 22, height: '100%', overflow: 'auto', background: '#0d0d0c',
+      display: 'flex', flexDirection: 'column', gap: 10
+    }}>{children}</div>
+  );
+}
+
+function App() {
+  return (
+    <DesignCanvas>
+
+      {/* ============ READING ============ */}
+      <DCSection id="reading" title="00 · Reading">
+        <DCArtboard id="rd-1" label="Why the old glyphs feel low-fi" width={420} height={620}>
+          <NotesPanel>
+            <Note
+              title="Flat fills, low information density"
+              body="Old typology glyphs are blocks of solid black with a couple of paper cutouts. At 40px each is a silhouette without grain — Civic and Educational read as 'house with thing on top', Commercial reads as 'box with two windows'." />
+            <Note
+              title="No common drafting language"
+              body="Some are filled, some are stroked, some are mixed. Stroke weights jump from 1.2 to 2. They don't feel like they came from the same hand." />
+            <Note
+              title="Optical centering is off"
+              body="Several glyphs sit low or shifted on a 40×40 grid because they were drawn from the corner. Inside the dark selected tile, the white silhouette floats." />
+            <Note
+              title="The fix"
+              body="Redraw on 48×48 with a consistent drafting style — primary stroke 1.5, hairline 0.7–0.8, mixed line + small fill, optical centering. Each glyph reads as a small architectural drawing rather than a flat icon." />
+          </NotesPanel>
+        </DCArtboard>
+
+        <DCArtboard id="rd-2" label="Drafting rules I'm following" width={420} height={620}>
+          <NotesPanel>
+            <Note
+              title="Typology — elevation drawings"
+              body="Each typology is a tiny façade in elevation. Residential = gable house with chimney + windows. Cultural = pediment + colonnade. Industrial = sawtooth roof + chimney. Heritage = classical column. Recognisable from across the screen, distinct from each other." />
+              <Note
+              title="Concept — diagrams, not pictures"
+              body="Concepts are abstract, so they get diagrams. Form = axonometric cube. Space = nested rooms in plan. Light = sun + rays. Materiality = 4-quadrant material samples. Structure = warren truss. Context = figure-ground site plan. Circulation = footstep path with arrow. Craft = scored stone surface." />
+              <Note
+              title="Element — detail symbols"
+              body="Each element drawn as a detail/section the way it would appear in a key. Column = full classical order with capital, fluting, base. Wall = poché plan with hatch. Arch = roman arch with voussoirs. Stair = section profile + handrail. Joint = node detail with bubble label." />
+              <Note
+              title="Quiet by default"
+              body="Lines stay 1.5px so they survive at 24px (gallery) and breathe at 70px (tagger tiles). No solid black blocks — every silhouette has interior detail. The eye reads 'measured drawing', not 'icon font'." />
+          </NotesPanel>
+        </DCArtboard>
+      </DCSection>
+
+      {/* ============ TYPOLOGY ============ */}
+      <DCSection id="typology" title="01 · Typology — old vs refined">
+        <DCArtboard id="typ-compare" label="Compare · 11 typologies" width={820} height={1080}>
+          <CompareGrid items={TYPOLOGY_LIST} OldGlyph={OldTypology} newGlyphFn={typologyGlyphV2} cols={4} />
+        </DCArtboard>
+
+        <DCArtboard id="typ-solo" label="Refined · solo" width={520} height={720}>
+          <SoloGrid items={TYPOLOGY_LIST} newGlyphFn={typologyGlyphV2} cols={3} />
+        </DCArtboard>
+
+        <DCArtboard id="typ-notes" label="Per-glyph notes" width={420} height={1080}>
+          <NotesPanel>
+            <Note title="Residential" body="Gable house with chimney, door, two windows. Standard housing icon, but drawn as elevation rather than abstract pentagon." />
+            <Note title="Office" body="Tall slab with ribboned window grid. Vertical rhythm reads as 'office building' from a glance." />
+            <Note title="Cultural" body="Classical pediment + four columns. Museum/gallery archetype." />
+            <Note title="Educational" body="Building with central clock-tower + arched windows. School/university." />
+            <Note title="Religious" body="Church facade with cross, rose window, arched door." />
+            <Note title="Civic" body="Domed institution with portico — town hall / parliament." />
+            <Note title="Commercial" body="Shopfront with awning + display windows + entry door." />
+            <Note title="Hospitality" body="Long mid-rise hotel with grid of room windows." />
+            <Note title="Industrial" body="Sawtooth roof + chimney — the universal factory." />
+            <Note title="Heritage" body="Detailed classical column with capital, fluting, stepped base." />
+            <Note title="Other" body="Question mark in circle (kept simple — escape hatch tag)." />
+          </NotesPanel>
+        </DCArtboard>
+      </DCSection>
+
+      {/* ============ CONCEPT ============ */}
+      <DCSection id="concept" title="02 · Concept — old vs refined">
+        <DCArtboard id="con-compare" label="Compare · 8 concepts" width={820} height={920}>
+          <CompareGrid items={CONCEPT_LIST} OldGlyph={OldConcept} newGlyphFn={conceptGlyphV2} cols={4} />
+        </DCArtboard>
+
+        <DCArtboard id="con-solo" label="Refined · solo" width={520} height={520}>
+          <SoloGrid items={CONCEPT_LIST} newGlyphFn={conceptGlyphV2} cols={4} />
+        </DCArtboard>
+
+        <DCArtboard id="con-notes" label="Per-glyph notes" width={420} height={920}>
+          <NotesPanel>
+            <Note title="Form" body="Axonometric cube — three visible faces meeting at a corner. Architects read axonometric immediately." />
+            <Note title="Space" body="Nested rooms in plan with door-gap on the wall. Reads as 'enclosure within enclosure'." />
+            <Note title="Light" body="Sun glyph cleaned up — perfect 8-point ray symmetry instead of the original mismatched diagonals." />
+            <Note title="Materiality" body="Four-quadrant material sampler: concrete dots, brick courses, timber grain, steel diagonals. Self-describing." />
+            <Note title="Structure" body="Warren truss with node dots — signature structural diagram, not a generic frame." />
+            <Note title="Context" body="Figure-ground site plan: streets, plot, neighboring buildings. The way urban analysis is drawn." />
+            <Note title="Circulation" body="Footstep path with arrow — start dot, curved route, arrow head, end dot. Reads as movement." />
+            <Note title="Craft" body="Stone block with chisel scoring — the act of making, not a generic hatch." />
+          </NotesPanel>
+        </DCArtboard>
+      </DCSection>
+
+      {/* ============ ELEMENT ============ */}
+      <DCSection id="element" title="03 · Element — old vs refined">
+        <DCArtboard id="el-compare" label="Compare · 14 elements" width={820} height={1320}>
+          <CompareGrid items={ELEMENT_LIST} OldGlyph={OldElement} newGlyphFn={elementGlyphV2} cols={4} />
+        </DCArtboard>
+
+        <DCArtboard id="el-solo" label="Refined · solo" width={620} height={720}>
+          <SoloGrid items={ELEMENT_LIST} newGlyphFn={elementGlyphV2} cols={4} />
+        </DCArtboard>
+
+        <DCArtboard id="el-notes" label="Per-glyph notes" width={420} height={1320}>
+          <NotesPanel>
+            <Note title="Column" body="Full classical order: capital + fluted shaft + stepped base. Old version was a generic dumbbell — could be a barbell." />
+            <Note title="Wall" body="Poché plan view with diagonal hatch — the way walls are drawn in plans. Old version was a solid black square with no information." />
+            <Note title="Arch" body="Roman arch with voussoir lines + piers. Old version had no joints, looked like a tunnel." />
+            <Note title="Door" body="Door in elevation with frame, two panels, handle. Old version was a black slab with a dot." />
+            <Note title="Window" body="Four-light window with mullions + sill. Recognisable as elevation, not just a grid." />
+            <Note title="Stair" body="Section profile with treads/risers + handrail. The classic stair-section symbol." />
+            <Note title="Ramp" body="Inclined plane with handrail + posts — properly readable as ramp, not just a triangle." />
+            <Note title="Roof" body="Section through pitched roof with rafters visible. Old version was a flat hat shape." />
+            <Note title="Ceiling" body="Coffered ceiling in 1pt perspective — reads as 'looking up'." />
+            <Note title="Floor" body="Section through floor build-up with finish layer + slab hatch." />
+            <Note title="Facade" body="Elevation grid with string courses + ground line. Old version had openings going off-grid." />
+            <Note title="Railing" body="Balustrade with rail, balusters, base rail. Old was hard to read." />
+            <Note title="Joint" body="Detail node with member intersection + circled callout 'A'. The way detail bubbles appear on a drawing." />
+            <Note title="Pavement" body="Running-bond paving plan with staggered joints. Old version was a 2×2 quartered grid." />
+          </NotesPanel>
+        </DCArtboard>
+      </DCSection>
+
+      {/* ============ IN CONTEXT ============ */}
+      <DCSection id="context" title="04 · In context — refined glyphs in the tagger">
+        <DCArtboard id="ctx-building" label="Building tagger · v2 glyphs" width={420} height={900}>
+          <Frame><TaggerBuildingV2 mode="reference" /></Frame>
+        </DCArtboard>
+
+        <DCArtboard id="ctx-element" label="Element tagger · v2 glyphs" width={420} height={900}>
+          <Frame><TaggerElementV2 mode="reference" /></Frame>
+        </DCArtboard>
+
+        <DCArtboard id="ctx-old-building" label="(For reference) old building tagger" width={420} height={900}>
+          <Frame><TaggerBuilding mode="reference" /></Frame>
+        </DCArtboard>
+
+        <DCArtboard id="ctx-notes" label="Notes" width={420} height={900}>
+          <NotesPanel>
+            <Note
+              title="Same tile chrome, different glyph"
+              body="The tile size, label, check-dot, and active state are all identical. Only the SVG inside the tile changed. Drop-in replacement — the rest of the tagger code doesn't move." />
+            <Note
+              title="What changes for the user"
+              body="A glance at the typology row reads as 'these are little buildings' instead of 'these are vague black shapes'. The element row reads as 'these are pieces of buildings' instead of 'these are abstract shapes'." />
+            <Note
+              title="Inverted state still works"
+              body="Selected tile flips to ink fill, glyph reverses to paper. With stroke-based glyphs, the paper lines stay legible against the dark tile because each glyph has interior detail." />
+            <Note
+              title="Next, if you want"
+              body="(a) decide which set you want shipped — I'd ship all three. (b) tell me which specific glyphs feel off; I'll redraw individually. (c) I can also make a Materiality pictogram set if the hatch patterns aren't enough — small swatches of brick / timber / stone / steel / glass etc., same drafting language." />
+          </NotesPanel>
+        </DCArtboard>
+      </DCSection>
+
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
