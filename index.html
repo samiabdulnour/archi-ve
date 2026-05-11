@@ -631,6 +631,51 @@
       font-weight: 600;
     }
 
+    /* Tiles that are pure pattern fills (e.g. Materiality) — let the
+       hatch run edge-to-edge instead of sitting inside a 62% inset. */
+    .sw-art--pattern > svg {
+      width: 100%; height: 100%;
+    }
+
+    /* Type toggle — compact 3-segment control used in the detail view
+       where Building/Element/Graphic don't need full-size tiles. */
+    .type-toggle-wrap {
+      padding: 10px 14px 12px;
+      border-bottom: 1px solid rgba(15,15,14,0.12);
+    }
+    .type-toggle {
+      display: flex;
+      background: var(--bg-elev-2);
+      border-radius: 10px;
+      padding: 3px;
+    }
+    .type-segment {
+      flex: 1;
+      padding: 7px 4px;
+      border-radius: 8px;
+      background: transparent;
+      color: rgba(15,15,14,0.62);
+      font-size: 0.82rem;
+      font-weight: 500;
+      border: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      letter-spacing: -0.005em;
+      transition: background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+    }
+    .type-segment svg {
+      width: 18px; height: 18px;
+      color: currentColor;
+    }
+    .type-segment.active {
+      background: var(--bg-elev);
+      color: var(--text);
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(15,15,14,0.08);
+    }
+
     /* Author + Year side-by-side inputs */
     .sw-author-year-row {
       display: grid;
@@ -4157,20 +4202,53 @@
     }
 
     // Renders one swatch tile: glyph art on top, label below. Selection inverts the art.
-    function buildSwatchTile({ value, label, glyphHtml, isActive, onTap }) {
+    // `variant: 'pattern'` makes the glyph fill the whole tile edge-to-edge
+    // (used by Materiality so the hatch reads as a sample, not an icon).
+    function buildSwatchTile({ value, label, glyphHtml, isActive, onTap, variant }) {
       const tile = document.createElement('button');
       tile.className = 'sw-tile' + (isActive ? ' active' : '');
       tile.setAttribute('data-value', value);
+      const artClass = 'sw-art' + (variant === 'pattern' ? ' sw-art--pattern' : '');
       tile.innerHTML = `
-        <div class="sw-art">${glyphHtml}<span class="sw-check"></span></div>
+        <div class="${artClass}">${glyphHtml}<span class="sw-check"></span></div>
         <div class="sw-label">${label}</div>
       `;
       tile.addEventListener('click', onTap);
       return tile;
     }
 
+    // Compact 3-segment toggle for Type (Building / Element / Graphic). The
+    // detail view used a full swatch section here, which ate ~110px for three
+    // options. The segmented control is ~40px and still shows the active
+    // option clearly. Tap a segment to switch; tap the active one to clear.
+    function buildTypeToggle({ target, onChange }) {
+      const wrap = document.createElement('div');
+      wrap.className = 'type-toggle-wrap';
+      const bar = document.createElement('div');
+      bar.className = 'type-toggle';
+
+      const refresh = () => {
+        bar.innerHTML = '';
+        TYPES.forEach(t => {
+          const btn = document.createElement('button');
+          btn.className = 'type-segment' + (target.type === t.id ? ' active' : '');
+          btn.innerHTML = `${typeGlyph(t.id)}<span>${t.label}</span>`;
+          btn.addEventListener('click', () => {
+            target.type = (target.type === t.id) ? null : t.id;
+            if (onChange) onChange();
+            refresh();
+          });
+          bar.appendChild(btn);
+        });
+      };
+      refresh();
+
+      wrap.appendChild(bar);
+      return wrap;
+    }
+
     // Render a section (label + summary + 4-col grid of swatch tiles).
-    function buildSwatchSection({ label, getSummary, items, field, multi, glyphFor, valueFor, target, onChange }) {
+    function buildSwatchSection({ label, getSummary, items, field, multi, glyphFor, valueFor, target, onChange, variant }) {
       const data = () => target || captureDraft;
 
       const section = document.createElement('div');
@@ -4206,6 +4284,7 @@
             label: labelText,
             glyphHtml: glyphFor(item),
             isActive,
+            variant,
             onTap: () => {
               const d = data();
               if (multi) {
@@ -4374,6 +4453,7 @@
           field: 'materials',
           multi: true,
           glyphFor: materialPatternSvg,
+          variant: 'pattern',
         }));
       }
       if (getFlowStepEnabled('building', 'author_year')) c.appendChild(buildAuthorYearSection());
@@ -4490,6 +4570,7 @@
           field: 'materials',
           multi: true,
           glyphFor: materialPatternSvg,
+          variant: 'pattern',
         }));
       }
       if (getFlowStepEnabled('element', 'author_year')) c.appendChild(buildAuthorYearSection());
@@ -5778,20 +5859,11 @@
 
       const type = rec.tags_human.type;
 
-      // Type swatch tiles — editable so untagged (project) photos can be classified later.
-      body.appendChild(buildSwatchSection({
+      // Type toggle — compact segmented control. Editable so untagged
+      // (project) photos can be classified later.
+      body.appendChild(buildTypeToggle({
         target: rec.tags_human,
         onChange: () => { saveDetailRecord(); renderDetail(); },
-        label: 'Type',
-        getSummary: () => {
-          const m = TYPES.find(x => x.id === rec.tags_human.type);
-          return m ? m.label : '';
-        },
-        items: TYPES,
-        field: 'type',
-        multi: false,
-        glyphFor: t => typeGlyph(t.id),
-        valueFor: t => t.id,
       }));
 
       if (type === 'building') renderBuildingFields(body);
@@ -5895,6 +5967,7 @@
         field: 'materials',
         multi: true,
         glyphFor: materialPatternSvg,
+        variant: 'pattern',
       }));
       body.appendChild(buildAuthorYearSection({ target: t, onChange }));
     }
