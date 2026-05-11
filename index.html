@@ -1085,7 +1085,6 @@
     }
     .gal-lens-tab.active {
       color: var(--text);
-      font-weight: 600;
     }
     .gal-lens-tab.active::after {
       content: "";
@@ -1116,7 +1115,6 @@
     }
     .gal-subtabs .gal-subtab.active {
       color: var(--text);
-      font-weight: 600;
     }
     .gal-subtabs .gal-subtab.active::after {
       content: "";
@@ -5639,14 +5637,18 @@
     // ---------- Lens: MAP ----------
     // Real tiles via Leaflet + OpenStreetMap. The map auto-fits to the
     // bounding box of GPS-tagged photos and drops a circle marker per
-    // cluster (clustering is still useful — it dedupes pins at the same
-    // street and gives the place rows below a sensible grouping).
-    // Photos without GPS go into a "No location" group at the end.
+    // cluster. Photos without GPS are simply excluded from this lens —
+    // they show up in every other lens, just not here.
     function renderLensMap(body, recs) {
       const located = recs.filter(r => r.location && r.location.lat != null && r.location.lng != null);
-      const unlocated = recs.filter(r => !(r.location && r.location.lat != null && r.location.lng != null));
 
-      if (located.length === 0 && unlocated.length === 0) return;
+      if (located.length === 0) {
+        const note = document.createElement('div');
+        note.className = 'gal-map-empty';
+        note.textContent = 'No photos with location yet.';
+        body.appendChild(note);
+        return;
+      }
 
       // Cluster located photos by 0.01° cells (~1 km). Tighter than the old
       // ~11 km grouping so that, for example, two different museums in the
@@ -5665,81 +5667,70 @@
       });
       cellOrder.sort((a, b) => cells.get(b).recs.length - cells.get(a).recs.length);
 
-      if (located.length > 0) {
-        const mapEl = document.createElement('div');
-        mapEl.className = 'gal-map-plot';
-        mapEl.id = 'gal-leaflet';
-        body.appendChild(mapEl);
+      // ----- Leaflet map -----
+      const mapEl = document.createElement('div');
+      mapEl.className = 'gal-map-plot';
+      mapEl.id = 'gal-leaflet';
+      body.appendChild(mapEl);
 
-        const initMap = () => {
-          if (typeof L === 'undefined') {
-            // Leaflet hasn't finished loading yet — try again shortly. The
-            // <script> tag is `defer`, so on first gallery open this can race.
-            setTimeout(initMap, 80);
-            return;
-          }
-          // If something already rendered (rare double-init), drop it.
-          teardownMap();
+      const initMap = () => {
+        if (typeof L === 'undefined') {
+          // Leaflet hasn't finished loading yet — try again shortly. The
+          // <script> tag is `defer`, so on first gallery open this can race.
+          setTimeout(initMap, 80);
+          return;
+        }
+        teardownMap();
 
-          const map = L.map(mapEl, {
-            zoomControl: true,
-            attributionControl: true,
-            // Tap-and-drag is fine, but a touch-only flick should still be
-            // able to scroll the page past the map. Leaflet's defaults handle
-            // this acceptably on iOS Safari.
-          });
-          mapInstance = map;
+        const map = L.map(mapEl, {
+          zoomControl: true,
+          attributionControl: true,
+        });
+        mapInstance = map;
 
-          L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        }).addTo(map);
+
+        cellOrder.forEach((k) => {
+          const c = cells.get(k);
+          const radius = Math.max(7, Math.min(20, Math.sqrt(c.recs.length) * 3 + 6));
+          const marker = L.circleMarker([c.lat, c.lng], {
+            radius,
+            color: '#ffffff',
+            weight: 2,
+            fillColor: '#bf3f3f',
+            fillOpacity: 0.9,
           }).addTo(map);
-
-          // One circle marker per cluster, sized by photo count. Tapping a
-          // marker scrolls to the matching place row below the map.
-          cellOrder.forEach((k) => {
-            const c = cells.get(k);
-            const radius = Math.max(7, Math.min(20, Math.sqrt(c.recs.length) * 3 + 6));
-            const marker = L.circleMarker([c.lat, c.lng], {
-              radius,
-              color: '#ffffff',
-              weight: 2,
-              fillColor: '#bf3f3f',
-              fillOpacity: 0.9,
-            }).addTo(map);
-            marker.bindTooltip(
-              `${c.recs.length} ${c.recs.length === 1 ? 'photo' : 'photos'}`,
-              { direction: 'top', offset: [0, -radius] }
-            );
-            marker.on('click', () => {
-              const row = body.querySelector(`[data-place-key="${CSS.escape(k)}"]`);
-              if (row) {
-                row.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                row.classList.add('flash');
-                setTimeout(() => row.classList.remove('flash'), 1200);
-              }
-            });
+          marker.bindTooltip(
+            `${c.recs.length} ${c.recs.length === 1 ? 'photo' : 'photos'}`,
+            { direction: 'top', offset: [0, -radius] }
+          );
+          marker.on('click', () => {
+            const row = body.querySelector(`[data-place-key="${CSS.escape(k)}"]`);
+            if (row) {
+              row.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              row.classList.add('flash');
+              setTimeout(() => row.classList.remove('flash'), 1200);
+            }
           });
+        });
 
-          const bounds = L.latLngBounds(located.map(r => [r.location.lat, r.location.lng]));
-          // Single-point case: fitBounds collapses to maxZoom; clamp to a
-          // sensible neighbourhood-level zoom so the user has context.
-          map.fitBounds(bounds, { padding: [24, 24], maxZoom: 13 });
+        const bounds = L.latLngBounds(located.map(r => [r.location.lat, r.location.lng]));
+        map.fitBounds(bounds, { padding: [24, 24], maxZoom: 13 });
+        requestAnimationFrame(() => map.invalidateSize());
+      };
+      initMap();
 
-          // The container's pixel size isn't always known at construction
-          // time when it's just been inserted into a hidden tab; force a
-          // re-measure on the next frame.
-          requestAnimationFrame(() => map.invalidateSize());
-        };
-        initMap();
-      } else {
-        const note = document.createElement('div');
-        note.className = 'gal-map-empty';
-        note.textContent = 'No photos with location yet.';
-        body.appendChild(note);
-      }
+      // ----- Place rows -----
+      // Each row starts with coords as a placeholder. After it's in the DOM
+      // we kick off reverse-geocoding (Nominatim) to fill in a human name
+      // like "Baulkham Hills, AU". Results are cached in localStorage so the
+      // next render shows the name instantly.
+      const cache = loadPlaceCache();
+      const pendingKeys = [];
 
-      // Place rows
       cellOrder.forEach((k, i) => {
         const c = cells.get(k);
         const row = document.createElement('div');
@@ -5747,11 +5738,12 @@
         row.dataset.placeKey = k;
         const head = document.createElement('div');
         head.className = 'gal-place-head';
-        const lat = c.lat.toFixed(2);
-        const lng = c.lng.toFixed(2);
+        const cacheKey = `${c.lat.toFixed(2)},${c.lng.toFixed(2)}`;
+        const cached = cache[cacheKey];
+        const coordsLabel = `${c.lat.toFixed(2)}°, ${c.lng.toFixed(2)}°`;
         head.innerHTML = `
           <span class="gal-place-num">${String(i + 1).padStart(2, '0')}</span>
-          <a class="gal-place-name" href="https://maps.apple.com/?q=${c.lat},${c.lng}" target="_blank" rel="noopener">${lat}°, ${lng}°</a>
+          <a class="gal-place-name" href="https://maps.apple.com/?q=${c.lat},${c.lng}" target="_blank" rel="noopener">${cached || coordsLabel}</a>
           <span class="gal-place-rule"></span>
           <span class="gal-place-count">${c.recs.length}</span>
         `;
@@ -5762,25 +5754,60 @@
           .forEach(rec => strip.appendChild(buildPhotoTile(rec)));
         row.appendChild(strip);
         body.appendChild(row);
+
+        if (!cached) pendingKeys.push({ k, lat: c.lat, lng: c.lng });
       });
 
-      if (unlocated.length > 0) {
-        const row = document.createElement('div');
-        row.className = 'gal-place-row';
-        const head = document.createElement('div');
-        head.className = 'gal-place-head';
-        head.innerHTML = `
-          <span class="gal-place-num">${String(cellOrder.length + 1).padStart(2, '0')}</span>
-          <span class="gal-place-name" style="font-variant-numeric:normal;">No location</span>
-          <span class="gal-place-rule"></span>
-          <span class="gal-place-count">${unlocated.length}</span>
-        `;
-        row.appendChild(head);
-        const strip = document.createElement('div');
-        strip.className = 'gal-strip';
-        unlocated.slice(0, 24).forEach(rec => strip.appendChild(buildPhotoTile(rec)));
-        row.appendChild(strip);
-        body.appendChild(row);
+      // Throttle to ~1 req/sec (Nominatim's policy). For a typical archive
+      // with ~10 clusters, this finishes in well under 10s; in practice most
+      // will be cached after the first view.
+      pendingKeys.forEach(({ k, lat, lng }, idx) => {
+        setTimeout(async () => {
+          // Bail out if the user has navigated away from the map lens.
+          if (activeFilters.lens !== 'map') return;
+          const name = await reverseGeocode(lat, lng);
+          if (!name) return;
+          const row = body.querySelector(`[data-place-key="${CSS.escape(k)}"]`);
+          if (!row) return;
+          const nameEl = row.querySelector('.gal-place-name');
+          if (nameEl) nameEl.textContent = name;
+        }, idx * 1100);
+      });
+    }
+
+    // Reverse-geocode (lat, lng) -> "Suburb, CC" via OpenStreetMap Nominatim.
+    // Results are cached in localStorage so the map lens isn't chatty.
+    const PLACE_CACHE_KEY = 'archi-archive:place-cache';
+    function loadPlaceCache() {
+      try { return JSON.parse(localStorage.getItem(PLACE_CACHE_KEY)) || {}; }
+      catch { return {}; }
+    }
+    function savePlaceCache(cache) {
+      try { localStorage.setItem(PLACE_CACHE_KEY, JSON.stringify(cache)); }
+      catch { /* quota or disabled — silent */ }
+    }
+    async function reverseGeocode(lat, lng) {
+      const key = `${lat.toFixed(2)},${lng.toFixed(2)}`;
+      const cache = loadPlaceCache();
+      if (cache[key]) return cache[key];
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&zoom=14&lat=${lat}&lon=${lng}`,
+          { headers: { 'Accept-Language': 'en' } }
+        );
+        if (!res.ok) return null;
+        const data = await res.json();
+        const a = data.address || {};
+        const local = a.suburb || a.neighbourhood || a.village || a.town || a.city || a.county || null;
+        const cc = (a.country_code || '').toUpperCase();
+        const display = local ? (cc ? `${local}, ${cc}` : local) : null;
+        if (display) {
+          cache[key] = display;
+          savePlaceCache(cache);
+        }
+        return display;
+      } catch (e) {
+        return null;
       }
     }
 
