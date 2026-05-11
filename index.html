@@ -4154,6 +4154,13 @@
         <circle cx="24" cy="24" r="14" ${_v2S}/>
         <text x="24" y="30" text-anchor="middle" fill="currentColor" font-size="18" font-family="Inter" font-weight="500">?</text>
       </g>`),
+      // v2 — generic plumbing fixture: tap above a basin. Stands in for
+      // Sink / Toilet / Tap / Lamp in the eight-tile picker.
+      Fixture: _v2(`<g>
+        <path d="M24 8 V18 M22 8 H26" ${_v2S}/>
+        <path d="M8 18 H40 V30 Q40 36 34 36 H14 Q8 36 8 30 Z" ${_v2S}/>
+        <circle cx="24" cy="27" r="2" ${_v2h(0.8)}/>
+      </g>`),
 
       // v1 back-compat — kept so old tagged photos still render
       Cornice:   '<g fill="currentColor"><rect x="4" y="10" width="32" height="3"/><rect x="6" y="13" width="28" height="3"/><rect x="8" y="16" width="24" height="14"/></g>',
@@ -4629,19 +4636,17 @@
     // ============================================================
     // Element form: Element + Materiality + Author·Year + Personal note
     // ============================================================
-    // v3 element grid — laid out by BIM-style category (Structure, Vertical,
-    // Openings, Surface, Equipment). Five rows of four. Slab replaces Floor
-    // (a BIM slab system, not a finish layer); Beam is back in; Sink / Toilet
-    // / Tap / Lamp pick up the "products" use case (showrooms, fixtures).
-    // Older legacy elements (Floor, Vault, Dome, Truss, Cornice, Threshold,
-    // Balcony, Corridor) still live in ELEMENT_GLYPHS as back-compat so
-    // historical tags render — they just no longer surface as picker tiles.
+    // v3 — eight tiles in a 4x2 grid. Pared down from twenty for tagging
+    // speed (the whole flow is meant to take under 10s while walking).
+    // 'Fixture' is a catch-all that covers sinks, toilets, taps, lamps and
+    // similar product photos — losing the per-fixture distinction in
+    // exchange for a faster tap. Every legacy and detail glyph (Beam, Arch,
+    // Ramp, Railing, Ceiling, Facade, Joint, Pavement, Floor, Sink, Toilet,
+    // Tap, Lamp, Other, plus the v1 set) is still in ELEMENT_GLYPHS as
+    // back-compat so historical tags keep rendering.
     const ELEMENTS_TOP_12 = [
-      'Column', 'Beam', 'Slab', 'Wall',
-      'Arch', 'Stair', 'Ramp', 'Railing',
-      'Door', 'Window', 'Roof', 'Ceiling',
-      'Facade', 'Joint', 'Pavement', 'Other',
-      'Sink', 'Toilet', 'Tap', 'Lamp',
+      'Wall', 'Column', 'Slab', 'Door',
+      'Window', 'Stair', 'Roof', 'Fixture',
     ];
 
     function renderElementForm(c) {
