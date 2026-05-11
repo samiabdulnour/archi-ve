@@ -1058,14 +1058,15 @@
        dot — hide both dots while selecting so nothing collides. */
     .gallery-body.selecting .tile-dot { display: none; }
 
-    /* ---- Lens switcher (Time / Project / Typology / Map) ---- */
+    /* ---- Lens switcher (Time / Project / Typology / Map) ----
+       Shares chrome with .gal-subtabs so all three stacked tab strips
+       (lens / sub / inner) read at the same scale and underline offset. */
     .gal-lens-tabs {
       display: flex;
       gap: 1.1rem;
       padding: 0.2rem 1rem 0.7rem;
       border-bottom: 1px solid var(--border);
-      margin-bottom: 0.5rem;
-      align-items: center;
+      align-items: baseline;
       overflow-x: auto;
       scrollbar-width: none;
       white-space: nowrap;
@@ -1129,12 +1130,9 @@
       font-size: 0.82rem;
       font-variant-numeric: tabular-nums;
     }
-    /* Inner sub-tab strip — sits below the outer one (e.g. inside Reference >
-       Building > Typology). Same scale as the parent tab strips so the three
-       levels read at one size; hierarchy is carried by stacking, not type. */
-    .gal-subtabs--inner {
-      border-bottom: 0;
-    }
+    /* Inner sub-tab strip — same chrome as the outer strips. Hierarchy is
+       carried by stacking, not by size, weight, or underline thickness. */
+    .gal-subtabs--inner { /* now identical to .gal-subtabs */ }
 
     /* ---- Time lens scrubber: thin paper rule on the right edge,
        year ticks at band offsets, ink bullet + pill thumb tracks scroll. ---- */
