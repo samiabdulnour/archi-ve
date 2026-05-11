@@ -2588,8 +2588,10 @@
     const GRAPHIC_KINDS = [
       { id: 'artwork', label: 'Artwork', hint: 'painting, sculpture' },
       { id: 'book',    label: 'Book',    hint: 'page, article' },
-      { id: 'drawing', label: 'Drawing', hint: 'sketch, plan' },
-      { id: 'product', label: 'Product', hint: 'lamp, chair, spec' },
+      { id: 'drawing', label: 'Drawing', hint: 'sketch, hand drawing' },
+      { id: 'plan',    label: 'Plan',    hint: 'floor plan, layout, ortho' },
+      { id: 'render',  label: 'Render',  hint: 'visualisation, 3D image' },
+      { id: 'diagram', label: 'Diagram', hint: 'schema, section, analysis' },
       { id: 'contact', label: 'Contact', hint: 'business card' },
       { id: 'other',   label: 'Other',   hint: 'note, sign, receipt' },
     ];
@@ -4169,11 +4171,19 @@
         <text x="24" y="30" text-anchor="middle" fill="currentColor" font-size="18" font-family="Inter" font-weight="500">?</text>
       </g>`),
       // v2 — generic plumbing fixture: tap above a basin. Stands in for
-      // Sink / Toilet / Tap / Lamp in the eight-tile picker.
+      // Sink / Toilet / Tap / Lamp in legacy tagged photos.
       Fixture: _v2(`<g>
         <path d="M24 8 V18 M22 8 H26" ${_v2S}/>
         <path d="M8 18 H40 V30 Q40 36 34 36 H14 Q8 36 8 30 Z" ${_v2S}/>
         <circle cx="24" cy="27" r="2" ${_v2h(0.8)}/>
+      </g>`),
+      // v2 — closed parcel cube (the catch-all for objects, equipment,
+      // furniture, fixtures the user photographs in showrooms or on site).
+      Product: _v2(`<g>
+        <path d="M8 14 L24 8 L40 14 V32 L24 38 L8 32 Z" ${_v2S}/>
+        <path d="M8 14 L24 20 L40 14" ${_v2S}/>
+        <path d="M24 20 V38" ${_v2S}/>
+        <rect x="14" y="24" width="6" height="4" ${_v2h(0.7)}/>
       </g>`),
 
       // v1 back-compat — kept so old tagged photos still render
@@ -4259,7 +4269,37 @@
         <line x1="12" y1="34" x2="34" y2="34" ${_v2h(0.7)}/>
         <line x1="12" y1="38" x2="28" y2="38" ${_v2h(0.7)}/>
       </g>`),
-      // v2 — closed parcel cube (different angle from concept's axonometric).
+      // v2 — floor plan: outline + interior wall + door swing + furniture.
+      plan: _v2(`<g>
+        <rect x="6" y="6" width="36" height="36" ${_v2S}/>
+        <line x1="6" y1="22" x2="42" y2="22" ${_v2S}/>
+        <line x1="22" y1="22" x2="22" y2="42" ${_v2S}/>
+        <path d="M22 28 Q28 28 28 34" ${_v2h(0.7)}/>
+        <rect x="10" y="11" width="8" height="6" ${_v2h(0.7)}/>
+        <rect x="32" y="32" width="6" height="6" ${_v2h(0.7)}/>
+      </g>`),
+      // v2 — render: massing block with sun + light rays.
+      render: _v2(`<g>
+        <path d="M10 16 L24 10 L38 16 V34 L24 40 L10 34 Z" ${_v2S}/>
+        <path d="M10 16 L24 22 L38 16" ${_v2S}/>
+        <path d="M24 22 V40" ${_v2S}/>
+        <circle cx="38" cy="9" r="2.4" ${_v2S}/>
+        <line x1="35" y1="6" x2="33" y2="8" ${_v2h(0.6)}/>
+        <line x1="41" y1="6" x2="43" y2="8" ${_v2h(0.6)}/>
+        <line x1="38" y1="3" x2="38" y2="5" ${_v2h(0.6)}/>
+      </g>`),
+      // v2 — diagram: bar chart, the universal "analysis" mark.
+      diagram: _v2(`<g>
+        <line x1="8" y1="40" x2="42" y2="40" ${_v2S}/>
+        <line x1="8" y1="8" x2="8" y2="40" ${_v2S}/>
+        <rect x="13" y="28" width="5" height="12" ${_v2h(0.9)}/>
+        <rect x="21" y="22" width="5" height="18" ${_v2h(0.9)}/>
+        <rect x="29" y="14" width="5" height="26" ${_v2h(0.9)}/>
+        <rect x="37" y="24" width="5" height="16" ${_v2h(0.9)}/>
+      </g>`),
+      // back-compat — the old Graphic Product glyph stays here so historical
+      // photos still render. The Element form is now where new product/object
+      // photos get tagged (its own Product entry above).
       product: _v2(`<g>
         <path d="M8 14 L24 8 L40 14 V32 L24 38 L8 32 Z" ${_v2S}/>
         <path d="M8 14 L24 20 L40 14" ${_v2S}/>
@@ -4660,7 +4700,7 @@
     // back-compat so historical tags keep rendering.
     const ELEMENTS_TOP_12 = [
       'Wall', 'Column', 'Slab', 'Door',
-      'Window', 'Stair', 'Roof', 'Fixture',
+      'Window', 'Stair', 'Roof', 'Product',
     ];
 
     function renderElementForm(c) {
