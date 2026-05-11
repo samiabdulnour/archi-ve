@@ -4318,6 +4318,62 @@
         <line x1="30" y1="16" x2="30" y2="38" ${_v2h(0.6)}/>
       </g>`),
 
+      // v4 — Service sub-categories (MEP disciplines, broader than v3
+      // specific items). Each reuses an existing iconic fixture body.
+      HVAC: _v2(`<g>
+        <rect x="8" y="10" width="32" height="28" ${_v2S}/>
+        ${_v2map([16,21,26,31], y => `<line x1="11" y1="${y}" x2="37" y2="${y}" ${_v2h(0.9)}/>`)}
+      </g>`),
+      Plumbing: _v2(`<g>
+        <path d="M24 8 V18 M22 8 H26" ${_v2S}/>
+        <path d="M8 18 H40 V30 Q40 36 34 36 H14 Q8 36 8 30 Z" ${_v2S}/>
+        <circle cx="24" cy="27" r="2" ${_v2h(0.8)}/>
+      </g>`),
+      Electrical: _v2(`<g>
+        <rect x="12" y="10" width="24" height="28" rx="2" ${_v2S}/>
+        <rect x="17" y="16" width="3" height="9" ${_v2h(0.8)}/>
+        <rect x="28" y="16" width="3" height="9" ${_v2h(0.8)}/>
+        <circle cx="24" cy="32" r="1.5" ${_v2h(0.7)}/>
+      </g>`),
+      Fire: _v2(`<g>
+        <path d="M24 6 V14" ${_v2S}/>
+        <circle cx="24" cy="20" r="6" ${_v2S}/>
+        <circle cx="24" cy="20" r="1.4" fill="currentColor"/>
+        <line x1="16" y1="32" x2="20" y2="27" ${_v2h(0.7)}/>
+        <line x1="24" y1="30" x2="24" y2="40" ${_v2h(0.7)}/>
+        <line x1="32" y1="32" x2="28" y2="27" ${_v2h(0.7)}/>
+      </g>`),
+
+      // v4 — Product sub-categories (object classes, broader than v3).
+      // Furniture is already defined above; Lighting reuses the Lamp body.
+      Lighting: _v2(`<g>
+        <path d="M24 6 V14" ${_v2S}/>
+        <path d="M14 14 H34 L36 22 Q36 26 24 26 Q12 26 12 22 Z" ${_v2S}/>
+        <line x1="18" y1="26" x2="30" y2="26" ${_v2h(0.7)}/>
+        <line x1="14" y1="30" x2="12" y2="34" ${_v2h(0.7)}/>
+        <line x1="24" y1="30" x2="24" y2="36" ${_v2h(0.7)}/>
+        <line x1="34" y1="30" x2="36" y2="34" ${_v2h(0.7)}/>
+      </g>`),
+      // Appliance: washing-machine-style front loader with panel + dial.
+      Appliance: _v2(`<g>
+        <rect x="10" y="8" width="28" height="34" rx="2" ${_v2S}/>
+        <line x1="10" y1="14" x2="38" y2="14" ${_v2S}/>
+        <circle cx="24" cy="26" r="8" ${_v2S}/>
+        <circle cx="24" cy="26" r="4" ${_v2h(0.7)}/>
+        <rect x="16" y="10" width="2" height="2" fill="currentColor"/>
+        <rect x="20" y="10" width="2" height="2" fill="currentColor"/>
+        <rect x="24" y="10" width="2" height="2" fill="currentColor"/>
+        <rect x="28" y="10" width="2" height="2" fill="currentColor"/>
+        <circle cx="34" cy="11" r="1.2" ${_v2h(0.7)}/>
+      </g>`),
+      // Decor: framed picture with simple landscape.
+      Decor: _v2(`<g>
+        <rect x="6" y="9" width="36" height="30" ${_v2S}/>
+        <rect x="10" y="13" width="28" height="22" ${_v2h(0.7)}/>
+        <circle cx="32" cy="19" r="2.2" ${_v2S}/>
+        <path d="M10 30 L17 23 L22 28 L28 22 L34 27 L38 24 V35 H10 Z" ${_v2S}/>
+      </g>`),
+
       // v1 back-compat — kept so old tagged photos still render
       Threshold: '<rect x="4" y="14" width="32" height="12" fill="currentColor"/><g stroke="#F2EFE7" stroke-width="1.5" stroke-linecap="round"><line x1="11" y1="14" x2="11" y2="26"/><line x1="20" y1="14" x2="20" y2="26"/><line x1="29" y1="14" x2="29" y2="26"/></g>',
       Balcony:   '<rect x="6" y="20" width="28" height="14" fill="currentColor"/><g fill="#F2EFE7"><rect x="9" y="23" width="2" height="9"/><rect x="14" y="23" width="2" height="9"/><rect x="19" y="23" width="2" height="9"/><rect x="24" y="23" width="2" height="9"/><rect x="29" y="23" width="2" height="9"/></g>',
@@ -4821,28 +4877,23 @@
     // ============================================================
     // Element form: Element + Materiality + Author·Year + Personal note
     // ============================================================
-    // v3 — eight-category two-level element hierarchy.
-    //
-    // The flat picker mixed scales (Column next to Sink) and asked about
-    // Materiality even when the answer was nonsense (a Window's material
-    // is always glass; a Lamp doesn't have a material). The first version
-    // of categories (six) still left common things homeless — a vent joint
-    // wasn't an architectural Joint, an outdoor bin wasn't really a Product
-    // alongside Sanitary, floor tiling was both a Floor and a Finish.
-    //
-    // Eight categories of four sub-items each (32 total). Materiality shows
-    // up only where it matters: Structure, Surface, Finish, Detail.
+    // v4 — eight-category two-level element hierarchy with consistent
+    // sub-element abstraction. Architectural categories (Structure,
+    // Vertical, Opening, Envelope, Finish, Detail) use specific named
+    // elements (Wall, Stair, Door...). Service and Product use the
+    // MEP-discipline / object-class level instead — too many variants
+    // of vents and chairs to enumerate, and tagging-speed is the goal.
     const ELEMENT_CATEGORIES = [
       { id: 'structure', label: 'Structure', items: ['Wall', 'Column', 'Beam', 'Slab'] },
       { id: 'vertical',  label: 'Vertical',  items: ['Stair', 'Ramp', 'Railing', 'Elevator'] },
       { id: 'opening',   label: 'Opening',   items: ['Door', 'Window', 'Curtain Wall', 'Skylight'] },
-      { id: 'surface',   label: 'Surface',   items: ['Roof', 'Facade', 'Ceiling', 'Floor'] },
+      { id: 'envelope',  label: 'Envelope',  items: ['Roof', 'Facade', 'Ceiling', 'Floor'] },
       { id: 'finish',    label: 'Finish',    items: ['Tile', 'Cladding', 'Paint', 'Plaster'] },
       { id: 'detail',    label: 'Detail',    items: ['Joint', 'Arch', 'Cornice', 'Trim'] },
-      { id: 'service',   label: 'Service',   items: ['Vent', 'Sprinkler', 'Speaker', 'Socket'] },
-      { id: 'product',   label: 'Product',   items: ['Lamp', 'Sanitary', 'Furniture', 'Bin'] },
+      { id: 'service',   label: 'Service',   items: ['HVAC', 'Plumbing', 'Electrical', 'Fire'] },
+      { id: 'product',   label: 'Product',   items: ['Furniture', 'Lighting', 'Appliance', 'Decor'] },
     ];
-    const ELEMENT_CATEGORIES_WITH_MATERIALITY = new Set(['structure', 'surface', 'finish', 'detail']);
+    const ELEMENT_CATEGORIES_WITH_MATERIALITY = new Set(['structure', 'envelope', 'finish', 'detail']);
 
     // For old photos that were tagged before categories existed: look up
     // which category a given element_name belongs to.
@@ -4860,11 +4911,11 @@
       structure: 'Wall',
       vertical:  'Stair',
       opening:   'Window',
-      surface:   'Roof',
+      envelope:  'Facade',
       finish:    'Tile',
       detail:    'Joint',
-      service:   'Vent',
-      product:   'Product',
+      service:   'HVAC',
+      product:   'Furniture',
     };
     function elementCategoryGlyph(catId) {
       return elementGlyph(ELEMENT_CATEGORY_REPRESENTATIVES[catId] || 'Other');
