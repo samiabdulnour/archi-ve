@@ -4185,9 +4185,58 @@
         <path d="M24 20 V38" ${_v2S}/>
         <rect x="14" y="24" width="6" height="4" ${_v2h(0.7)}/>
       </g>`),
+      // v2 — elevator shaft with a cabin and up/down arrows.
+      Elevator: _v2(`<g>
+        <rect x="14" y="6" width="20" height="36" ${_v2S}/>
+        <rect x="17" y="20" width="14" height="14" ${_v2h(1)}/>
+        <path d="M22 14 L24 11 L26 14" ${_v2h(0.8)}/>
+        <path d="M22 38 L24 41 L26 38" ${_v2h(0.8)}/>
+      </g>`),
+      // v2 — curtain wall: tall mullioned glazing grid (3x2 panes).
+      'Curtain Wall': _v2(`<g>
+        <rect x="8" y="6" width="32" height="36" ${_v2S}/>
+        <line x1="8" y1="18" x2="40" y2="18" ${_v2h(0.7)}/>
+        <line x1="8" y1="30" x2="40" y2="30" ${_v2h(0.7)}/>
+        <line x1="24" y1="6" x2="24" y2="42" ${_v2h(0.7)}/>
+      </g>`),
+      // v2 — skylight: gabled glass roof on a base, mullions visible.
+      Skylight: _v2(`<g>
+        <path d="M6 38 H42" ${_v2S}/>
+        <path d="M12 38 V20 L24 8 L36 20 V38" ${_v2S}/>
+        <line x1="18" y1="14" x2="30" y2="14" ${_v2h(0.7)}/>
+        <line x1="24" y1="8" x2="24" y2="20" ${_v2h(0.7)}/>
+      </g>`),
+      // v2 — sanitary (generic plumbing fixture: tap on basin).
+      Sanitary: _v2(`<g>
+        <path d="M24 8 V18 M22 8 H26" ${_v2S}/>
+        <path d="M8 18 H40 V30 Q40 36 34 36 H14 Q8 36 8 30 Z" ${_v2S}/>
+        <circle cx="24" cy="27" r="2" ${_v2h(0.8)}/>
+      </g>`),
+      // v2 — furniture: chair side profile (backrest + seat + legs).
+      Furniture: _v2(`<g>
+        <path d="M14 8 V26 H22 V8" ${_v2S}/>
+        <path d="M14 26 H34 V32 H14 Z" ${_v2S}/>
+        <line x1="16" y1="32" x2="16" y2="42" ${_v2S}/>
+        <line x1="32" y1="32" x2="32" y2="42" ${_v2S}/>
+      </g>`),
+      // v2 — equipment: appliance with screen + dials + buttons.
+      Equipment: _v2(`<g>
+        <rect x="8" y="10" width="32" height="28" rx="2" ${_v2S}/>
+        <rect x="12" y="14" width="16" height="10" ${_v2h(0.7)}/>
+        <circle cx="34" cy="18" r="2" ${_v2h(0.7)}/>
+        <circle cx="34" cy="26" r="2" ${_v2h(0.7)}/>
+        <rect x="12" y="28" width="3" height="3" fill="currentColor"/>
+        <rect x="17" y="28" width="3" height="3" fill="currentColor"/>
+        <rect x="22" y="28" width="3" height="3" fill="currentColor"/>
+      </g>`),
+      // v2 — cornice: stepped projecting moulding profile.
+      Cornice: _v2(`<g>
+        <path d="M6 14 H42 V18 H6 Z" ${_v2S}/>
+        <path d="M8 18 H40 V22 H8 Z" ${_v2S}/>
+        <path d="M10 22 H38 V36 H10 Z" ${_v2S}/>
+      </g>`),
 
       // v1 back-compat — kept so old tagged photos still render
-      Cornice:   '<g fill="currentColor"><rect x="4" y="10" width="32" height="3"/><rect x="6" y="13" width="28" height="3"/><rect x="8" y="16" width="24" height="14"/></g>',
       Threshold: '<rect x="4" y="14" width="32" height="12" fill="currentColor"/><g stroke="#F2EFE7" stroke-width="1.5" stroke-linecap="round"><line x1="11" y1="14" x2="11" y2="26"/><line x1="20" y1="14" x2="20" y2="26"/><line x1="29" y1="14" x2="29" y2="26"/></g>',
       Balcony:   '<rect x="6" y="20" width="28" height="14" fill="currentColor"/><g fill="#F2EFE7"><rect x="9" y="23" width="2" height="9"/><rect x="14" y="23" width="2" height="9"/><rect x="19" y="23" width="2" height="9"/><rect x="24" y="23" width="2" height="9"/><rect x="29" y="23" width="2" height="9"/></g>',
       Vault:     '<path d="M6 32 V20 Q6 8 20 8 Q34 8 34 20 V32 H28 V20 Q28 14 20 14 Q12 14 12 20 V32 Z" fill="currentColor"/>',
@@ -4690,33 +4739,91 @@
     // ============================================================
     // Element form: Element + Materiality + Author·Year + Personal note
     // ============================================================
-    // v3 — eight tiles in a 4x2 grid. Pared down from twenty for tagging
-    // speed (the whole flow is meant to take under 10s while walking).
-    // 'Fixture' is a catch-all that covers sinks, toilets, taps, lamps and
-    // similar product photos — losing the per-fixture distinction in
-    // exchange for a faster tap. Every legacy and detail glyph (Beam, Arch,
-    // Ramp, Railing, Ceiling, Facade, Joint, Pavement, Floor, Sink, Toilet,
-    // Tap, Lamp, Other, plus the v1 set) is still in ELEMENT_GLYPHS as
-    // back-compat so historical tags keep rendering.
-    const ELEMENTS_TOP_12 = [
-      'Wall', 'Column', 'Slab', 'Door',
-      'Window', 'Stair', 'Roof', 'Product',
+    // v3 — two-level element hierarchy. The flat tile picker mixed scales
+    // (Column next to Sink) and demanded Materiality even when the answer
+    // was nonsense (a Window's material is always glass). Now a category
+    // is picked first, then a sub-element from that category's list, and
+    // Materiality only appears for the architectural categories where it
+    // matters (Structure / Surface / Detail).
+    const ELEMENT_CATEGORIES = [
+      { id: 'structure', label: 'Structure', items: ['Wall', 'Column', 'Beam', 'Slab'] },
+      { id: 'vertical',  label: 'Vertical',  items: ['Stair', 'Ramp', 'Railing', 'Elevator'] },
+      { id: 'opening',   label: 'Opening',   items: ['Door', 'Window', 'Curtain Wall', 'Skylight'] },
+      { id: 'surface',   label: 'Surface',   items: ['Roof', 'Facade', 'Ceiling', 'Floor'] },
+      { id: 'detail',    label: 'Detail',    items: ['Joint', 'Arch', 'Cornice', 'Pavement'] },
+      { id: 'product',   label: 'Product',   items: ['Lamp', 'Sanitary', 'Furniture', 'Equipment'] },
     ];
+    const ELEMENT_CATEGORIES_WITH_MATERIALITY = new Set(['structure', 'surface', 'detail']);
+
+    // For old photos that were tagged before categories existed: look up
+    // which category a given element_name belongs to.
+    function categoryForElement(name) {
+      for (const c of ELEMENT_CATEGORIES) {
+        if (c.items.includes(name)) return c.id;
+      }
+      return null;
+    }
+
+    // Category tiles reuse one representative sub-element's glyph so we
+    // don't need to draw six new category icons. Picked for legibility:
+    // Wall for Structure, Stair for Vertical, Window for Opening, Roof
+    // for Surface, Joint for Detail, Product for the product catch-all.
+    const ELEMENT_CATEGORY_REPRESENTATIVES = {
+      structure: 'Wall',
+      vertical:  'Stair',
+      opening:   'Window',
+      surface:   'Roof',
+      detail:    'Joint',
+      product:   'Product',
+    };
+    function elementCategoryGlyph(catId) {
+      return elementGlyph(ELEMENT_CATEGORY_REPRESENTATIVES[catId] || 'Other');
+    }
 
     function renderElementForm(c) {
       if (!captureDraft.materials) captureDraft.materials = [];
 
       if (getFlowStepEnabled('element', 'element')) {
+        // 1 — Category picker (Structure / Vertical / Opening / Surface / Detail / Product)
         c.appendChild(buildSwatchSection({
-          label: 'Element',
-          getSummary: () => captureDraft.element_name || '',
-          items: ELEMENTS_TOP_12,
-          field: 'element_name',
+          label: 'Category',
+          getSummary: () => {
+            const cat = ELEMENT_CATEGORIES.find(x => x.id === captureDraft.element_category);
+            return cat ? cat.label : '';
+          },
+          items: ELEMENT_CATEGORIES,
+          field: 'element_category',
           multi: false,
-          glyphFor: elementGlyph,
+          glyphFor: c => elementCategoryGlyph(c.id),
+          valueFor: c => c.id,
+          onChange: () => {
+            const cat = ELEMENT_CATEGORIES.find(x => x.id === captureDraft.element_category);
+            // Clear the sub-element if the new category doesn't contain it.
+            if (cat && !cat.items.includes(captureDraft.element_name)) {
+              captureDraft.element_name = null;
+            }
+            renderCaptureStep();
+          },
         }));
+
+        // 2 — Sub-element picker for the chosen category
+        const cat = ELEMENT_CATEGORIES.find(x => x.id === captureDraft.element_category);
+        if (cat) {
+          c.appendChild(buildSwatchSection({
+            label: cat.label,
+            getSummary: () => captureDraft.element_name || '',
+            items: cat.items,
+            field: 'element_name',
+            multi: false,
+            glyphFor: elementGlyph,
+          }));
+        }
       }
-      if (getFlowStepEnabled('element', 'materiality')) {
+
+      // 3 — Materiality only for architectural categories where material matters
+      const cat = ELEMENT_CATEGORIES.find(x => x.id === captureDraft.element_category);
+      if (cat && ELEMENT_CATEGORIES_WITH_MATERIALITY.has(cat.id)
+          && getFlowStepEnabled('element', 'materiality')) {
         c.appendChild(buildSwatchSection({
           label: 'Materiality',
           getSummary: () => (captureDraft.materials || []).join(' · '),
@@ -6131,27 +6238,61 @@
       const t = currentDetailRecord.tags_human;
       const onChange = () => saveDetailRecord();
       if (!t.materials) t.materials = [];
+      // Back-compat: photos tagged before categories existed have an
+      // element_name but no element_category — infer it once on first
+      // render so the picker pre-populates correctly.
+      if (!t.element_category && t.element_name) {
+        const inferred = categoryForElement(t.element_name);
+        if (inferred) t.element_category = inferred;
+      }
+
       body.appendChild(buildSwatchSection({
-        target: t,
-        onChange,
-        label: 'Element',
-        getSummary: () => t.element_name || '',
-        items: ELEMENTS_TOP_12,
-        field: 'element_name',
+        target: t, onChange,
+        label: 'Category',
+        getSummary: () => {
+          const cat = ELEMENT_CATEGORIES.find(x => x.id === t.element_category);
+          return cat ? cat.label : '';
+        },
+        items: ELEMENT_CATEGORIES,
+        field: 'element_category',
         multi: false,
-        glyphFor: elementGlyph,
+        glyphFor: c => elementCategoryGlyph(c.id),
+        valueFor: c => c.id,
+        onChange: () => {
+          const cat = ELEMENT_CATEGORIES.find(x => x.id === t.element_category);
+          if (cat && !cat.items.includes(t.element_name)) {
+            t.element_name = null;
+          }
+          saveDetailRecord();
+          renderDetail();
+        },
       }));
-      body.appendChild(buildSwatchSection({
-        target: t,
-        onChange,
-        label: 'Materiality',
-        getSummary: () => (t.materials || []).join(' · '),
-        items: MATERIALS.slice(0, 8),
-        field: 'materials',
-        multi: true,
-        glyphFor: materialPatternSvg,
-        variant: 'pattern',
-      }));
+
+      const cat = ELEMENT_CATEGORIES.find(x => x.id === t.element_category);
+      if (cat) {
+        body.appendChild(buildSwatchSection({
+          target: t, onChange,
+          label: cat.label,
+          getSummary: () => t.element_name || '',
+          items: cat.items,
+          field: 'element_name',
+          multi: false,
+          glyphFor: elementGlyph,
+        }));
+      }
+
+      if (cat && ELEMENT_CATEGORIES_WITH_MATERIALITY.has(cat.id)) {
+        body.appendChild(buildSwatchSection({
+          target: t, onChange,
+          label: 'Materiality',
+          getSummary: () => (t.materials || []).join(' · '),
+          items: MATERIALS.slice(0, 8),
+          field: 'materials',
+          multi: true,
+          glyphFor: materialPatternSvg,
+          variant: 'pattern',
+        }));
+      }
       body.appendChild(buildAuthorYearSection({ target: t, onChange }));
     }
 
