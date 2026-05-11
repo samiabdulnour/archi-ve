@@ -4235,6 +4235,88 @@
         <path d="M8 18 H40 V22 H8 Z" ${_v2S}/>
         <path d="M10 22 H38 V36 H10 Z" ${_v2S}/>
       </g>`),
+      // v2 — trim: section profile of a baseboard / casing moulding.
+      Trim: _v2(`<g>
+        <path d="M6 40 H42" ${_v2S}/>
+        <path d="M6 40 V28 Q6 26 8 26 H12 Q14 26 14 24 V18 Q14 16 16 16 H20 Q22 16 22 14 V8 H42" ${_v2S}/>
+      </g>`),
+      // v2 — tile: 4x4 ceramic-style grid with grout lines.
+      Tile: _v2(`<g>
+        <rect x="6" y="6" width="36" height="36" ${_v2S}/>
+        ${_v2map([15,24,33], y => `<line x1="6" y1="${y}" x2="42" y2="${y}" ${_v2h(0.8)}/>`)}
+        ${_v2map([15,24,33], x => `<line x1="${x}" y1="6" x2="${x}" y2="42" ${_v2h(0.8)}/>`)}
+      </g>`),
+      // v2 — cladding: vertical board-and-batten panel siding.
+      Cladding: _v2(`<g>
+        <rect x="8" y="6" width="32" height="36" ${_v2S}/>
+        ${_v2map([14,20,28,34], x => `<line x1="${x}" y1="6" x2="${x}" y2="42" ${_v2h(0.7)}/>`)}
+      </g>`),
+      // v2 — paint: roller above streaks.
+      Paint: _v2(`<g>
+        <rect x="10" y="10" width="22" height="6" ${_v2S}/>
+        <line x1="32" y1="13" x2="38" y2="13" ${_v2S}/>
+        <path d="M35 13 V40" ${_v2S}/>
+        <line x1="13" y1="18" x2="13" y2="40" ${_v2h(0.7)}/>
+        <line x1="18" y1="18" x2="18" y2="38" ${_v2h(0.7)}/>
+        <line x1="23" y1="18" x2="23" y2="40" ${_v2h(0.7)}/>
+        <line x1="28" y1="18" x2="28" y2="36" ${_v2h(0.7)}/>
+      </g>`),
+      // v2 — plaster: stippled wall surface.
+      Plaster: _v2(`<g>
+        <rect x="6" y="6" width="36" height="36" ${_v2S}/>
+        <g fill="currentColor">
+          <circle cx="11" cy="11" r="0.6"/><circle cx="17" cy="14" r="0.5"/>
+          <circle cx="23" cy="10" r="0.5"/><circle cx="29" cy="13" r="0.6"/>
+          <circle cx="35" cy="11" r="0.5"/><circle cx="13" cy="18" r="0.5"/>
+          <circle cx="20" cy="20" r="0.6"/><circle cx="27" cy="18" r="0.5"/>
+          <circle cx="33" cy="21" r="0.5"/><circle cx="10" cy="25" r="0.5"/>
+          <circle cx="16" cy="27" r="0.6"/><circle cx="22" cy="25" r="0.5"/>
+          <circle cx="28" cy="28" r="0.5"/><circle cx="34" cy="26" r="0.6"/>
+          <circle cx="14" cy="33" r="0.5"/><circle cx="20" cy="35" r="0.5"/>
+          <circle cx="26" cy="32" r="0.6"/><circle cx="32" cy="34" r="0.5"/>
+          <circle cx="38" cy="36" r="0.5"/>
+        </g>
+      </g>`),
+      // v2 — vent: slatted return-air grille.
+      Vent: _v2(`<g>
+        <rect x="8" y="10" width="32" height="28" ${_v2S}/>
+        ${_v2map([16,21,26,31], y => `<line x1="11" y1="${y}" x2="37" y2="${y}" ${_v2h(0.9)}/>`)}
+      </g>`),
+      // v2 — sprinkler head: stem + rosette + spray drops.
+      Sprinkler: _v2(`<g>
+        <path d="M24 6 V14" ${_v2S}/>
+        <circle cx="24" cy="20" r="6" ${_v2S}/>
+        <circle cx="24" cy="20" r="1.4" fill="currentColor"/>
+        <line x1="16" y1="32" x2="20" y2="27" ${_v2h(0.7)}/>
+        <line x1="24" y1="30" x2="24" y2="40" ${_v2h(0.7)}/>
+        <line x1="32" y1="32" x2="28" y2="27" ${_v2h(0.7)}/>
+      </g>`),
+      // v2 — speaker: cabinet with woofer + tweeter cones.
+      Speaker: _v2(`<g>
+        <rect x="10" y="6" width="28" height="36" rx="2" ${_v2S}/>
+        <circle cx="24" cy="18" r="6" ${_v2S}/>
+        <circle cx="24" cy="18" r="1.4" fill="currentColor"/>
+        <circle cx="24" cy="32" r="3" ${_v2S}/>
+        <circle cx="24" cy="32" r="0.8" fill="currentColor"/>
+      </g>`),
+      // v2 — wall socket: two slots + earth pin.
+      Socket: _v2(`<g>
+        <rect x="12" y="10" width="24" height="28" rx="2" ${_v2S}/>
+        <rect x="17" y="16" width="3" height="9" ${_v2h(0.8)}/>
+        <rect x="28" y="16" width="3" height="9" ${_v2h(0.8)}/>
+        <circle cx="24" cy="32" r="1.5" ${_v2h(0.7)}/>
+      </g>`),
+      // v2 — outdoor bin with lid + handle.
+      Bin: _v2(`<g>
+        <line x1="22" y1="4" x2="26" y2="4" ${_v2S}/>
+        <line x1="22" y1="4" x2="22" y2="9" ${_v2S}/>
+        <line x1="26" y1="4" x2="26" y2="9" ${_v2S}/>
+        <rect x="10" y="9" width="28" height="4" ${_v2S}/>
+        <path d="M12 13 L14 42 H34 L36 13" ${_v2S}/>
+        <line x1="18" y1="16" x2="18" y2="38" ${_v2h(0.6)}/>
+        <line x1="24" y1="16" x2="24" y2="38" ${_v2h(0.6)}/>
+        <line x1="30" y1="16" x2="30" y2="38" ${_v2h(0.6)}/>
+      </g>`),
 
       // v1 back-compat — kept so old tagged photos still render
       Threshold: '<rect x="4" y="14" width="32" height="12" fill="currentColor"/><g stroke="#F2EFE7" stroke-width="1.5" stroke-linecap="round"><line x1="11" y1="14" x2="11" y2="26"/><line x1="20" y1="14" x2="20" y2="26"/><line x1="29" y1="14" x2="29" y2="26"/></g>',
@@ -4739,21 +4821,28 @@
     // ============================================================
     // Element form: Element + Materiality + Author·Year + Personal note
     // ============================================================
-    // v3 — two-level element hierarchy. The flat tile picker mixed scales
-    // (Column next to Sink) and demanded Materiality even when the answer
-    // was nonsense (a Window's material is always glass). Now a category
-    // is picked first, then a sub-element from that category's list, and
-    // Materiality only appears for the architectural categories where it
-    // matters (Structure / Surface / Detail).
+    // v3 — eight-category two-level element hierarchy.
+    //
+    // The flat picker mixed scales (Column next to Sink) and asked about
+    // Materiality even when the answer was nonsense (a Window's material
+    // is always glass; a Lamp doesn't have a material). The first version
+    // of categories (six) still left common things homeless — a vent joint
+    // wasn't an architectural Joint, an outdoor bin wasn't really a Product
+    // alongside Sanitary, floor tiling was both a Floor and a Finish.
+    //
+    // Eight categories of four sub-items each (32 total). Materiality shows
+    // up only where it matters: Structure, Surface, Finish, Detail.
     const ELEMENT_CATEGORIES = [
       { id: 'structure', label: 'Structure', items: ['Wall', 'Column', 'Beam', 'Slab'] },
       { id: 'vertical',  label: 'Vertical',  items: ['Stair', 'Ramp', 'Railing', 'Elevator'] },
       { id: 'opening',   label: 'Opening',   items: ['Door', 'Window', 'Curtain Wall', 'Skylight'] },
       { id: 'surface',   label: 'Surface',   items: ['Roof', 'Facade', 'Ceiling', 'Floor'] },
-      { id: 'detail',    label: 'Detail',    items: ['Joint', 'Arch', 'Cornice', 'Pavement'] },
-      { id: 'product',   label: 'Product',   items: ['Lamp', 'Sanitary', 'Furniture', 'Equipment'] },
+      { id: 'finish',    label: 'Finish',    items: ['Tile', 'Cladding', 'Paint', 'Plaster'] },
+      { id: 'detail',    label: 'Detail',    items: ['Joint', 'Arch', 'Cornice', 'Trim'] },
+      { id: 'service',   label: 'Service',   items: ['Vent', 'Sprinkler', 'Speaker', 'Socket'] },
+      { id: 'product',   label: 'Product',   items: ['Lamp', 'Sanitary', 'Furniture', 'Bin'] },
     ];
-    const ELEMENT_CATEGORIES_WITH_MATERIALITY = new Set(['structure', 'surface', 'detail']);
+    const ELEMENT_CATEGORIES_WITH_MATERIALITY = new Set(['structure', 'surface', 'finish', 'detail']);
 
     // For old photos that were tagged before categories existed: look up
     // which category a given element_name belongs to.
@@ -4764,16 +4853,17 @@
       return null;
     }
 
-    // Category tiles reuse one representative sub-element's glyph so we
-    // don't need to draw six new category icons. Picked for legibility:
-    // Wall for Structure, Stair for Vertical, Window for Opening, Roof
-    // for Surface, Joint for Detail, Product for the product catch-all.
+    // Category tiles reuse one representative sub-element's glyph so the
+    // picker reads consistently across both levels — no separate category
+    // icons to maintain.
     const ELEMENT_CATEGORY_REPRESENTATIVES = {
       structure: 'Wall',
       vertical:  'Stair',
       opening:   'Window',
       surface:   'Roof',
+      finish:    'Tile',
       detail:    'Joint',
+      service:   'Vent',
       product:   'Product',
     };
     function elementCategoryGlyph(catId) {
