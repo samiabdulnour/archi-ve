@@ -1058,81 +1058,62 @@
        dot — hide both dots while selecting so nothing collides. */
     .gallery-body.selecting .tile-dot { display: none; }
 
-    /* ---- Lens switcher (Time / Project / Typology / Map) ----
-       Shares chrome with .gal-subtabs so all three stacked tab strips
-       (lens / sub / inner) read at the same scale and underline offset. */
-    .gal-lens-tabs {
+    /* ---- Lens switcher + sub-tab strips ----
+       All three levels (lens / sub / inner) render as an iOS-style
+       segmented pill, matching the Type toggle in the detail view. The
+       active segment lifts to paper with a soft shadow; the rest of the
+       row sits on the warm-neutral track. */
+    .gal-lens-tabs,
+    .gal-subtabs {
       display: flex;
-      gap: 1.1rem;
-      padding: 0.2rem 1rem 0.7rem;
-      border-bottom: 1px solid var(--border);
-      align-items: baseline;
+      gap: 0;
+      margin: 6px 14px;
+      padding: 3px;
+      background: var(--bg-elev-2);
+      border-radius: 10px;
+      border: 0;
+      align-items: stretch;
       overflow-x: auto;
       scrollbar-width: none;
       white-space: nowrap;
     }
-    .gal-lens-tabs::-webkit-scrollbar { display: none; }
-    .gal-lens-tab {
-      position: relative;
-      background: transparent;
-      color: var(--text-faint);
-      padding: 0.25rem 0;
-      font-size: 0.88rem;
-      font-weight: 500;
-      letter-spacing: -0.005em;
-      border: 0;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-    .gal-lens-tab.active {
-      color: var(--text);
-    }
-    .gal-lens-tab.active::after {
-      content: "";
-      position: absolute;
-      left: -2px; right: -2px; bottom: -11px;
-      height: 2px;
-      background: var(--text);
-    }
-
-    /* Sub-tabs (used inside Project lens for Projects · References) */
-    .gal-subtabs {
-      display: flex;
-      gap: 1.1rem;
-      padding: 0.2rem 1rem 0.7rem;
-      border-bottom: 1px solid var(--border);
-      align-items: baseline;
-    }
+    .gal-lens-tabs::-webkit-scrollbar,
+    .gal-subtabs::-webkit-scrollbar { display: none; }
+    .gal-lens-tab,
     .gal-subtabs .gal-subtab {
+      flex: 1;
       position: relative;
       background: transparent;
-      color: var(--text-faint);
-      padding: 0.25rem 0;
+      color: rgba(15,15,14,0.62);
+      padding: 7px 4px;
+      border-radius: 8px;
       font-size: 0.88rem;
       font-weight: 500;
       letter-spacing: -0.005em;
       border: 0;
       cursor: pointer;
+      text-align: center;
+      transition: background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
     }
+    .gal-lens-tab.active,
     .gal-subtabs .gal-subtab.active {
+      background: var(--bg-elev);
       color: var(--text);
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(15,15,14,0.08);
     }
-    .gal-subtabs .gal-subtab.active::after {
-      content: "";
-      position: absolute;
-      left: -2px; right: -2px; bottom: -11px;
-      height: 2px;
-      background: var(--text);
-    }
-    .gal-subtabs .spacer { flex: 1; }
+    /* Spacer/count slots (used by some Project-lens sub-tab strips) sit
+       outside the segmented track so the pills stay equal-width. */
+    .gal-subtabs .spacer { flex: 1; min-width: 0; }
     .gal-subtabs .count {
       color: var(--text-faint);
       font-size: 0.82rem;
       font-variant-numeric: tabular-nums;
+      padding: 7px 8px;
+      flex: 0 0 auto;
     }
-    /* Inner sub-tab strip — same chrome as the outer strips. Hierarchy is
-       carried by stacking, not by size, weight, or underline thickness. */
-    .gal-subtabs--inner { /* now identical to .gal-subtabs */ }
+    /* Inner sub-tab strip — same chrome as the outer strips. */
+    .gal-subtabs--inner { /* identical to .gal-subtabs */ }
 
     /* ---- Time lens scrubber: thin paper rule on the right edge,
        year ticks at band offsets, ink bullet + pill thumb tracks scroll. ---- */
@@ -2429,13 +2410,6 @@
       </div>
       <h1 class="gal-title">Archive</h1>
       <div class="gal-header-right">
-        <span class="gal-meta" id="gal-meta"></span>
-        <button class="gal-icon-btn" id="gal-filter-btn" aria-label="Filter">
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-            <path d="M3 5h14M5 10h10M8 15h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          </svg>
-          <span class="gal-filter-dot" id="gal-filter-dot" hidden></span>
-        </button>
         <button class="gal-select-btn" id="gal-select-btn">Select</button>
       </div>
     </header>
@@ -5258,7 +5232,6 @@
       });
     }
 
-    document.getElementById('gal-filter-btn').addEventListener('click', openGallerySheet);
     document.getElementById('gal-sheet-backdrop').addEventListener('click', closeGallerySheet);
     document.getElementById('gal-sheet-done').addEventListener('click', closeGallerySheet);
 
@@ -5467,17 +5440,6 @@
         countEl.hidden = false;
         countEl.textContent =
           `${filtered.length} of ${all.length} ${filtered.length === 1 ? 'photo' : 'photos'}`;
-      }
-
-      // Header meta: total count + year span (e.g. "47 · 2 YR"), matching the
-      // design's right-aligned "667 · 2 YR" treatment.
-      const metaEl = document.getElementById('gal-meta');
-      if (all.length === 0) {
-        metaEl.textContent = '';
-      } else {
-        const years = all.map(r => new Date(r.created_at).getFullYear());
-        const span = (Math.max(...years) - Math.min(...years)) + 1;
-        metaEl.textContent = `${all.length} · ${span} YR`;
       }
 
       document.getElementById('empty').hidden = all.length !== 0;
@@ -6219,7 +6181,6 @@
     // filters are set, plus a dot on the filter button when any are active.
     function renderActiveFilters() {
       const row = document.getElementById('gal-active-filters');
-      const dot = document.getElementById('gal-filter-dot');
       const pills = [];
       if (activeFilters.type && activeFilters.type !== 'all') {
         const t = TYPE_FILTERS.find(x => x.id === activeFilters.type);
@@ -6232,11 +6193,9 @@
       row.innerHTML = '';
       if (pills.length === 0) {
         row.hidden = true;
-        if (dot) dot.hidden = true;
         return;
       }
       row.hidden = false;
-      if (dot) dot.hidden = false;
       pills.forEach(p => {
         const el = document.createElement('span');
         el.className = 'pill';
