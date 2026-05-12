@@ -1067,7 +1067,10 @@
     .gal-subtabs {
       display: flex;
       gap: 0;
-      margin: 6px 14px;
+      /* Top-only margin so the gaps between every stacked strip are equal
+         regardless of which parent owns each strip (lens-tabs sit outside
+         gallery-body, sub-tabs sit inside it). */
+      margin: 8px 14px 0;
       padding: 3px;
       background: var(--bg-elev-2);
       border-radius: 10px;
@@ -1081,7 +1084,12 @@
     .gal-subtabs::-webkit-scrollbar { display: none; }
     .gal-lens-tab,
     .gal-subtabs .gal-subtab {
-      flex: 1;
+      /* flex: 1 1 0 + min-width: 0 forces equal-width segments no matter
+         how long the text is — two options split 50/50, three thirds,
+         four quarters. Without min-width: 0 a long label like "Reference"
+         widens its segment via min-content. */
+      flex: 1 1 0;
+      min-width: 0;
       position: relative;
       background: transparent;
       color: rgba(15,15,14,0.62);
@@ -1093,6 +1101,8 @@
       border: 0;
       cursor: pointer;
       text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
       transition: background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
     }
     .gal-lens-tab.active,
@@ -2589,7 +2599,7 @@
       lens: 'time',
       referenceTab: 'building',  // building | element | graphic  (Reference outer)
       buildingTab: 'typology',   // typology | concept            (Reference > Building)
-      elementTab:  'element',    // element  | material           (Reference > Element)
+      elementTab:  'category',   // category | subelement | material  (Reference > Element)
     };
     let currentDetailId = null;
     let currentDetailRecord = null;
@@ -5962,19 +5972,51 @@
     function renderRefElement(body, recs) {
       const elements = recs.filter(r => (r.tags_human || {}).type === 'element');
       renderSubtabs(body, [
-        { id: 'element',  label: 'Element'  },
-        { id: 'material', label: 'Material' },
+        { id: 'category',   label: 'Category' },
+        { id: 'subelement', label: 'Element'  },
+        { id: 'material',   label: 'Material' },
       ], activeFilters.elementTab,
          id => { activeFilters.elementTab = id; renderGallery(); },
          { variant: 'inner' });
 
       const buckets = new Map();
-      const field = activeFilters.elementTab === 'material' ? 'material' : 'element_name';
-      elements.forEach(r => {
-        const k = (r.tags_human && r.tags_human[field]) || 'Other';
-        if (!buckets.has(k)) buckets.set(k, []);
-        buckets.get(k).push(r);
-      });
+
+      if (activeFilters.elementTab === 'category') {
+        // Order rows by canonical category order (Structure ... Product),
+        // then drop empty rows. Photos without a category fall to 'Other'.
+        ELEMENT_CATEGORIES.forEach(c => buckets.set(c.label, []));
+        buckets.set('Other', []);
+        elements.forEach(r => {
+          const cid = (r.tags_human || {}).element_category
+                   || categoryForElement((r.tags_human || {}).element_name);
+          const cat = ELEMENT_CATEGORIES.find(x => x.id === cid);
+          const label = cat ? cat.label : 'Other';
+          buckets.get(label).push(r);
+        });
+        for (const [k, v] of buckets) if (v.length === 0) buckets.delete(k);
+      } else if (activeFilters.elementTab === 'material') {
+        // Photos can carry multiple materials — explode into each bucket
+        // so a stone-and-brick wall appears in both the Stone and Brick rows.
+        elements.forEach(r => {
+          const mats = (r.tags_human && r.tags_human.materials) || [];
+          if (mats.length === 0) {
+            if (!buckets.has('Other')) buckets.set('Other', []);
+            buckets.get('Other').push(r);
+            return;
+          }
+          mats.forEach(m => {
+            if (!buckets.has(m)) buckets.set(m, []);
+            buckets.get(m).push(r);
+          });
+        });
+      } else {
+        // sub-element — bucket by the specific named element (Wall, Stair...).
+        elements.forEach(r => {
+          const k = (r.tags_human && r.tags_human.element_name) || 'Other';
+          if (!buckets.has(k)) buckets.set(k, []);
+          buckets.get(k).push(r);
+        });
+      }
       renderRowIndex(body, buckets, {
         scopeType: 'element',
         empty: 'No element photos yet.',
