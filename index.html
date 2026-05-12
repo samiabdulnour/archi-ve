@@ -2539,7 +2539,7 @@
     //   Religious kept as its own slot (sacred buildings have a distinct
     //   architectural character — towers, sacred enclosures, dome+cross etc.)
     const TYPOLOGY = [
-      'Residential', 'Office', 'Public', 'Religious',
+      'Residential', 'Office', 'Public', 'Landscape',
       'Commercial', 'Hospitality', 'Industrial', 'Heritage',
     ];
 
@@ -2555,7 +2555,7 @@
       { id: 'structure',   label: 'Structure',   hint: 'tectonics, load' },
       { id: 'context',     label: 'Context',     hint: 'site, landscape, urban' },
       { id: 'circulation', label: 'Circulation', hint: 'movement, flow, route' },
-      { id: 'craft',       label: 'Craft',       hint: 'making, tooling, finish' },
+      { id: 'other',       label: 'Other',       hint: 'something else' },
     ];
 
     const ELEMENT_GROUPS = {
@@ -3961,8 +3961,14 @@
         <line x1="24" y1="3" x2="24" y2="9" ${_v2S}/>
         <path d="M24 4 L30 6 L24 8" ${_v2h(0.7)}/>
       </g>`),
-      // v1 back-compat — kept so old tagged photos still render
-      Landscape:    '<g fill="currentColor"><circle cx="30" cy="10" r="3.5"/><path d="M4 30 Q12 22 20 26 Q28 30 36 24 V34 H4 Z"/><ellipse cx="12" cy="16" rx="4" ry="5"/><rect x="11" y="18" width="2" height="9"/></g>',
+      // v2 — landscape: sun + rolling hills + tree, line-art.
+      Landscape:    _v2(`<g>
+        <circle cx="36" cy="11" r="2.6" ${_v2S}/>
+        <path d="M4 36 Q12 26 22 30 Q32 34 44 24" ${_v2S}/>
+        <line x1="4" y1="42" x2="44" y2="42" ${_v2S}/>
+        <line x1="12" y1="36" x2="12" y2="26" ${_v2S}/>
+        <circle cx="12" cy="21" r="5" ${_v2S}/>
+      </g>`),
     };
 
     const CONCEPT_GLYPHS = {
@@ -4031,10 +4037,14 @@
         <circle cx="38" cy="11" r="1.6" fill="currentColor"/>
       </g>`),
       // v2 — stone block with chisel scoring
+      // v2 — circled question mark, generic catch-all.
+      other:       _v2(`<g>
+        <circle cx="24" cy="24" r="14" ${_v2S}/>
+        <text x="24" y="30" text-anchor="middle" fill="currentColor" font-size="18" font-family="Inter" font-weight="500">?</text>
+      </g>`),
+      // v1 back-compat — Craft and Color stay so historical tags still render.
       craft:       _v2(_v2Craft),
-      // v1 back-compat — three overlapping translucent spots
       color:       '<g fill="currentColor"><circle cx="14" cy="23" r="9"/><circle cx="26" cy="23" r="9" opacity="0.55"/><circle cx="20" cy="13" r="7" opacity="0.32"/></g>',
-      other:       '<g fill="currentColor"><circle cx="20" cy="20" r="13"/><text x="20" y="25.5" text-anchor="middle" fill="#F2EFE7" font-size="16" font-family="Inter" font-weight="700">?</text></g>',
     };
 
     const ELEMENT_GLYPHS = {
