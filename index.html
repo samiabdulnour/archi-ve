@@ -1058,6 +1058,28 @@
        dot — hide both dots while selecting so nothing collides. */
     .gallery-body.selecting .tile-dot { display: none; }
 
+    /* Tag pill — one per tile, bottom-left. Shows the photo's primary
+       human label (project name / typology / element category / graphic
+       kind). Translucent ink chip so it stays readable on any photo. */
+    .gallery-body .tile-tag {
+      position: absolute;
+      left: 6px; bottom: 6px;
+      max-width: calc(100% - 12px);
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(15,15,14,0.72);
+      color: #F8F5EC;
+      font-size: 0.62rem;
+      font-weight: 500;
+      letter-spacing: -0.005em;
+      line-height: 1.35;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .gallery-body.selecting .tile-tag { display: none; }
+
     /* ---- Lens switcher + sub-tab strips ----
        All three levels (lens / sub / inner) render as an iOS-style
        segmented pill, matching the Type toggle in the detail view. The
@@ -5509,6 +5531,30 @@
     // the tile-level selection / openDetail behavior is the same everywhere.
     // Status dots replace the old letter type-badge: yellow corner = project,
     // red corner = fully untagged, nothing = a normal reference photo.
+    // Picks the single tag-pill label for a tile in the gallery.
+    //   1. Project mode  -> the project name
+    //   2. Building      -> the chosen typology
+    //   3. Element       -> the chosen category label (Structure, Vertical...)
+    //   4. Graphic       -> the chosen graphic kind label (Plan, Render...)
+    // Returns '' if none of the above apply (tile renders unlabeled).
+    function tilePrimaryLabel(t) {
+      if (!t) return '';
+      if (t.project) return t.project;
+      if (t.type === 'building' && t.typology) return t.typology;
+      if (t.type === 'element') {
+        const cid = t.element_category || (typeof categoryForElement === 'function'
+          ? categoryForElement(t.element_name)
+          : null);
+        const cat = ELEMENT_CATEGORIES.find(x => x.id === cid);
+        if (cat) return cat.label;
+      }
+      if (t.type === 'graphic' && t.graphic_kind) {
+        const k = GRAPHIC_KINDS.find(x => x.id === t.graphic_kind);
+        return k ? k.label : t.graphic_kind;
+      }
+      return '';
+    }
+
     function buildPhotoTile(rec) {
       const tile = document.createElement('div');
       tile.className = 'tile';
@@ -5530,6 +5576,16 @@
         const d = document.createElement('span');
         d.className = 'tile-dot tile-dot-untagged';
         tile.appendChild(d);
+      }
+
+      // Primary label pill: project name takes precedence, then the
+      // type-specific tag (typology / element category / graphic kind).
+      const pillLabel = tilePrimaryLabel(t);
+      if (pillLabel) {
+        const pill = document.createElement('span');
+        pill.className = 'tile-tag';
+        pill.textContent = pillLabel;
+        tile.appendChild(pill);
       }
 
       const check = document.createElement('span');
