@@ -5940,14 +5940,11 @@
       const buckets = new Map();
       if (activeFilters.buildingTab === 'concept') {
         // Concepts are multi-valued per photo — a photo with [form, light]
-        // appears in both rows.
+        // appears in both rows. Photos with no concepts at all are skipped
+        // entirely (no synthetic 'Other' bucket).
         buildings.forEach(r => {
           const cs = (r.tags_human && r.tags_human.concepts) || [];
-          if (cs.length === 0) {
-            if (!buckets.has('Other')) buckets.set('Other', []);
-            buckets.get('Other').push(r);
-            return;
-          }
+          if (cs.length === 0) return;
           cs.forEach(cid => {
             const m = CONCEPTS.find(c => c.id === cid);
             const label = m ? m.label : cid;
@@ -5957,7 +5954,8 @@
         });
       } else {
         buildings.forEach(r => {
-          const k = (r.tags_human && r.tags_human.typology) || 'Other';
+          const k = (r.tags_human || {}).typology;
+          if (!k) return;
           if (!buckets.has(k)) buckets.set(k, []);
           buckets.get(k).push(r);
         });
@@ -5981,28 +5979,25 @@
       const buckets = new Map();
 
       if (activeFilters.elementTab === 'category') {
-        // Order rows by canonical category order (Structure ... Product),
-        // then drop empty rows. Photos without a category fall to 'Other'.
+        // Pre-seed buckets in canonical category order, drop empty rows
+        // after assignment. Photos without a resolvable category are
+        // skipped — no synthetic 'Other'.
         ELEMENT_CATEGORIES.forEach(c => buckets.set(c.label, []));
-        buckets.set('Other', []);
         elements.forEach(r => {
-          const cid = (r.tags_human || {}).element_category
-                   || categoryForElement((r.tags_human || {}).element_name);
+          const t = r.tags_human || {};
+          const cid = t.element_category || categoryForElement(t.element_name);
           const cat = ELEMENT_CATEGORIES.find(x => x.id === cid);
-          const label = cat ? cat.label : 'Other';
-          buckets.get(label).push(r);
+          if (!cat) return;
+          buckets.get(cat.label).push(r);
         });
         for (const [k, v] of buckets) if (v.length === 0) buckets.delete(k);
       } else if (activeFilters.elementTab === 'material') {
         // Photos can carry multiple materials — explode into each bucket
-        // so a stone-and-brick wall appears in both the Stone and Brick rows.
+        // so a stone-and-brick wall appears in both rows. Photos with
+        // no material at all are skipped.
         elements.forEach(r => {
           const mats = (r.tags_human && r.tags_human.materials) || [];
-          if (mats.length === 0) {
-            if (!buckets.has('Other')) buckets.set('Other', []);
-            buckets.get('Other').push(r);
-            return;
-          }
+          if (mats.length === 0) return;
           mats.forEach(m => {
             if (!buckets.has(m)) buckets.set(m, []);
             buckets.get(m).push(r);
@@ -6010,8 +6005,10 @@
         });
       } else {
         // sub-element — bucket by the specific named element (Wall, Stair...).
+        // Untagged photos are skipped.
         elements.forEach(r => {
-          const k = (r.tags_human && r.tags_human.element_name) || 'Other';
+          const k = (r.tags_human && r.tags_human.element_name);
+          if (!k) return;
           if (!buckets.has(k)) buckets.set(k, []);
           buckets.get(k).push(r);
         });
@@ -6027,11 +6024,9 @@
       const buckets = new Map();
       graphics.forEach(r => {
         const t = r.tags_human || {};
-        let label = 'Other';
-        if (t.graphic_kind) {
-          const m = GRAPHIC_KINDS.find(g => g.id === t.graphic_kind);
-          label = m ? m.label : t.graphic_kind;
-        }
+        if (!t.graphic_kind) return;
+        const m = GRAPHIC_KINDS.find(g => g.id === t.graphic_kind);
+        const label = m ? m.label : t.graphic_kind;
         if (!buckets.has(label)) buckets.set(label, []);
         buckets.get(label).push(r);
       });
