@@ -6153,15 +6153,42 @@
     // list with no inner level.
     function renderLensReference(body, recs) {
       renderSubtabs(body, [
+        { id: 'all',      label: 'All'      },
         { id: 'building', label: 'Building' },
         { id: 'element',  label: 'Element'  },
         { id: 'graphic',  label: 'Graphic'  },
       ], activeFilters.referenceTab,
          id => { activeFilters.referenceTab = id; renderGallery(); });
 
-      if      (activeFilters.referenceTab === 'building') renderRefBuilding(body, recs);
+      if      (activeFilters.referenceTab === 'all')      renderRefAll(body, recs);
+      else if (activeFilters.referenceTab === 'building') renderRefBuilding(body, recs);
       else if (activeFilters.referenceTab === 'element')  renderRefElement(body, recs);
       else                                                renderRefGraphic(body, recs);
+    }
+
+    // "All" reference view — every reference photo grouped by its top-level
+    // type (Building / Element / Graphic), so you can scan everything without
+    // committing to a sub-tab.
+    function renderRefAll(body, recs) {
+      const refs = recs.filter(r => {
+        const ty = (r.tags_human || {}).type;
+        return ty === 'building' || ty === 'element' || ty === 'graphic';
+      });
+      const buckets = new Map();
+      buckets.set('Building', []);
+      buckets.set('Element',  []);
+      buckets.set('Graphic',  []);
+      refs.forEach(r => {
+        const ty = (r.tags_human || {}).type;
+        if      (ty === 'building') buckets.get('Building').push(r);
+        else if (ty === 'element')  buckets.get('Element').push(r);
+        else if (ty === 'graphic')  buckets.get('Graphic').push(r);
+      });
+      for (const [k, v] of buckets) if (v.length === 0) buckets.delete(k);
+      renderRowIndex(body, buckets, {
+        scopeType: 'reference',
+        empty: 'No reference photos yet.',
+      });
     }
 
     function renderRefBuilding(body, recs) {
@@ -6169,6 +6196,7 @@
       renderSubtabs(body, [
         { id: 'typology', label: 'Typology' },
         { id: 'concept',  label: 'Concept'  },
+        { id: 'material', label: 'Material' },
       ], activeFilters.buildingTab,
          id => { activeFilters.buildingTab = id; renderGallery(); },
          { variant: 'inner' });
@@ -6186,6 +6214,16 @@
             const label = m ? m.label : cid;
             if (!buckets.has(label)) buckets.set(label, []);
             buckets.get(label).push(r);
+          });
+        });
+      } else if (activeFilters.buildingTab === 'material') {
+        // Materials are multi-valued — explode like Concept does.
+        buildings.forEach(r => {
+          const mats = (r.tags_human && r.tags_human.materials) || [];
+          if (mats.length === 0) return;
+          mats.forEach(m => {
+            if (!buckets.has(m)) buckets.set(m, []);
+            buckets.get(m).push(r);
           });
         });
       } else {
