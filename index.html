@@ -2575,6 +2575,25 @@
       'Metal', 'Glass', 'Plaster', 'Other',
     ];
 
+    // Colour palette — shown instead of Materiality when the sub-element is
+    // Paint (paint is a colour, not a material). Eight tiles, fits the
+    // 4x2 grid pattern. Solid swatches, multi-select like Materiality.
+    const COLORS = [
+      { id: 'white',  label: 'White',  hex: '#F0EFEA' },
+      { id: 'grey',   label: 'Grey',   hex: '#9A9A95' },
+      { id: 'black',  label: 'Black',  hex: '#1A1A18' },
+      { id: 'red',    label: 'Red',    hex: '#C44536' },
+      { id: 'yellow', label: 'Yellow', hex: '#D9B566' },
+      { id: 'green',  label: 'Green',  hex: '#5C8060' },
+      { id: 'blue',   label: 'Blue',   hex: '#4B6F9E' },
+      { id: 'earth',  label: 'Earth',  hex: '#A87454' },
+    ];
+    function colorSwatchSvg(c) {
+      const hex = (typeof c === 'object' && c.hex) ? c.hex
+                 : (COLORS.find(x => x.id === c) || {}).hex || 'transparent';
+      return `<svg width="56" height="56" viewBox="0 0 56 56" preserveAspectRatio="none"><rect width="56" height="56" fill="${hex}"/></svg>`;
+    }
+
     const GRAPHIC_KINDS = [
       { id: 'artwork', label: 'Artwork', hint: 'painting, sculpture' },
       { id: 'book',    label: 'Book',    hint: 'page, article' },
@@ -4284,7 +4303,16 @@
         <line x1="23" y1="18" x2="23" y2="40" ${_v2h(0.7)}/>
         <line x1="28" y1="18" x2="28" y2="36" ${_v2h(0.7)}/>
       </g>`),
-      // v2 — plaster: stippled wall surface.
+      // v2 — render: trowel-streak applied coating, sits on a substrate.
+      Render: _v2(`<g>
+        <rect x="6" y="6" width="36" height="36" ${_v2S}/>
+        <path d="M8 14 Q20 11 32 14 T42 14" ${_v2h(0.7)}/>
+        <path d="M8 22 Q20 19 32 22 T42 22" ${_v2h(0.7)}/>
+        <path d="M8 30 Q20 27 32 30 T42 30" ${_v2h(0.7)}/>
+        <path d="M8 38 Q20 35 32 38 T42 38" ${_v2h(0.7)}/>
+      </g>`),
+      // v2 — plaster: stippled wall surface (kept for back-compat after
+      // Render replaced Plaster in the Finish picker).
       Plaster: _v2(`<g>
         <rect x="6" y="6" width="36" height="36" ${_v2S}/>
         <g fill="currentColor">
@@ -4915,7 +4943,7 @@
       { id: 'vertical',  label: 'Vertical',  items: ['Stair', 'Ramp', 'Railing', 'Elevator'] },
       { id: 'opening',   label: 'Opening',   items: ['Door', 'Window', 'Curtain Wall', 'Skylight'] },
       { id: 'envelope',  label: 'Envelope',  items: ['Roof', 'Facade', 'Ceiling', 'Floor'] },
-      { id: 'finish',    label: 'Finish',    items: ['Tile', 'Cladding', 'Paint', 'Plaster'] },
+      { id: 'finish',    label: 'Finish',    items: ['Tile', 'Cladding', 'Paint', 'Render'] },
       { id: 'detail',    label: 'Detail',    items: ['Joint', 'Section', 'Profile', 'Pattern'] },
       { id: 'service',   label: 'Service',   items: ['HVAC', 'Plumbing', 'Electrical', 'Fire'] },
       { id: 'product',   label: 'Product',   items: ['Furniture', 'Lighting', 'Appliance', 'Decor'] },
@@ -4984,13 +5012,31 @@
             field: 'element_name',
             multi: false,
             glyphFor: elementGlyph,
+            // Re-render so Materiality / Colour swap when Paint is picked.
+            onChange: () => renderCaptureStep(),
           }));
         }
       }
 
-      // 3 — Materiality only for architectural categories where material matters
+      // 3 — Materiality / Colour. Paint asks for colour (it doesn't have a
+      // material in any meaningful sense); the other Finish + Structure +
+      // Envelope + Detail sub-elements ask for material.
       const cat = ELEMENT_CATEGORIES.find(x => x.id === captureDraft.element_category);
-      if (cat && ELEMENT_CATEGORIES_WITH_MATERIALITY.has(cat.id)
+      const wantsColor = captureDraft.element_name === 'Paint';
+      if (cat && wantsColor && getFlowStepEnabled('element', 'materiality')) {
+        c.appendChild(buildSwatchSection({
+          label: 'Colour',
+          getSummary: () => (captureDraft.colors || [])
+            .map(id => (COLORS.find(c => c.id === id) || {}).label || id)
+            .join(' · '),
+          items: COLORS,
+          field: 'colors',
+          multi: true,
+          glyphFor: colorSwatchSvg,
+          valueFor: c => c.id,
+          variant: 'pattern',
+        }));
+      } else if (cat && ELEMENT_CATEGORIES_WITH_MATERIALITY.has(cat.id)
           && getFlowStepEnabled('element', 'materiality')) {
         c.appendChild(buildSwatchSection({
           label: 'Materiality',
@@ -6450,7 +6496,11 @@
       const cat = ELEMENT_CATEGORIES.find(x => x.id === t.element_category);
       if (cat) {
         body.appendChild(buildSwatchSection({
-          target: t, onChange,
+          target: t,
+          // Override the section's default onChange so we save + redraw
+          // detail when the sub-element flips (so Materiality / Colour
+          // swap immediately when Paint is picked or cleared).
+          onChange: () => { saveDetailRecord(); renderDetail(); },
           label: cat.label,
           getSummary: () => t.element_name || '',
           items: cat.items,
@@ -6460,7 +6510,22 @@
         }));
       }
 
-      if (cat && ELEMENT_CATEGORIES_WITH_MATERIALITY.has(cat.id)) {
+      const wantsColor = t.element_name === 'Paint';
+      if (cat && wantsColor) {
+        body.appendChild(buildSwatchSection({
+          target: t, onChange,
+          label: 'Colour',
+          getSummary: () => (t.colors || [])
+            .map(id => (COLORS.find(c => c.id === id) || {}).label || id)
+            .join(' · '),
+          items: COLORS,
+          field: 'colors',
+          multi: true,
+          glyphFor: colorSwatchSvg,
+          valueFor: c => c.id,
+          variant: 'pattern',
+        }));
+      } else if (cat && ELEMENT_CATEGORIES_WITH_MATERIALITY.has(cat.id)) {
         body.appendChild(buildSwatchSection({
           target: t, onChange,
           label: 'Materiality',
