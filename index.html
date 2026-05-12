@@ -3689,9 +3689,39 @@
       document.getElementById('capture-step-label').textContent = STEP_LABEL[captureStep] || '';
 
       if (captureStep === 'type')          renderTypeStep(c);
-      else if (captureStep === 'form-building') renderBuildingForm(c);
-      else if (captureStep === 'form-element')  renderElementForm(c);
-      else if (captureStep === 'form-graphic')  renderGraphicForm(c);
+      else if (captureStep === 'form-building' ||
+               captureStep === 'form-element'  ||
+               captureStep === 'form-graphic') {
+        // Compact Building / Element / Graphic toggle so the type stays
+        // changeable after the initial pick — same segmented-pill style
+        // as the detail view's Type control.
+        c.appendChild(buildCaptureTypeToggle());
+        if      (captureStep === 'form-building') renderBuildingForm(c);
+        else if (captureStep === 'form-element')  renderElementForm(c);
+        else if (captureStep === 'form-graphic')  renderGraphicForm(c);
+      }
+    }
+
+    function buildCaptureTypeToggle() {
+      const wrap = document.createElement('div');
+      wrap.className = 'type-toggle-wrap';
+      const bar = document.createElement('div');
+      bar.className = 'type-toggle';
+      TYPES.forEach(t => {
+        const btn = document.createElement('button');
+        btn.className = 'type-segment' + ((captureDraft && captureDraft.type === t.id) ? ' active' : '');
+        btn.innerHTML = `${typeGlyph(t.id)}<span>${t.label}</span>`;
+        btn.addEventListener('click', () => {
+          if (!captureDraft || captureDraft.type === t.id) return;
+          captureDraft.type = t.id;
+          if      (t.id === 'building') setCaptureStep('form-building');
+          else if (t.id === 'element')  setCaptureStep('form-element');
+          else                          setCaptureStep('form-graphic');
+        });
+        bar.appendChild(btn);
+      });
+      wrap.appendChild(bar);
+      return wrap;
     }
 
     function renderTypeStep(c) {
