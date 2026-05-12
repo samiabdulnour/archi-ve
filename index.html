@@ -5902,9 +5902,8 @@
         b.addEventListener('click', () => { if (current !== it.id) onPick(it.id); });
         sub.appendChild(b);
       });
-      const spacer = document.createElement('span');
-      spacer.className = 'spacer';
-      sub.appendChild(spacer);
+      // No trailing spacer — the segmented-pill style wants the tab
+      // buttons to fill the whole track equally (2 tabs = 50/50 etc).
       body.appendChild(sub);
     }
 
