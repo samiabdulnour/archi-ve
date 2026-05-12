@@ -2089,9 +2089,13 @@
       width: 36px; height: 36px;
       border-radius: 8px;
       background: #A8EFB7;
+      color: #0F0F0E;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+    }
+    #toast .toast-icon > svg {
+      width: 26px; height: 26px;
     }
     #toast .toast-text {
       flex: 1;
@@ -6778,13 +6782,6 @@
       }, ms);
     }
 
-    // Mode-icon SVGs for the saved-photo toast
-    const TYPE_ICONS = {
-      building: '<g fill="#0F0F0E"><rect x="2" y="9" width="9" height="14"/><rect x="13" y="5" width="9" height="18"/></g><g fill="#A8EFB7"><rect x="4" y="11" width="2" height="2"/><rect x="7" y="11" width="2" height="2"/><rect x="4" y="15" width="2" height="2"/><rect x="7" y="15" width="2" height="2"/><rect x="4" y="19" width="2" height="2"/><rect x="15" y="8" width="2" height="2"/><rect x="18" y="8" width="2" height="2"/><rect x="15" y="12" width="2" height="2"/><rect x="18" y="12" width="2" height="2"/><rect x="15" y="16" width="2" height="2"/><rect x="18" y="16" width="2" height="2"/></g>',
-      element:  '<g fill="#0F0F0E"><rect x="9" y="4" width="7" height="2"/><rect x="9" y="22" width="7" height="2"/><rect x="11" y="6" width="3" height="16"/></g>',
-      graphic:  '<g fill="#0F0F0E"><rect x="5" y="3" width="15" height="22"/></g><g fill="#A8EFB7"><rect x="7" y="6" width="11" height="1"/><rect x="7" y="9" width="11" height="1"/><rect x="7" y="12" width="11" height="1"/><rect x="7" y="15" width="8" height="1"/><rect x="7" y="18" width="11" height="1"/></g>',
-    };
-
     function toastLiteSaved(id) {
       const t = TYPES.find(x => x.id === getReferenceType()) || TYPES[0];
       const el = document.getElementById('toast');
@@ -6796,7 +6793,8 @@
       el.style.padding = '10px 8px 10px 12px';
       const icon = document.createElement('div');
       icon.className = 'toast-icon';
-      icon.innerHTML = `<svg viewBox="0 0 24 28" width="22" height="26">${TYPE_ICONS[t.id] || TYPE_ICONS.building}</svg>`;
+      // v2 line-art type glyph (same drafting language as the rest of the app).
+      icon.innerHTML = typeGlyph(t.id);
       const text = document.createElement('div');
       text.className = 'toast-text';
       text.innerHTML = `
