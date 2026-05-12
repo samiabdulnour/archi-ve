@@ -1139,7 +1139,16 @@
     .gal-scrubber .scrubber-rail {
       position: absolute;
       top: 0; bottom: 0;
+      left: 0; right: 0;
+      pointer-events: auto;
+      cursor: ns-resize;
+      touch-action: none;
+    }
+    .gal-scrubber .scrubber-rail::before {
+      content: "";
+      position: absolute;
       left: 50%;
+      top: 0; bottom: 0;
       width: 1px;
       background: rgba(15,15,14,0.18);
     }
@@ -1148,6 +1157,7 @@
       left: 50%;
       transform: translate(-50%, -50%);
       width: 9px; height: 1px;
+      cursor: pointer;
     }
     .gal-scrubber .tick-mark {
       position: absolute;
@@ -5669,6 +5679,51 @@
           `${MONTH_NAMES[current.m]} '${String(current.y).slice(-2)} · ${current.count}`;
       }
 
+      // ----- Drag-to-scroll: rail acts as a vertical slider -----
+      // Tapping anywhere on the rail (or dragging the thumb) sets the
+      // window scroll to the corresponding proportional position. Tapping
+      // a year tick jumps directly to that year's first band.
+      let dragging = false;
+      function railProgress(clientY) {
+        const rect = rail.getBoundingClientRect();
+        if (rect.height <= 0) return 0;
+        return Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+      }
+      function applyProgress(p) {
+        const docH = document.documentElement.scrollHeight - window.innerHeight;
+        if (docH <= 0) return;
+        window.scrollTo({ top: p * docH, behavior: 'auto' });
+      }
+      function onPointerDown(e) {
+        // Year-tick taps handled separately below — let them bubble.
+        if (e.target.closest('.scrubber-tick')) return;
+        dragging = true;
+        try { rail.setPointerCapture(e.pointerId); } catch (_) {}
+        applyProgress(railProgress(e.clientY));
+        e.preventDefault();
+      }
+      function onPointerMove(e) {
+        if (!dragging) return;
+        applyProgress(railProgress(e.clientY));
+        e.preventDefault();
+      }
+      function onPointerUp(e) {
+        if (!dragging) return;
+        dragging = false;
+        try { rail.releasePointerCapture(e.pointerId); } catch (_) {}
+      }
+      rail.addEventListener('pointerdown', onPointerDown);
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerUp);
+
+      tickEls.forEach(({ tick, band }) => {
+        tick.addEventListener('click', (e) => {
+          e.stopPropagation();
+          band.el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+
       scrubber.hidden = false;
       positionTicks();
       update();
@@ -5678,6 +5733,9 @@
       scrubberCleanup = () => {
         window.removeEventListener('scroll', update);
         window.removeEventListener('resize', positionTicks);
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerUp);
       };
     }
 
