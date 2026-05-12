@@ -4240,6 +4240,29 @@
         <path d="M6 40 H42" ${_v2S}/>
         <path d="M6 40 V28 Q6 26 8 26 H12 Q14 26 14 24 V18 Q14 16 16 16 H20 Q22 16 22 14 V8 H42" ${_v2S}/>
       </g>`),
+      // v2 — profile: extruded section shape (moulding / cornice profile).
+      // Same body as Trim, kept as a separate alias so the picker label
+      // reads correctly while back-compat 'Trim' tags still render.
+      Profile: _v2(`<g>
+        <path d="M6 40 H42" ${_v2S}/>
+        <path d="M6 40 V28 Q6 26 8 26 H12 Q14 26 14 24 V18 Q14 16 16 16 H20 Q22 16 22 14 V8 H42" ${_v2S}/>
+      </g>`),
+      // v2 — section: wall assembly cut with finish + insulation + framing.
+      Section: _v2(`<g>
+        <path d="M14 6 V42 M22 6 V42 M30 6 V42" ${_v2S}/>
+        <line x1="14" y1="6" x2="30" y2="6" ${_v2S}/>
+        <line x1="14" y1="42" x2="30" y2="42" ${_v2S}/>
+        ${_v2map([10,14,18,22,26,30,34,38], y => `<line x1="16" y1="${y}" x2="20" y2="${y-2}" ${_v2h(0.7)}/>`)}
+        ${_v2map([14,21,28,35], y => `<line x1="22" y1="${y}" x2="30" y2="${y}" ${_v2h(0.6)} opacity="0.6"/>`)}
+      </g>`),
+      // v2 — pattern: diamond lattice repeat motif.
+      Pattern: _v2(`<g>
+        <path d="M6 24 L24 6 L42 24 L24 42 Z" ${_v2S}/>
+        <line x1="15" y1="15" x2="33" y2="33" ${_v2h(0.8)}/>
+        <line x1="33" y1="15" x2="15" y2="33" ${_v2h(0.8)}/>
+        <line x1="15" y1="24" x2="33" y2="24" ${_v2h(0.8)}/>
+        <line x1="24" y1="15" x2="24" y2="33" ${_v2h(0.8)}/>
+      </g>`),
       // v2 — tile: 4x4 ceramic-style grid with grout lines.
       Tile: _v2(`<g>
         <rect x="6" y="6" width="36" height="36" ${_v2S}/>
@@ -4893,7 +4916,7 @@
       { id: 'opening',   label: 'Opening',   items: ['Door', 'Window', 'Curtain Wall', 'Skylight'] },
       { id: 'envelope',  label: 'Envelope',  items: ['Roof', 'Facade', 'Ceiling', 'Floor'] },
       { id: 'finish',    label: 'Finish',    items: ['Tile', 'Cladding', 'Paint', 'Plaster'] },
-      { id: 'detail',    label: 'Detail',    items: ['Joint', 'Arch', 'Cornice', 'Trim'] },
+      { id: 'detail',    label: 'Detail',    items: ['Joint', 'Section', 'Profile', 'Pattern'] },
       { id: 'service',   label: 'Service',   items: ['HVAC', 'Plumbing', 'Electrical', 'Fire'] },
       { id: 'product',   label: 'Product',   items: ['Furniture', 'Lighting', 'Appliance', 'Decor'] },
     ];
