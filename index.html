@@ -1036,47 +1036,49 @@
       display: block;
     }
 
-    /* Corner dots — yellow for project, red for fully untagged.
-       The only colored bits in the gallery: quietness is the default. */
+    /* Corner dot — red for fully untagged. The yellow project dot has
+       moved into a proper tile-tag pill (see below). */
     .gallery-body .tile-dot {
       position: absolute;
       width: 7px; height: 7px;
       border-radius: 999px;
       pointer-events: none;
     }
-    .gallery-body .tile-dot-project {
-      top: 6px; left: 6px;
-      background: #F2E961;
-      box-shadow: 0 0 0 1.5px rgba(15,15,14,0.4);
-    }
     .gallery-body .tile-dot-untagged {
       top: 6px; right: 6px;
       background: #FF5A4D;
       box-shadow: 0 0 0 1.5px rgba(255,255,255,0.85);
     }
-    /* In selection mode the check rides in the same corner as the untagged
-       dot — hide both dots while selecting so nothing collides. */
     .gallery-body.selecting .tile-dot { display: none; }
 
-    /* Tag pill — one per tile, bottom-left. Shows the photo's primary
-       human label (project name / typology / element category / graphic
-       kind). Translucent ink chip so it stays readable on any photo. */
+    /* Tile tag pills — small chips that show the photo's primary tag
+       directly on the tile. Two layers can coexist:
+         yellow project pill in the top-left  (shows the project name)
+         mint reference pill in the bottom-left (typology / element
+         category / graphic kind)
+       Either or both may render, depending on the photo's tags. */
     .gallery-body .tile-tag {
       position: absolute;
-      left: 6px; bottom: 6px;
       max-width: calc(100% - 12px);
       padding: 2px 7px;
-      border-radius: 999px;
-      background: rgba(15,15,14,0.72);
-      color: #F8F5EC;
+      border-radius: 6px;
       font-size: 0.62rem;
-      font-weight: 500;
+      font-weight: 600;
       letter-spacing: -0.005em;
       line-height: 1.35;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       pointer-events: none;
+      color: #0F0F0E;
+    }
+    .gallery-body .tile-tag-project {
+      top: 6px; left: 6px;
+      background: #F2E961;
+    }
+    .gallery-body .tile-tag-reference {
+      bottom: 6px; left: 6px;
+      background: #A8EFB7;
     }
     .gallery-body.selecting .tile-tag { display: none; }
 
@@ -5531,15 +5533,13 @@
     // the tile-level selection / openDetail behavior is the same everywhere.
     // Status dots replace the old letter type-badge: yellow corner = project,
     // red corner = fully untagged, nothing = a normal reference photo.
-    // Picks the single tag-pill label for a tile in the gallery.
-    //   1. Project mode  -> the project name
-    //   2. Building      -> the chosen typology
-    //   3. Element       -> the chosen category label (Structure, Vertical...)
-    //   4. Graphic       -> the chosen graphic kind label (Plan, Render...)
-    // Returns '' if none of the above apply (tile renders unlabeled).
-    function tilePrimaryLabel(t) {
+    // Picks the reference-side tag label for a tile in the gallery:
+    //   Building -> typology
+    //   Element  -> category label (Structure, Vertical...)
+    //   Graphic  -> kind label (Plan, Render...)
+    // The project name lives in its own pill, drawn separately.
+    function tileReferenceLabel(t) {
       if (!t) return '';
-      if (t.project) return t.project;
       if (t.type === 'building' && t.typology) return t.typology;
       if (t.type === 'element') {
         const cid = t.element_category || (typeof categoryForElement === 'function'
@@ -5567,24 +5567,27 @@
       tile.appendChild(img);
 
       const t = rec.tags_human || {};
-      if (t.project) {
-        const d = document.createElement('span');
-        d.className = 'tile-dot tile-dot-project';
-        tile.appendChild(d);
-      }
       if (!t.type && !t.project) {
         const d = document.createElement('span');
         d.className = 'tile-dot tile-dot-untagged';
         tile.appendChild(d);
       }
 
-      // Primary label pill: project name takes precedence, then the
-      // type-specific tag (typology / element category / graphic kind).
-      const pillLabel = tilePrimaryLabel(t);
-      if (pillLabel) {
+      // Yellow project pill — top-left, replaces the old corner dot.
+      if (t.project) {
         const pill = document.createElement('span');
-        pill.className = 'tile-tag';
-        pill.textContent = pillLabel;
+        pill.className = 'tile-tag tile-tag-project';
+        pill.textContent = t.project;
+        tile.appendChild(pill);
+      }
+
+      // Mint reference pill — bottom-left. Shows typology / element
+      // category / graphic kind depending on the reference type.
+      const refLabel = tileReferenceLabel(t);
+      if (refLabel) {
+        const pill = document.createElement('span');
+        pill.className = 'tile-tag tile-tag-reference';
+        pill.textContent = refLabel;
         tile.appendChild(pill);
       }
 
