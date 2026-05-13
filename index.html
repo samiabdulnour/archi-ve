@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ECECEC">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0F0F0E">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1B1A18">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -56,14 +56,14 @@
          - automatically when prefers-color-scheme: dark AND the user hasn't
            set a manual theme (no data-theme attribute on <html>);
          - manually when the user picks Dark in Settings (data-theme="dark").
-       The reverse override — forcing Light in a dark-OS environment — is
-       handled below the media block. */
+       Soft dark grey, similar to Claude / Linear / iOS Files dark UI —
+       avoids the OLED-pure-black look. */
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
-        --bg: #0F0F0E;
-        --bg-elev: #1A1A18;
-        --bg-elev-2: #2A2A26;
-        --bg-input: #1A1A18;
+        --bg: #1B1A18;
+        --bg-elev: #232220;
+        --bg-elev-2: #2C2A27;
+        --bg-input: #232220;
         --text: #F2EFE7;
         --text-muted: rgba(242,239,231,0.62);
         --text-faint: rgba(242,239,231,0.38);
@@ -71,18 +71,18 @@
         --border-strong: rgba(242,239,231,0.3);
 
         --accent: #F2EFE7;
-        --accent-ink: #0F0F0E;
+        --accent-ink: #1B1A18;
         --pill-bg: rgba(242,239,231,0.08);
         --pill-active-bg: #F2EFE7;
-        --pill-active-text: #0F0F0E;
+        --pill-active-text: #1B1A18;
         --overlay: rgba(0,0,0,0.65);
       }
     }
     :root[data-theme="dark"] {
-      --bg: #0F0F0E;
-      --bg-elev: #1A1A18;
-      --bg-elev-2: #2A2A26;
-      --bg-input: #1A1A18;
+      --bg: #1B1A18;
+      --bg-elev: #232220;
+      --bg-elev-2: #2C2A27;
+      --bg-input: #232220;
       --text: #F2EFE7;
       --text-muted: rgba(242,239,231,0.62);
       --text-faint: rgba(242,239,231,0.38);
@@ -90,10 +90,10 @@
       --border-strong: rgba(242,239,231,0.3);
 
       --accent: #F2EFE7;
-      --accent-ink: #0F0F0E;
+      --accent-ink: #1B1A18;
       --pill-bg: rgba(242,239,231,0.08);
       --pill-active-bg: #F2EFE7;
-      --pill-active-text: #0F0F0E;
+      --pill-active-text: #1B1A18;
       --overlay: rgba(0,0,0,0.65);
     }
 
