@@ -2599,6 +2599,36 @@
       Ornament:    ['Cornice', 'Railing', 'Joint', 'Pavement'],
     };
 
+    // Room types — what specific kind of space the photo shows. Single-select,
+    // shown in the Building tagger between Typology and Concept. Universal
+    // pool of eight; each typology surfaces a relevant subset of four (the
+    // building flow renders only those four). Landscape is outdoor by
+    // definition and skips the Room picker entirely.
+    const ROOMS = [
+      { id: 'lobby',     label: 'Lobby',     hint: 'entry, reception, foyer' },
+      { id: 'hall',      label: 'Hall',      hint: 'gallery, corridor, large interior' },
+      { id: 'living',    label: 'Living',    hint: 'lounge, sitting, common' },
+      { id: 'bedroom',   label: 'Bedroom',   hint: 'private, sleeping' },
+      { id: 'workspace', label: 'Workspace', hint: 'office, desk, production floor' },
+      { id: 'service',   label: 'Service',   hint: 'bathroom, kitchen, utility, restroom' },
+      { id: 'dining',    label: 'Dining',    hint: 'restaurant, cafe, bar' },
+      { id: 'outdoor',   label: 'Outdoor',   hint: 'garden, courtyard, terrace, balcony' },
+    ];
+    const ROOMS_BY_TYPOLOGY = {
+      Residential: ['living', 'bedroom', 'service', 'outdoor'],
+      Office:      ['lobby', 'workspace', 'service', 'outdoor'],
+      Public:      ['lobby', 'hall', 'service', 'outdoor'],
+      // Landscape intentionally omitted — the picker is hidden.
+      Commercial:  ['lobby', 'hall', 'service', 'outdoor'],
+      Hospitality: ['lobby', 'bedroom', 'dining', 'outdoor'],
+      Industrial:  ['lobby', 'workspace', 'service', 'outdoor'],
+      Heritage:    ['lobby', 'hall', 'living', 'outdoor'],
+    };
+    function roomsForTypology(typ) {
+      const ids = ROOMS_BY_TYPOLOGY[typ] || [];
+      return ids.map(id => ROOMS.find(r => r.id === id)).filter(Boolean);
+    }
+
     // v3 materials — eight distinct categories that condense every common
     // building material a photo might catch. Steel folded into Metal (the
     // visual hatch and the practical class are the same); Plaster comes
@@ -4625,6 +4655,65 @@
     };
     function graphicKindGlyph(id) { return _renderGlyph(GRAPHIC_KIND_GLYPHS[id]); }
 
+    // Room glyphs — v2 line-art. One per room type in ROOMS above.
+    const ROOM_GLYPHS = {
+      lobby: _v2(`<g>
+        <line x1="6" y1="42" x2="42" y2="42" ${_v2S}/>
+        <path d="M14 42 V14 H34 V42" ${_v2S}/>
+        <line x1="24" y1="14" x2="24" y2="42" ${_v2h(0.7)}/>
+        <circle cx="20" cy="29" r="0.8" fill="currentColor"/>
+        <circle cx="28" cy="29" r="0.8" fill="currentColor"/>
+      </g>`),
+      hall: _v2(`<g>
+        <line x1="4" y1="42" x2="44" y2="42" ${_v2S}/>
+        <line x1="4" y1="14" x2="44" y2="14" ${_v2S}/>
+        <line x1="10" y1="14" x2="10" y2="42" ${_v2S}/>
+        <line x1="38" y1="14" x2="38" y2="42" ${_v2S}/>
+        <line x1="18" y1="14" x2="18" y2="42" ${_v2h(0.7)}/>
+        <line x1="30" y1="14" x2="30" y2="42" ${_v2h(0.7)}/>
+      </g>`),
+      living: _v2(`<g>
+        <path d="M6 22 Q6 18 10 18 H38 Q42 18 42 22 V32 H6 Z" ${_v2S}/>
+        <path d="M10 32 V40 M38 32 V40" ${_v2S}/>
+        <line x1="10" y1="26" x2="38" y2="26" ${_v2h(0.7)}/>
+      </g>`),
+      bedroom: _v2(`<g>
+        <rect x="8" y="14" width="32" height="22" ${_v2S}/>
+        <line x1="8" y1="20" x2="40" y2="20" ${_v2h(0.8)}/>
+        <rect x="12" y="16" width="9" height="3" ${_v2h(0.7)}/>
+        <line x1="8" y1="36" x2="8" y2="40" ${_v2S}/>
+        <line x1="40" y1="36" x2="40" y2="40" ${_v2S}/>
+      </g>`),
+      workspace: _v2(`<g>
+        <path d="M6 24 H42 V28 H6 Z" ${_v2S}/>
+        <line x1="10" y1="28" x2="10" y2="40" ${_v2S}/>
+        <line x1="38" y1="28" x2="38" y2="40" ${_v2S}/>
+        <rect x="14" y="14" width="6" height="10" ${_v2h(0.7)}/>
+        <circle cx="32" cy="19" r="2" ${_v2h(0.7)}/>
+      </g>`),
+      service: _v2(`<g>
+        <path d="M24 8 V18 M22 8 H26" ${_v2S}/>
+        <path d="M8 18 H40 V30 Q40 36 34 36 H14 Q8 36 8 30 Z" ${_v2S}/>
+        <circle cx="24" cy="27" r="2" ${_v2h(0.8)}/>
+      </g>`),
+      dining: _v2(`<g>
+        <line x1="6" y1="22" x2="42" y2="22" ${_v2S}/>
+        <line x1="6" y1="26" x2="42" y2="26" ${_v2S}/>
+        <line x1="12" y1="26" x2="12" y2="40" ${_v2h(0.7)}/>
+        <line x1="36" y1="26" x2="36" y2="40" ${_v2h(0.7)}/>
+        <rect x="10" y="10" width="6" height="12" ${_v2h(0.7)}/>
+        <rect x="32" y="10" width="6" height="12" ${_v2h(0.7)}/>
+      </g>`),
+      outdoor: _v2(`<g>
+        <line x1="6" y1="40" x2="42" y2="40" ${_v2S}/>
+        <line x1="24" y1="40" x2="24" y2="25" ${_v2S}/>
+        <circle cx="24" cy="18" r="7" ${_v2S}/>
+        <path d="M12 40 L16 36 L20 40" ${_v2h(0.7)}/>
+        <path d="M30 40 L34 36 L38 40" ${_v2h(0.7)}/>
+      </g>`),
+    };
+    function roomGlyph(id) { return _renderGlyph(ROOM_GLYPHS[id]); }
+
     // Material hatch patterns — each tile is a 56x56 fill with a unique
     // texture. Drafted in the same line-weight family as the v2 pictograms.
     // Uses explicit ink (#0F0F0E) inside pattern bodies because currentColor
@@ -4888,6 +4977,31 @@
           field: 'typology',
           multi: false,
           glyphFor: typologyGlyph,
+          // Re-render so the Room picker swaps to the new typology's subset.
+          onChange: () => {
+            const allowed = ROOMS_BY_TYPOLOGY[captureDraft.typology] || [];
+            if (captureDraft.room && !allowed.includes(captureDraft.room)) {
+              captureDraft.room = null;
+            }
+            renderCaptureStep();
+          },
+        }));
+      }
+      // Room picker — only shown for typologies that have a defined room
+      // subset. Landscape skips this section entirely.
+      const rooms = roomsForTypology(captureDraft.typology);
+      if (rooms.length > 0) {
+        c.appendChild(buildSwatchSection({
+          label: 'Room',
+          getSummary: () => {
+            const m = ROOMS.find(x => x.id === captureDraft.room);
+            return m ? m.label : '';
+          },
+          items: rooms,
+          field: 'room',
+          multi: false,
+          glyphFor: r => roomGlyph(r.id),
+          valueFor: r => r.id,
         }));
       }
       if (getFlowStepEnabled('building', 'concept')) {
@@ -6195,6 +6309,7 @@
       const buildings = recs.filter(r => (r.tags_human || {}).type === 'building');
       renderSubtabs(body, [
         { id: 'typology', label: 'Typology' },
+        { id: 'room',     label: 'Room'     },
         { id: 'concept',  label: 'Concept'  },
         { id: 'material', label: 'Material' },
       ], activeFilters.buildingTab,
@@ -6202,7 +6317,16 @@
          { variant: 'inner' });
 
       const buckets = new Map();
-      if (activeFilters.buildingTab === 'concept') {
+      if (activeFilters.buildingTab === 'room') {
+        buildings.forEach(r => {
+          const rid = (r.tags_human || {}).room;
+          if (!rid) return;
+          const m = ROOMS.find(x => x.id === rid);
+          const label = m ? m.label : rid;
+          if (!buckets.has(label)) buckets.set(label, []);
+          buckets.get(label).push(r);
+        });
+      } else if (activeFilters.buildingTab === 'concept') {
         // Concepts are multi-valued per photo — a photo with [form, light]
         // appears in both rows. Photos with no concepts at all are skipped
         // entirely (no synthetic 'Other' bucket).
@@ -6618,7 +6742,13 @@
       const onChange = () => saveDetailRecord();
       body.appendChild(buildSwatchSection({
         target: t,
-        onChange,
+        onChange: () => {
+          // If the new typology doesn't allow the current room, clear it.
+          const allowed = ROOMS_BY_TYPOLOGY[t.typology] || [];
+          if (t.room && !allowed.includes(t.room)) t.room = null;
+          saveDetailRecord();
+          renderDetail();
+        },
         label: 'Typology',
         getSummary: () => t.typology || '',
         items: TYPOLOGY,
@@ -6626,6 +6756,24 @@
         multi: false,
         glyphFor: typologyGlyph,
       }));
+
+      const rooms = roomsForTypology(t.typology);
+      if (rooms.length > 0) {
+        body.appendChild(buildSwatchSection({
+          target: t, onChange,
+          label: 'Room',
+          getSummary: () => {
+            const m = ROOMS.find(x => x.id === t.room);
+            return m ? m.label : '';
+          },
+          items: rooms,
+          field: 'room',
+          multi: false,
+          glyphFor: r => roomGlyph(r.id),
+          valueFor: r => r.id,
+        }));
+      }
+
       body.appendChild(buildSwatchSection({
         target: t,
         onChange,
