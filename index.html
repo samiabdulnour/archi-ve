@@ -548,21 +548,22 @@
     }
     .cam-error-retry:active { opacity: 0.85; }
 
-    /* ============ CAPTURE — paper-shell tagger with green tiles ============ */
-    /* Always paper + ink, regardless of the device theme. The colour shows
-       up on the swatch tiles themselves rather than tinting the whole sheet. */
+    /* ============ CAPTURE — tagger sheet ============ */
+    /* Background and colour follow the global theme tokens so dark mode
+       paints the sheet properly. The mode-coloured accents (mint/yellow)
+       stay attached to the swatch tiles themselves. */
     #view-capture {
       padding: 0 0 84px;
-      background: #ECECEC;
-      color: #0F0F0E;
+      background: var(--bg);
+      color: var(--text);
     }
     #view-capture .gallery-header {
-      background: rgba(236,236,236,0.85);
+      background: var(--bg);
       padding: 0.5rem 0.9rem;
       min-height: 38px;
     }
-    #view-capture .back-btn { color: #0F0F0E; }
-    #view-capture .meta-date { color: rgba(15,15,14,0.62); }
+    #view-capture .back-btn { color: var(--text); }
+    #view-capture .meta-date { color: var(--text-muted); }
 
     #capture-preview {
       width: calc(100% - 28px);
@@ -931,26 +932,12 @@
        gallery reads like the printed-monograph contents page from the design.
        The detail view does the same trick a few sections below. */
     #view-gallery {
-      --bg:           #ECECEC;
-      --bg-elev:      #F8F5EC;
-      --bg-elev-2:    #E3DFD3;
-      --bg-input:     #FFFFFF;
-      --text:         #0F0F0E;
-      --text-muted:   rgba(15,15,14,0.62);
-      --text-faint:   rgba(15,15,14,0.38);
-      --border:       rgba(15,15,14,0.10);
-      --border-strong:rgba(15,15,14,0.32);
-      --accent:       #0F0F0E;
-      --accent-ink:   #F2EFE7;
-      --pill-bg:      rgba(15,15,14,0.06);
-      --pill-active-bg: #0F0F0E;
-      --pill-active-text: #F2EFE7;
-      background: #ECECEC;
-      color: #0F0F0E;
+      background: var(--bg);
+      color: var(--text);
       padding: 0 0 2rem;
     }
     #view-gallery .gallery-header {
-      background: rgba(236,236,236,0.85);
+      background: var(--bg);
     }
 
     .gallery-header {
@@ -1549,21 +1536,12 @@
        title block with eyebrow, leader-dotted typology stats, notes field,
        Recent grid. Pinned to the same paper-and-ink palette as the gallery. */
     #view-project-detail {
-      --bg:           #ECECEC;
-      --bg-elev:      #F8F5EC;
-      --bg-elev-2:    #E3DFD3;
-      --text:         #0F0F0E;
-      --text-muted:   rgba(15,15,14,0.62);
-      --text-faint:   rgba(15,15,14,0.38);
-      --border:       rgba(15,15,14,0.10);
-      --accent:       #0F0F0E;
-      --accent-ink:   #F2EFE7;
-      background: #ECECEC;
-      color: #0F0F0E;
+      background: var(--bg);
+      color: var(--text);
       padding: 0 0 2rem;
     }
     #view-project-detail .gallery-header {
-      background: rgba(236,236,236,0.85);
+      background: var(--bg);
     }
     .pd-body {
       padding: 0 14px 2rem;
@@ -1907,14 +1885,14 @@
     #view-detail {
       padding: 0 0 2rem;
       gap: 0;
-      background: #ECECEC;
-      color: #0F0F0E;
+      background: var(--bg);
+      color: var(--text);
     }
     #view-detail .gallery-header {
-      background: rgba(236,236,236,0.85);
+      background: var(--bg);
     }
-    #view-detail .back-btn { color: #0F0F0E; }
-    #view-detail .meta-date { color: rgba(15,15,14,0.62); font-size: 0.78rem; }
+    #view-detail .back-btn { color: var(--text); }
+    #view-detail .meta-date { color: var(--text-muted); font-size: 0.78rem; }
 
     #detail-img {
       width: calc(100% - 28px);
@@ -4802,12 +4780,14 @@
 
     // Material hatch patterns — each tile is a 56x56 fill with a unique
     // texture. Drafted in the same line-weight family as the v2 pictograms.
-    // Uses explicit ink (#0F0F0E) inside pattern bodies because currentColor
-    // doesn't reliably propagate into SVG <pattern> children in WebKit, so
-    // patterns rendered as blank tiles on iOS Safari.
+    // currentColor doesn't reliably propagate into SVG <pattern> children
+    // in WebKit, so the pattern bodies use an explicit colour. To make
+    // dark mode work, we read the active --text token at render time and
+    // pass it in (ink in light mode, paper-cream in dark mode).
     function materialPatternSvg(name) {
       const id = 'mat-' + name.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const INK = '#0F0F0E';
+      const INK = getComputedStyle(document.documentElement)
+        .getPropertyValue('--text').trim() || '#0F0F0E';
       const map = {
         // Aggregate dots — concrete fines.
         Concrete: `<pattern id="${id}" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="0.8" fill="${INK}"/><circle cx="4.5" cy="3.5" r="0.7" fill="${INK}"/><circle cx="2.2" cy="4.8" r="0.55" fill="${INK}"/></pattern>`,
