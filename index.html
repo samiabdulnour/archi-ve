@@ -583,7 +583,7 @@
     /* Swatch sections (green-shell tagger) */
     .sw-section {
       padding: 10px 14px 8px;
-      border-bottom: 1px solid rgba(15,15,14,0.12);
+      border-bottom: 1px solid var(--border);
     }
     .sw-section-text { padding: 10px 14px 10px; }
     .sw-section-head {
@@ -594,14 +594,14 @@
     .sw-section-label {
       font-size: 0.72rem;
       font-weight: 500;
-      color: rgba(15,15,14,0.62);
+      color: var(--text-muted);
       letter-spacing: 0.06em;
       text-transform: uppercase;
     }
     .sw-section-summary {
       font-size: 0.78rem;
       font-weight: 500;
-      color: #0F0F0E;
+      color: var(--text);
       letter-spacing: -0.005em;
       max-width: 200px;
       overflow: hidden;
@@ -663,13 +663,13 @@
     .sw-label {
       font-size: 0.68rem;
       font-weight: 500;
-      color: rgba(15,15,14,0.62);
+      color: var(--text-muted);
       letter-spacing: -0.005em;
       text-align: center;
       line-height: 1.1;
     }
     .sw-tile.active .sw-label {
-      color: #0F0F0E;
+      color: var(--text);
       font-weight: 600;
     }
 
@@ -683,7 +683,7 @@
        where Building/Element/Graphic don't need full-size tiles. */
     .type-toggle-wrap {
       padding: 10px 14px 12px;
-      border-bottom: 1px solid rgba(15,15,14,0.12);
+      border-bottom: 1px solid var(--border);
     }
     .type-toggle {
       display: flex;
@@ -734,9 +734,9 @@
       width: 100%;
       box-sizing: border-box;
       background: transparent;
-      color: #0F0F0E;
+      color: var(--text);
       border: 0;
-      border-bottom: 1px solid rgba(15,15,14,0.25);
+      border-bottom: 1px solid var(--border-strong);
       padding: 5px 0;
       font-size: 0.92rem;
       font-family: var(--font-sans);
@@ -745,7 +745,7 @@
       resize: vertical;
     }
     .sw-line-input:focus {
-      border-bottom-color: #0F0F0E;
+      border-bottom-color: var(--text);
     }
 
     /* Save bar — full-width ink button at the bottom of the capture view */
@@ -760,8 +760,8 @@
     .sw-save-btn {
       pointer-events: auto;
       width: 100%;
-      background: #0F0F0E;
-      color: #F2EFE7;
+      background: var(--text);
+      color: var(--accent-ink);
       border: 0;
       padding: 12px;
       border-radius: 12px;
@@ -1202,7 +1202,7 @@
       left: 50%;
       top: 0; bottom: 0;
       width: 1px;
-      background: rgba(15,15,14,0.18);
+      background: var(--border-strong);
     }
     .gal-scrubber .scrubber-tick {
       position: absolute;
@@ -1214,7 +1214,7 @@
     .gal-scrubber .tick-mark {
       position: absolute;
       inset: 0;
-      background: #0F0F0E;
+      background: var(--text);
     }
     .gal-scrubber .tick-label {
       position: absolute;
@@ -1223,7 +1223,7 @@
       transform: translateY(-50%);
       padding-right: 5px;
       font-size: 0.62rem;
-      color: rgba(15,15,14,0.62);
+      color: var(--text-muted);
       font-weight: 500;
       font-variant-numeric: tabular-nums;
       letter-spacing: -0.005em;
@@ -1240,16 +1240,16 @@
       position: absolute;
       inset: 0;
       border-radius: 999px;
-      background: #0F0F0E;
-      box-shadow: 0 0 0 3px #F2EFE7;
+      background: var(--text);
+      box-shadow: 0 0 0 3px var(--bg);
     }
     .gal-scrubber .thumb-pill {
       position: absolute;
       right: 11px;
       top: 50%;
       transform: translateY(-50%);
-      background: #0F0F0E;
-      color: #F2EFE7;
+      background: var(--text);
+      color: var(--accent-ink);
       padding: 4px 7px;
       border-radius: 6px;
       font-size: 0.62rem;
