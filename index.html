@@ -1376,10 +1376,9 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* ---- Typology lens — numbered index, horizontal strips ---- */
+    /* ---- Row index (a row per typology / category / kind) ---- */
     .gal-typology-row {
       padding: 1.1rem 0 1rem;
-      border-bottom: 1px solid var(--border);
     }
     .gal-typology-head {
       display: flex;
@@ -1388,25 +1387,14 @@
       padding: 0 1rem 0.6rem;
       cursor: pointer;
     }
-    .gal-typology-num {
-      font-size: 0.7rem;
-      color: var(--text-faint);
-      font-weight: 500;
-      letter-spacing: 0.06em;
-      font-variant-numeric: tabular-nums;
-      min-width: 1.2rem;
-    }
+    .gal-typology-num { display: none; }
+    .gal-typology-rule { display: none; }
     .gal-typology-name {
-      font-size: 1.35rem;
-      font-weight: 600;
+      font-size: 1.6rem;
+      font-weight: 700;
       letter-spacing: -0.02em;
       color: var(--text);
-    }
-    .gal-typology-rule {
       flex: 1;
-      height: 1px;
-      background: var(--border);
-      transform: translateY(-5px);
     }
     .gal-typology-count {
       font-size: 0.82rem;
@@ -1418,6 +1406,75 @@
       color: var(--text-faint);
       font-size: 0.85rem;
       margin-left: 0.2rem;
+    }
+
+    /* Hide the lens / sub-tab strips when the hero drill-down is active —
+       the back arrow inside the hero is the only way out. */
+    #view-gallery.gallery-hero-mode .gal-lens-tabs,
+    #view-gallery.gallery-hero-mode .gal-subtabs { display: none; }
+
+    /* ---- Category hero (drill-down view from a row-index click) ---- */
+    .cat-hero {
+      padding: 1.2rem 1rem 0.5rem;
+    }
+    .cat-hero-back {
+      background: transparent;
+      border: 0;
+      font-size: 1.4rem;
+      color: var(--text);
+      padding: 4px 8px 4px 0;
+      margin-bottom: 0.8rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .cat-hero-title {
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      margin: 0 0 0.4rem;
+      line-height: 1.05;
+    }
+    .cat-hero-sub {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin: 0;
+      line-height: 1.4;
+      max-width: 30rem;
+    }
+    .cat-hero-year-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 1.8rem 1rem 0.6rem;
+    }
+    .cat-hero-year-num {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .cat-hero-year-count {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+    }
+    .cat-hero-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+      padding: 0 1rem;
+    }
+    .cat-hero-grid .tile {
+      position: relative;
+      aspect-ratio: 1;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .cat-hero-grid .tile img {
+      width: 100%; height: 100%;
+      object-fit: cover;
     }
 
     /* Horizontal strip — used by Typology and Map lenses */
@@ -2715,6 +2772,11 @@
       referenceTab: 'building',  // building | element | graphic  (Reference outer)
       buildingTab: 'typology',   // typology | concept            (Reference > Building)
       elementTab:  'category',   // category | subelement | material  (Reference > Element)
+      // When set, the gallery overlays a hero drill-down view for the
+      // clicked row instead of rendering the lens content. heroPredicate
+      // is a function that picks the photos to show in the hero.
+      heroLabel: null,
+      heroPredicate: null,
     };
     let currentDetailId = null;
     let currentDetailRecord = null;
@@ -5792,14 +5854,22 @@
       body.innerHTML = '';
       body.dataset.lens = activeFilters.lens;
       body.classList.toggle('selecting', selectionMode);
+      // When the hero drill-down is up, hide the tab strips so the layout
+      // matches the design reference (full attention on the hero content).
+      document.getElementById('view-gallery')
+        .classList.toggle('gallery-hero-mode', !!activeFilters.heroLabel);
 
       const lens = activeFilters.lens;
-      // Tear down the scrubber whenever the lens changes; renderLensTime
-      // re-installs it from scratch. Same story for the Leaflet map — the
-      // container element is about to be discarded by innerHTML='' above.
       teardownTimeScrubber();
       teardownMap();
-      if      (lens === 'time')      renderLensTime(body, filtered);
+
+      // Hero drill-down overlay — short-circuits the lens routing while
+      // active. Back arrow inside the hero clears these and re-renders.
+      if (activeFilters.heroLabel && activeFilters.heroPredicate) {
+        const heroRecs = all.filter(activeFilters.heroPredicate)
+          .sort((a, b) => b.created_at - a.created_at);
+        renderCategoryHero(body, heroRecs, activeFilters.heroLabel);
+      } else if (lens === 'time')      renderLensTime(body, filtered);
       else if (lens === 'reference') renderLensReference(body, filtered);
       else if (lens === 'project')   renderLensProject(body, filtered);
       else if (lens === 'map')       renderLensMap(body, filtered);
@@ -6269,31 +6339,27 @@
         body.appendChild(empty);
         return;
       }
-      arr.forEach(([name, recs], i) => {
+      arr.forEach(([name, recs]) => {
         const row = document.createElement('div');
         row.className = 'gal-typology-row';
         const head = document.createElement('div');
         head.className = 'gal-typology-head';
         head.innerHTML = `
-          <span class="gal-typology-num">${String(i + 1).padStart(2, '0')}</span>
           <span class="gal-typology-name"></span>
-          <span class="gal-typology-rule"></span>
           <span class="gal-typology-count">${recs.length}</span>
           <span class="gal-typology-arrow">→</span>
         `;
         head.querySelector('.gal-typology-name').textContent = name;
+        // Tapping a row opens the hero drill-down: big title + photos
+        // grouped by year. The predicate captures the exact id set so the
+        // hero view re-renders correctly even after new photos are added.
+        const idSet = new Set(recs.map(r => r.id));
         head.addEventListener('click', () => {
-          if (opts.scopeType) activeFilters.type = opts.scopeType;
-          if (name && name !== 'Untagged') {
-            const input = document.getElementById('search-input');
-            input.value = name;
-            activeFilters.search = name.toLowerCase();
-            document.getElementById('gal-search-row').hidden = false;
-          }
-          activeFilters.lens = 'time';
-          document.querySelectorAll('#gal-lens-tabs .gal-lens-tab')
-            .forEach(t => t.classList.toggle('active', t.dataset.lens === 'time'));
+          activeFilters.heroLabel = name;
+          activeFilters.heroPredicate = (r) => idSet.has(r.id);
           renderGallery();
+          // Scroll to top so the hero header is in view.
+          window.scrollTo({ top: 0 });
         });
         row.appendChild(head);
         const strip = document.createElement('div');
@@ -6301,6 +6367,56 @@
         recs.slice(0, 12).forEach(rec => strip.appendChild(buildPhotoTile(rec)));
         row.appendChild(strip);
         body.appendChild(row);
+      });
+    }
+
+    // Hero drill-down view, shown when the user taps a row in the row-index.
+    // Big title, subtitle, photos grouped chronologically by year. Back arrow
+    // clears the hero state and returns to the row-index it came from.
+    function renderCategoryHero(body, recs, label) {
+      const hero = document.createElement('div');
+      hero.className = 'cat-hero';
+      const backBtn = document.createElement('button');
+      backBtn.className = 'cat-hero-back';
+      backBtn.textContent = '←';
+      backBtn.addEventListener('click', () => {
+        activeFilters.heroLabel = null;
+        activeFilters.heroPredicate = null;
+        renderGallery();
+        window.scrollTo({ top: 0 });
+      });
+      const title = document.createElement('h2');
+      title.className = 'cat-hero-title';
+      title.textContent = label;
+      const sub = document.createElement('p');
+      sub.className = 'cat-hero-sub';
+      sub.textContent = `${recs.length} ${recs.length === 1 ? 'photo' : 'photos'} in your archive`;
+      hero.appendChild(backBtn);
+      hero.appendChild(title);
+      hero.appendChild(sub);
+      body.appendChild(hero);
+
+      // Group by year, newest first.
+      const byYear = new Map();
+      recs.forEach(r => {
+        const y = new Date(r.created_at).getFullYear();
+        if (!byYear.has(y)) byYear.set(y, []);
+        byYear.get(y).push(r);
+      });
+      [...byYear.keys()].sort((a, b) => b - a).forEach(y => {
+        const yr = byYear.get(y).slice().sort((a, b) => b.created_at - a.created_at);
+        const head = document.createElement('div');
+        head.className = 'cat-hero-year-head';
+        head.innerHTML = `
+          <span class="cat-hero-year-num">${y}</span>
+          <span class="cat-hero-year-count">${yr.length} ${yr.length === 1 ? 'photo' : 'photos'}</span>
+        `;
+        body.appendChild(head);
+
+        const grid = document.createElement('div');
+        grid.className = 'cat-hero-grid';
+        yr.forEach(rec => grid.appendChild(buildPhotoTile(rec)));
+        body.appendChild(grid);
       });
     }
 
