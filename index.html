@@ -2573,8 +2573,8 @@
     //   Religious kept as its own slot (sacred buildings have a distinct
     //   architectural character — towers, sacred enclosures, dome+cross etc.)
     const TYPOLOGY = [
-      'Residential', 'Office', 'Public', 'Landscape',
-      'Commercial', 'Hospitality', 'Industrial', 'Heritage',
+      'Residential', 'Office', 'Public', 'Commercial',
+      'Hospitality', 'Industrial', 'Heritage', 'Landscape',
     ];
 
     // Eight building-scale concepts. Reworked to match the v2 pictograms:
@@ -2615,14 +2615,14 @@
       { id: 'outdoor',   label: 'Outdoor',   hint: 'garden, courtyard, terrace, balcony' },
     ];
     const ROOMS_BY_TYPOLOGY = {
-      Residential: ['living', 'bedroom', 'service', 'outdoor'],
-      Office:      ['lobby', 'workspace', 'service', 'outdoor'],
-      Public:      ['lobby', 'hall', 'service', 'outdoor'],
+      Residential: ['outdoor', 'living', 'bedroom', 'service'],
+      Office:      ['outdoor', 'lobby', 'workspace', 'service'],
+      Public:      ['outdoor', 'lobby', 'hall', 'service'],
       // Landscape intentionally omitted — the picker is hidden.
-      Commercial:  ['lobby', 'hall', 'service', 'outdoor'],
-      Hospitality: ['lobby', 'bedroom', 'dining', 'outdoor'],
-      Industrial:  ['lobby', 'workspace', 'service', 'outdoor'],
-      Heritage:    ['lobby', 'hall', 'living', 'outdoor'],
+      Commercial:  ['outdoor', 'lobby', 'hall', 'service'],
+      Hospitality: ['outdoor', 'lobby', 'bedroom', 'dining'],
+      Industrial:  ['outdoor', 'lobby', 'workspace', 'service'],
+      Heritage:    ['outdoor', 'lobby', 'hall', 'living'],
     };
     function roomsForTypology(typ) {
       const ids = ROOMS_BY_TYPOLOGY[typ] || [];
