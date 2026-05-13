@@ -52,8 +52,14 @@
       --font-mono: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif; /* same — we no longer use a separate mono face */
     }
 
+    /* Dark mode palette. Applied:
+         - automatically when prefers-color-scheme: dark AND the user hasn't
+           set a manual theme (no data-theme attribute on <html>);
+         - manually when the user picks Dark in Settings (data-theme="dark").
+       The reverse override — forcing Light in a dark-OS environment — is
+       handled below the media block. */
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root:not([data-theme="light"]) {
         --bg: #0F0F0E;
         --bg-elev: #1A1A18;
         --bg-elev-2: #2A2A26;
@@ -70,6 +76,41 @@
         --pill-active-bg: #F2EFE7;
         --pill-active-text: #0F0F0E;
         --overlay: rgba(0,0,0,0.65);
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0F0F0E;
+      --bg-elev: #1A1A18;
+      --bg-elev-2: #2A2A26;
+      --bg-input: #1A1A18;
+      --text: #F2EFE7;
+      --text-muted: rgba(242,239,231,0.62);
+      --text-faint: rgba(242,239,231,0.38);
+      --border: rgba(242,239,231,0.14);
+      --border-strong: rgba(242,239,231,0.3);
+
+      --accent: #F2EFE7;
+      --accent-ink: #0F0F0E;
+      --pill-bg: rgba(242,239,231,0.08);
+      --pill-active-bg: #F2EFE7;
+      --pill-active-text: #0F0F0E;
+      --overlay: rgba(0,0,0,0.65);
+    }
+
+    /* Dark-mode polish: a hairline light border on the tile / segment
+       surfaces so they read distinct from the slightly-darker track. */
+    :root[data-theme="dark"] .sw-art,
+    :root[data-theme="dark"] .type-toggle,
+    :root[data-theme="dark"] .gal-lens-tabs,
+    :root[data-theme="dark"] .gal-subtabs {
+      border: 1px solid rgba(242,239,231,0.08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .sw-art,
+      :root:not([data-theme="light"]) .type-toggle,
+      :root:not([data-theme="light"]) .gal-lens-tabs,
+      :root:not([data-theme="light"]) .gal-subtabs {
+        border: 1px solid rgba(242,239,231,0.08);
       }
     }
 
@@ -654,7 +695,7 @@
       padding: 7px 4px;
       border-radius: 8px;
       background: transparent;
-      color: rgba(15,15,14,0.62);
+      color: var(--text-muted);
       font-size: 0.82rem;
       font-weight: 500;
       border: 0;
@@ -1116,7 +1157,7 @@
       min-width: 0;
       position: relative;
       background: transparent;
-      color: rgba(15,15,14,0.62);
+      color: var(--text-muted);
       padding: 7px 4px;
       border-radius: 8px;
       font-size: 0.88rem;
@@ -2191,6 +2232,17 @@
       </div>
 
       <div class="section">
+        <p class="section-title">Appearance</p>
+        <div class="type-toggle-wrap" style="padding: 0;">
+          <div class="type-toggle" id="settings-theme-toggle" role="tablist" aria-label="Theme">
+            <button class="type-segment" data-theme-mode="light">Light</button>
+            <button class="type-segment" data-theme-mode="dark">Dark</button>
+            <button class="type-segment" data-theme-mode="auto">Auto</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
         <p class="section-title">Capture flow steps</p>
         <button class="settings-row" data-goto="settings-building">
           <span>Building</span><span class="settings-row-caret">&rsaquo;</span>
@@ -2739,6 +2791,35 @@
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
     }
 
+    // ----- Theme (light / dark / auto) -----
+    // 'auto' (default) lets prefers-color-scheme pick. 'light' / 'dark' force
+    // the palette regardless of OS setting via the data-theme attribute on
+    // <html>, paired with the :root[data-theme="..."] blocks in CSS.
+    function loadTheme() {
+      const s = loadSettings();
+      return s.theme || 'auto';
+    }
+    function applyTheme(mode) {
+      const html = document.documentElement;
+      if (mode === 'auto') html.removeAttribute('data-theme');
+      else html.setAttribute('data-theme', mode);
+    }
+    function setTheme(mode) {
+      const s = loadSettings();
+      s.theme = mode;
+      saveSettings(s);
+      applyTheme(mode);
+      renderThemeToggle();
+    }
+    function renderThemeToggle() {
+      const cur = loadTheme();
+      document.querySelectorAll('#settings-theme-toggle .type-segment').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.themeMode === cur);
+      });
+    }
+    // Apply the saved theme as early as we can so the initial paint matches.
+    applyTheme(loadTheme());
+
     function getCustom(category) {
       return (loadSettings().custom || {})[category] || [];
     }
@@ -2944,6 +3025,10 @@
 
     document.querySelectorAll('[data-goto]').forEach(btn => {
       btn.addEventListener('click', () => showView(btn.dataset.goto));
+    });
+
+    document.querySelectorAll('#settings-theme-toggle [data-theme-mode]').forEach(btn => {
+      btn.addEventListener('click', () => setTheme(btn.dataset.themeMode));
     });
 
     // ============================================================
@@ -3486,6 +3571,7 @@
       renderFlowSteps('building');
       renderFlowSteps('element');
       renderFlowSteps('graphic');
+      renderThemeToggle();
 
       const list = document.getElementById('settings-projects-list');
       list.innerHTML = '';
