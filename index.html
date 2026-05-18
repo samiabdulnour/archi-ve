@@ -2891,10 +2891,21 @@
     };
     const FLOW_LABELS = { building: 'Building', element: 'Element', graphic: 'Graphic' };
 
+    // Per-flow defaults for steps that should start disabled. Anything not
+    // listed here defaults to enabled (the older behaviour). The user can
+    // always override either way from Settings -> Capture flow steps.
+    const FLOW_STEP_DEFAULTS = {
+      building: { concept: false },
+    };
+
     function getFlowStepEnabled(flow, step) {
-      // Default: enabled. Disable explicitly via Settings.
+      // Saved explicit value wins; otherwise fall back to FLOW_STEP_DEFAULTS;
+      // otherwise default to enabled.
       const s = loadSettings();
-      return ((s.flowSteps || {})[flow] || {})[step] !== false;
+      const saved = ((s.flowSteps || {})[flow] || {})[step];
+      if (typeof saved === 'boolean') return saved;
+      const def = (FLOW_STEP_DEFAULTS[flow] || {})[step];
+      return def !== false;
     }
     function setFlowStepEnabled(flow, step, enabled) {
       const s = loadSettings();
