@@ -2683,29 +2683,42 @@
     };
 
     // Room types — what specific kind of space the photo shows. Single-select,
-    // shown in the Building tagger between Typology and Concept. Universal
-    // pool of eight; each typology surfaces a relevant subset of four (the
-    // building flow renders only those four). Landscape is outdoor by
-    // definition and skips the Room picker entirely.
+    // shown in the Building tagger between Typology and Concept. Each typology
+    // surfaces a relevant subset of eight rooms from the pool below (see
+    // ROOMS_BY_TYPOLOGY). Landscape is outdoor by definition and skips the
+    // Room picker entirely.
     const ROOMS = [
-      { id: 'lobby',     label: 'Lobby',     hint: 'entry, reception, foyer' },
-      { id: 'hall',      label: 'Hall',      hint: 'gallery, corridor, large interior' },
-      { id: 'living',    label: 'Living',    hint: 'lounge, sitting, common' },
-      { id: 'bedroom',   label: 'Bedroom',   hint: 'private, sleeping' },
-      { id: 'workspace', label: 'Workspace', hint: 'office, desk, production floor' },
-      { id: 'service',   label: 'Service',   hint: 'bathroom, kitchen, utility, restroom' },
-      { id: 'dining',    label: 'Dining',    hint: 'restaurant, cafe, bar' },
-      { id: 'outdoor',   label: 'Outdoor',   hint: 'garden, courtyard, terrace, balcony' },
+      { id: 'outdoor',    label: 'Outdoor',    hint: 'garden, courtyard, terrace, balcony' },
+      { id: 'lobby',      label: 'Lobby',      hint: 'entry, reception, foyer' },
+      { id: 'hall',       label: 'Hall',       hint: 'gallery, corridor, large interior' },
+      { id: 'living',     label: 'Living',     hint: 'lounge, sitting, common' },
+      { id: 'bedroom',    label: 'Bedroom',    hint: 'private, sleeping, guest room' },
+      { id: 'workspace',  label: 'Workspace',  hint: 'office, desk, production floor' },
+      { id: 'kitchen',    label: 'Kitchen',    hint: 'cooking, pantry, back of house' },
+      { id: 'bathroom',   label: 'Bathroom',   hint: 'WC, restroom, lavatory' },
+      { id: 'dining',     label: 'Dining',     hint: 'restaurant, cafe, dining hall' },
+      { id: 'meeting',    label: 'Meeting',    hint: 'conference, boardroom' },
+      { id: 'auditorium', label: 'Auditorium', hint: 'theatre, lecture hall, performance' },
+      { id: 'library',    label: 'Library',    hint: 'reading room, archive' },
+      { id: 'shop',       label: 'Shop',       hint: 'sales floor, retail' },
+      { id: 'showroom',   label: 'Showroom',   hint: 'display, demo' },
+      { id: 'bar',        label: 'Bar',        hint: 'pub, lounge bar, counter' },
+      { id: 'spa',        label: 'Spa',        hint: 'wellness, pool, sauna' },
+      { id: 'lab',        label: 'Lab',        hint: 'laboratory, R&D, testing' },
+      { id: 'mechanical', label: 'Mechanical', hint: 'plant room, MEP, utility' },
+      { id: 'chapel',     label: 'Chapel',     hint: 'devotional, altar, prayer' },
+      { id: 'storage',    label: 'Storage',    hint: 'warehouse, stockroom, archive' },
+      { id: 'service',    label: 'Service',    hint: 'back-of-house, utility, plant' },
     ];
     const ROOMS_BY_TYPOLOGY = {
-      Residential: ['outdoor', 'living', 'bedroom', 'service'],
-      Office:      ['outdoor', 'lobby', 'workspace', 'service'],
-      Public:      ['outdoor', 'lobby', 'hall', 'service'],
+      Residential: ['outdoor', 'living', 'bedroom', 'kitchen', 'bathroom', 'hall', 'workspace', 'storage'],
+      Office:      ['outdoor', 'lobby', 'workspace', 'meeting', 'kitchen', 'bathroom', 'living', 'storage'],
+      Public:      ['outdoor', 'lobby', 'hall', 'auditorium', 'library', 'bathroom', 'service', 'storage'],
       // Landscape intentionally omitted — the picker is hidden.
-      Commercial:  ['outdoor', 'lobby', 'hall', 'service'],
-      Hospitality: ['outdoor', 'lobby', 'bedroom', 'dining'],
-      Industrial:  ['outdoor', 'lobby', 'workspace', 'service'],
-      Heritage:    ['outdoor', 'hall', 'living', 'service'],
+      Commercial:  ['outdoor', 'lobby', 'shop', 'showroom', 'workspace', 'bathroom', 'storage', 'service'],
+      Hospitality: ['outdoor', 'lobby', 'bedroom', 'dining', 'bar', 'kitchen', 'spa', 'bathroom'],
+      Industrial:  ['outdoor', 'lobby', 'workspace', 'storage', 'lab', 'mechanical', 'bathroom', 'service'],
+      Heritage:    ['outdoor', 'hall', 'living', 'bedroom', 'library', 'chapel', 'kitchen', 'bathroom'],
     };
     function roomsForTypology(typ) {
       const ids = ROOMS_BY_TYPOLOGY[typ] || [];
@@ -4844,6 +4857,110 @@
         <path d="M12 40 L16 36 L20 40" ${_v2h(0.7)}/>
         <path d="M30 40 L34 36 L38 40" ${_v2h(0.7)}/>
       </g>`),
+      kitchen: _v2(`<g>
+        <rect x="6" y="22" width="36" height="14" ${_v2S}/>
+        <line x1="6" y1="28" x2="42" y2="28" ${_v2h(0.7)}/>
+        <path d="M14 10 H34 V18 H14 Z" ${_v2h(0.9)}/>
+        <circle cx="16" cy="32" r="1.5" ${_v2h(0.7)}/>
+        <circle cx="32" cy="32" r="1.5" ${_v2h(0.7)}/>
+        <line x1="14" y1="36" x2="14" y2="40" ${_v2S}/>
+        <line x1="34" y1="36" x2="34" y2="40" ${_v2S}/>
+      </g>`),
+      bathroom: _v2(`<g>
+        <rect x="6" y="10" width="14" height="10" ${_v2S}/>
+        <circle cx="13" cy="15" r="2" ${_v2h(0.7)}/>
+        <rect x="26" y="8" width="14" height="12" ${_v2S}/>
+        <path d="M26 20 Q26 30 30 32 H40 Q42 32 42 28 V20" ${_v2S}/>
+        <ellipse cx="33" cy="26" rx="6" ry="2" ${_v2h(0.7)}/>
+      </g>`),
+      storage: _v2(`<g>
+        <rect x="8" y="8" width="32" height="32" ${_v2S}/>
+        <line x1="8" y1="18" x2="40" y2="18" ${_v2h(0.7)}/>
+        <line x1="8" y1="28" x2="40" y2="28" ${_v2h(0.7)}/>
+        <rect x="12" y="11" width="6" height="5" ${_v2h(0.7)}/>
+        <rect x="22" y="11" width="10" height="5" ${_v2h(0.7)}/>
+        <rect x="12" y="21" width="10" height="5" ${_v2h(0.7)}/>
+        <rect x="26" y="21" width="6" height="5" ${_v2h(0.7)}/>
+        <rect x="12" y="31" width="6" height="5" ${_v2h(0.7)}/>
+        <rect x="22" y="31" width="10" height="5" ${_v2h(0.7)}/>
+      </g>`),
+      meeting: _v2(`<g>
+        <ellipse cx="24" cy="24" rx="14" ry="7" ${_v2S}/>
+        <circle cx="11" cy="24" r="2.5" ${_v2h(0.7)}/>
+        <circle cx="37" cy="24" r="2.5" ${_v2h(0.7)}/>
+        <circle cx="19" cy="14" r="2.5" ${_v2h(0.7)}/>
+        <circle cx="29" cy="14" r="2.5" ${_v2h(0.7)}/>
+        <circle cx="19" cy="34" r="2.5" ${_v2h(0.7)}/>
+        <circle cx="29" cy="34" r="2.5" ${_v2h(0.7)}/>
+      </g>`),
+      auditorium: _v2(`<g>
+        <rect x="10" y="8" width="28" height="8" ${_v2S}/>
+        <line x1="6" y1="22" x2="42" y2="22" ${_v2h(0.8)}/>
+        <line x1="6" y1="28" x2="42" y2="28" ${_v2h(0.8)}/>
+        <line x1="6" y1="34" x2="42" y2="34" ${_v2h(0.8)}/>
+        <line x1="6" y1="40" x2="42" y2="40" ${_v2h(0.8)}/>
+      </g>`),
+      library: _v2(`<g>
+        <rect x="6" y="6" width="36" height="36" ${_v2S}/>
+        <line x1="6" y1="20" x2="42" y2="20" ${_v2S}/>
+        <line x1="6" y1="34" x2="42" y2="34" ${_v2S}/>
+        ${_v2map([10,14,18,22,26,30,34,38], x => `<line x1="${x}" y1="8" x2="${x}" y2="18" ${_v2h(0.7)}/>`)}
+        ${_v2map([10,14,18,22,26,30,34,38], x => `<line x1="${x}" y1="22" x2="${x}" y2="32" ${_v2h(0.7)}/>`)}
+      </g>`),
+      shop: _v2(`<g>
+        <path d="M6 16 L24 8 L42 16" ${_v2S}/>
+        <path d="M8 16 V42 H40 V16" ${_v2S}/>
+        <rect x="14" y="22" width="20" height="16" ${_v2h(0.8)}/>
+        <line x1="24" y1="22" x2="24" y2="38" ${_v2h(0.6)}/>
+        <line x1="14" y1="30" x2="34" y2="30" ${_v2h(0.6)}/>
+      </g>`),
+      showroom: _v2(`<g>
+        <rect x="6" y="6" width="36" height="36" ${_v2S}/>
+        <line x1="6" y1="34" x2="42" y2="34" ${_v2S}/>
+        <rect x="12" y="14" width="6" height="20" ${_v2h(0.7)}/>
+        <circle cx="24" cy="22" r="5" ${_v2h(0.7)}/>
+        <rect x="32" y="18" width="6" height="16" ${_v2h(0.7)}/>
+      </g>`),
+      bar: _v2(`<g>
+        <path d="M6 26 H42 V32 H6 Z" ${_v2S}/>
+        <path d="M14 32 V40" ${_v2S}/>
+        <path d="M34 32 V40" ${_v2S}/>
+        <rect x="11" y="10" width="3" height="14" ${_v2h(0.7)}/>
+        <rect x="18" y="8" width="3" height="16" ${_v2h(0.7)}/>
+        <rect x="25" y="10" width="3" height="14" ${_v2h(0.7)}/>
+        <rect x="32" y="12" width="3" height="12" ${_v2h(0.7)}/>
+      </g>`),
+      spa: _v2(`<g>
+        <path d="M6 16 Q12 12 18 16 T30 16 T42 16" ${_v2S}/>
+        <path d="M6 24 Q12 20 18 24 T30 24 T42 24" ${_v2S}/>
+        <path d="M6 32 Q12 28 18 32 T30 32 T42 32" ${_v2S}/>
+        <path d="M6 40 Q12 36 18 40 T30 40 T42 40" ${_v2S}/>
+      </g>`),
+      lab: _v2(`<g>
+        <path d="M18 8 H30 V16 L36 36 Q36 40 32 40 H16 Q12 40 12 36 L18 16 Z" ${_v2S}/>
+        <line x1="14" y1="28" x2="34" y2="28" ${_v2h(0.7)}/>
+        <circle cx="20" cy="34" r="0.8" fill="currentColor"/>
+        <circle cx="25" cy="32" r="0.6" fill="currentColor"/>
+        <circle cx="29" cy="35" r="0.7" fill="currentColor"/>
+      </g>`),
+      mechanical: _v2(`<g>
+        <circle cx="24" cy="24" r="9" ${_v2S}/>
+        <circle cx="24" cy="24" r="3" ${_v2h(0.9)}/>
+        ${_v2map([0,45,90,135,180,225,270,315], a => {
+          const r = a * Math.PI / 180;
+          const x1 = (24 + Math.cos(r) * 9).toFixed(2);
+          const y1 = (24 + Math.sin(r) * 9).toFixed(2);
+          const x2 = (24 + Math.cos(r) * 12).toFixed(2);
+          const y2 = (24 + Math.sin(r) * 12).toFixed(2);
+          return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${_v2S}/>`;
+        })}
+      </g>`),
+      chapel: _v2(`<g>
+        <path d="M12 22 L24 12 L36 22" ${_v2S}/>
+        <path d="M14 22 V40 H34 V22" ${_v2S}/>
+        <path d="M24 14 V19 M21.5 16.5 H26.5" ${_v2S}/>
+        <rect x="21" y="30" width="6" height="10" ${_v2h(0.8)}/>
+      </g>`),
     };
     function roomGlyph(id) { return _renderGlyph(ROOM_GLYPHS[id]); }
 
@@ -5261,7 +5378,7 @@
       { id: 'service',   label: 'Service',   items: ['HVAC', 'Plumbing', 'Electrical', 'Fire'] },
       { id: 'product',   label: 'Product',   items: ['Furniture', 'Lighting', 'Appliance', 'Decor'] },
     ];
-    const ELEMENT_CATEGORIES_WITH_MATERIALITY = new Set(['structure', 'envelope', 'finish', 'detail']);
+    const ELEMENT_CATEGORIES_WITH_MATERIALITY = new Set(['structure', 'vertical', 'envelope', 'finish', 'detail']);
 
     // For old photos that were tagged before categories existed: look up
     // which category a given element_name belongs to.
