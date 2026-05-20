@@ -489,6 +489,60 @@
       display: inline-flex; align-items: center; justify-content: center;
     }
 
+    /* ---- Settings / More panel (iOS Camera More-sheet idiom) ---- */
+    .cam-set-backdrop {
+      position: absolute; inset: 0; z-index: 40;
+      display: flex; align-items: flex-end; justify-content: center;
+    }
+    .cam-set-panel {
+      position: absolute;
+      left: 14px; right: 14px;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 50px);
+      background: rgba(28,28,30,0.74);
+      backdrop-filter: blur(40px) saturate(180%);
+      -webkit-backdrop-filter: blur(40px) saturate(180%);
+      border-radius: 36px;
+      color: #fff;
+      padding: 32px 22px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+      display: flex; flex-direction: column; gap: 22px;
+      transform: translateY(12px); opacity: 0;
+      transition: transform .3s cubic-bezier(.2,.7,.3,1), opacity .3s ease;
+    }
+    .cam-set-backdrop.show .cam-set-panel { transform: translateY(0); opacity: 1; }
+    .cam-set-row {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      justify-items: center; align-items: start;
+    }
+    .cam-set-row.single { grid-template-columns: 1fr; }
+    .cam-set-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 4px 28px; }
+    .cam-set-circle {
+      background: transparent; border: 0; padding: 0;
+      display: flex; flex-direction: column; align-items: center; gap: 9px;
+      font-family: var(--font-sans); cursor: pointer;
+    }
+    .cam-set-circle .disc {
+      width: 60px; height: 60px; border-radius: 999px;
+      background: rgba(50,50,52,0.85);
+      display: inline-flex; align-items: center; justify-content: center;
+      color: #fff; position: relative;
+      transition: background .15s ease, transform .12s ease-out;
+    }
+    .cam-set-circle:active .disc { transform: scale(0.94); }
+    .cam-set-circle.on .disc { background: rgba(242,233,97,0.18); }
+    .cam-set-circle .lbl {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: rgba(255,255,255,0.96);
+    }
+    .cam-set-circle .badge {
+      position: absolute; bottom: -2px; right: -2px;
+      min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+      background: #fff; color: #000; font-size: 10px; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: 2px solid rgba(28,28,30,1); font-variant-numeric: tabular-nums;
+    }
+
     .cam-flash {
       position: absolute;
       inset: 0;
@@ -2433,6 +2487,11 @@
     <div class="cam-flash" id="cam-flash" aria-hidden="true"></div>
     <div class="cam-focus" id="cam-focus" aria-hidden="true"></div>
     <div class="cam-error" id="cam-error" hidden></div>
+
+    <!-- Settings / More panel (floating glass sheet, iOS Camera idiom) -->
+    <div class="cam-set-backdrop" id="cam-set-backdrop" hidden>
+      <div class="cam-set-panel" id="cam-set-panel"></div>
+    </div>
   </section>
 
   <!-- ============ CAPTURE ============ -->
@@ -3235,10 +3294,7 @@
       el.innerHTML = '';
     }
 
-    document.getElementById('cam-options').addEventListener('click', async () => {
-      await renderSettings();
-      showView('settings');
-    });
+    document.getElementById('cam-options').addEventListener('click', () => openCamSettings());
 
     document.getElementById('cam-flip').addEventListener('click', async () => {
       cameraFacing = (cameraFacing === 'environment') ? 'user' : 'environment';
@@ -3261,6 +3317,156 @@
     document.getElementById('cam-reuse-toggle').innerHTML = CAM_ICONS.reuse;
     document.getElementById('cam-options').innerHTML = CAM_ICONS.moreDots;
     document.getElementById('cam-flip').innerHTML = CAM_ICONS.flipCam;
+
+    // ===== Settings / More panel =====================================
+    // Icons for the floating panel (28-unit viewBox, white 1.8 stroke).
+    const SI = {
+      flash: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M15 3 L7 16 H13 L11 25 L21 12 H15 Z"/></svg>`,
+      flashSlash: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M15 3 L7 16 H13 L11 25 L21 12 H15 Z" opacity="0.5"/><line x1="4" y1="3" x2="24" y2="25" stroke-width="2"/></svg>`,
+      timer: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><circle cx="14" cy="16" r="9"/><path d="M14 16 V10"/><path d="M11 3 H17"/><path d="M14 3 V6"/></svg>`,
+      aspect: (txt = '4:3') => `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M3 8 V4 H7"/><path d="M25 8 V4 H21"/><path d="M3 20 V24 H7"/><path d="M25 20 V24 H21"/><text x="14" y="17.5" text-anchor="middle" font-size="9" font-weight="700" fill="currentColor" stroke="none" font-family="Inter" letter-spacing="-0.5">${txt}</text></svg>`,
+      grid: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="3" width="22" height="22"/><line x1="10.3" y1="3" x2="10.3" y2="25"/><line x1="17.7" y1="3" x2="17.7" y2="25"/><line x1="3" y1="10.3" x2="25" y2="10.3"/><line x1="3" y1="17.7" x2="25" y2="17.7"/></svg>`,
+      level: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><rect x="2" y="10" width="24" height="8" rx="1.5"/><circle cx="14" cy="14" r="2" fill="currentColor" stroke="none"/><line x1="7" y1="10" x2="7" y2="18" opacity="0.5"/><line x1="21" y1="10" x2="21" y2="18" opacity="0.5"/></svg>`,
+      exposure: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><circle cx="14" cy="14" r="11"/><line x1="7" y1="10" x2="11" y2="10"/><line x1="9" y1="8" x2="9" y2="12"/><line x1="17" y1="18" x2="21" y2="18"/></svg>`,
+      folder: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M3 9 V21 a1.5 1.5 0 0 0 1.5 1.5 H23.5 a1.5 1.5 0 0 0 1.5-1.5 V11 a1.5 1.5 0 0 0-1.5-1.5 H13 L10.5 7 H4.5 a1.5 1.5 0 0 0-1.5 1.5 Z"/></svg>`,
+      appearance: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><circle cx="14" cy="14" r="7"/><path d="M14 7 a7 7 0 0 1 0 14 Z" fill="currentColor" stroke="none"/><path d="M14 1 V4"/><path d="M14 24 V27"/><path d="M1 14 H4"/><path d="M24 14 H27"/><path d="M4 4 L6.2 6.2"/><path d="M21.8 21.8 L24 24"/><path d="M4 24 L6.2 21.8"/><path d="M21.8 6.2 L24 4"/></svg>`,
+      materials: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="3" width="10" height="10"/><rect x="15" y="3" width="10" height="10"/><rect x="3" y="15" width="10" height="10"/><rect x="15" y="15" width="10" height="10" fill="currentColor" stroke="none"/></svg>`,
+      building: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M3 13 L14 4 L25 13"/><path d="M6 13 V24 H22 V13"/><rect x="12" y="16" width="4" height="8"/></svg>`,
+      element: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M6 4 H22 V7 H6 Z"/><path d="M8 7 V21 H20 V7"/><line x1="12" y1="8" x2="12" y2="21"/><line x1="16" y1="8" x2="16" y2="21"/><path d="M5 21 H23 V24 H5 Z"/></svg>`,
+      graphic: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M5 3 H18 L23 8 V25 H5 Z"/><path d="M18 3 V8 H23"/><line x1="9" y1="14" x2="19" y2="14"/><line x1="9" y1="18" x2="19" y2="18"/><line x1="9" y1="22" x2="15" y2="22"/></svg>`,
+      help: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><circle cx="14" cy="14" r="11"/><path d="M10.5 11 a3.5 3.5 0 0 1 7 0 c0 2.4-3.5 2.6-3.5 5 M14 19.5 v0.6"/></svg>`,
+    };
+
+    // Camera-control state (persisted). Flash/Timer/Aspect/Exposure are
+    // best-effort on the web build — they cycle + persist their label but
+    // the getUserMedia API can't always honour them. Grid/Level toggle the
+    // real viewfinder overlays.
+    const CAM_PREFS_KEY = 'archi-archive:camPrefs';
+    function loadCamPrefs() {
+      try { return JSON.parse(localStorage.getItem(CAM_PREFS_KEY)) || {}; }
+      catch { return {}; }
+    }
+    function saveCamPrefs(p) { try { localStorage.setItem(CAM_PREFS_KEY, JSON.stringify(p)); } catch {} }
+    let camPrefs = Object.assign(
+      { flash: 'off', timer: 0, aspect: '4:3', gridOn: true, levelOn: true },
+      loadCamPrefs()
+    );
+    function applyCamOverlays() {
+      const grid = document.getElementById('cam-grid');
+      const level = document.getElementById('cam-level');
+      if (grid)  grid.hidden  = !camPrefs.gridOn;
+      if (level) level.hidden = !camPrefs.levelOn;
+    }
+    applyCamOverlays();
+
+    function buildSetCircle({ iconHtml, label, on = false, badge = null, onClick }) {
+      const btn = document.createElement('button');
+      btn.className = 'cam-set-circle' + (on ? ' on' : '');
+      btn.innerHTML =
+        `<span class="disc">${iconHtml}${badge != null ? `<span class="badge">${badge}</span>` : ''}</span>` +
+        `<span class="lbl">${label}</span>`;
+      btn.addEventListener('click', onClick);
+      return btn;
+    }
+
+    async function openCamSettings() {
+      const backdrop = document.getElementById('cam-set-backdrop');
+      const panel = document.getElementById('cam-set-panel');
+      panel.innerHTML = '';
+
+      const projectCount = (await getProjectNames()).length;
+      const materialsCount = getCustom('materiality').length;
+      const themeLabel = loadTheme();
+
+      const flashLabel = 'Flash · ' + (camPrefs.flash === 'off' ? 'Off' : camPrefs.flash === 'on' ? 'On' : 'Auto');
+      const timerLabel = 'Timer' + (camPrefs.timer ? ' · ' + camPrefs.timer + 's' : '');
+
+      const row = (...kids) => {
+        const r = document.createElement('div');
+        r.className = 'cam-set-row';
+        kids.forEach(k => r.appendChild(k));
+        return r;
+      };
+      const divider = () => { const d = document.createElement('div'); d.className = 'cam-set-divider'; return d; };
+
+      // Row 1 — Flash / Timer / Aspect
+      panel.appendChild(row(
+        buildSetCircle({ iconHtml: camPrefs.flash === 'off' ? SI.flashSlash : SI.flash, label: 'Flash', onClick: () => {
+          camPrefs.flash = camPrefs.flash === 'off' ? 'on' : camPrefs.flash === 'on' ? 'auto' : 'off';
+          saveCamPrefs(camPrefs); openCamSettings();
+        }}),
+        buildSetCircle({ iconHtml: SI.timer, label: camPrefs.timer ? camPrefs.timer + 'S' : 'Timer', onClick: () => {
+          camPrefs.timer = camPrefs.timer === 0 ? 3 : camPrefs.timer === 3 ? 10 : 0;
+          saveCamPrefs(camPrefs); openCamSettings();
+        }}),
+        buildSetCircle({ iconHtml: SI.aspect(camPrefs.aspect), label: 'Aspect', onClick: () => {
+          camPrefs.aspect = camPrefs.aspect === '4:3' ? '16:9' : camPrefs.aspect === '16:9' ? '1:1' : '4:3';
+          saveCamPrefs(camPrefs); openCamSettings();
+        }})
+      ));
+
+      // Row 2 — Grid / Level / Exposure
+      panel.appendChild(row(
+        buildSetCircle({ iconHtml: SI.grid, label: 'Grid', on: camPrefs.gridOn, onClick: () => {
+          camPrefs.gridOn = !camPrefs.gridOn; saveCamPrefs(camPrefs); applyCamOverlays(); openCamSettings();
+        }}),
+        buildSetCircle({ iconHtml: SI.level, label: 'Level', on: camPrefs.levelOn, onClick: () => {
+          camPrefs.levelOn = !camPrefs.levelOn; saveCamPrefs(camPrefs); applyCamOverlays(); openCamSettings();
+        }}),
+        buildSetCircle({ iconHtml: SI.exposure, label: 'Exposure', onClick: () => {
+          toast('Exposure follows the system camera on web');
+        }})
+      ));
+
+      panel.appendChild(divider());
+
+      // Row 3 — Projects / Materials / Appearance
+      panel.appendChild(row(
+        buildSetCircle({ iconHtml: SI.folder, label: 'Projects', badge: projectCount > 0 ? projectCount : null, onClick: async () => {
+          closeCamSettings(); await renderSettings(); showView('settings');
+        }}),
+        buildSetCircle({ iconHtml: SI.materials, label: 'Materials', badge: materialsCount > 0 ? materialsCount : null, onClick: async () => {
+          closeCamSettings(); await renderSettings(); showView('settings');
+        }}),
+        buildSetCircle({ iconHtml: SI.appearance, label: themeLabel, onClick: () => {
+          const next = themeLabel === 'auto' ? 'light' : themeLabel === 'light' ? 'dark' : 'auto';
+          setTheme(next); openCamSettings();
+        }})
+      ));
+
+      // Row 4 — Building / Element / Graphic taxonomy editors
+      panel.appendChild(row(
+        buildSetCircle({ iconHtml: SI.building, label: 'Building', onClick: async () => {
+          closeCamSettings(); await renderSettings(); showView('settings-building');
+        }}),
+        buildSetCircle({ iconHtml: SI.element, label: 'Element', onClick: async () => {
+          closeCamSettings(); await renderSettings(); showView('settings-element');
+        }}),
+        buildSetCircle({ iconHtml: SI.graphic, label: 'Graphic', onClick: async () => {
+          closeCamSettings(); await renderSettings(); showView('settings-graphic');
+        }})
+      ));
+
+      // Row 5 — How to use (centred)
+      const single = document.createElement('div');
+      single.className = 'cam-set-row single';
+      single.appendChild(buildSetCircle({ iconHtml: SI.help, label: 'How to use', onClick: () => {
+        closeCamSettings(); showView('welcome');
+      }}));
+      panel.appendChild(single);
+
+      backdrop.hidden = false;
+      requestAnimationFrame(() => backdrop.classList.add('show'));
+    }
+    function closeCamSettings() {
+      const backdrop = document.getElementById('cam-set-backdrop');
+      backdrop.classList.remove('show');
+      setTimeout(() => { backdrop.hidden = true; }, 200);
+    }
+    // Tap the dimmed area outside the panel to dismiss.
+    document.getElementById('cam-set-backdrop').addEventListener('click', (e) => {
+      if (e.target.id === 'cam-set-backdrop') closeCamSettings();
+    });
 
     // ----- Lite / Full tagging toggle (single tag icon) -----
     function getLite() {
