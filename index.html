@@ -293,12 +293,14 @@
     }
     .cam-type-seg button {
       background: transparent; border: 0;
-      padding: 4px 9px; border-radius: 999px;
+      padding: 5px 10px; border-radius: 999px;
+      display: inline-flex; align-items: center; justify-content: center;
       font-family: var(--font-sans);
       font-size: 11.5px; font-weight: 700; letter-spacing: -0.005em;
       color: rgba(255,255,255,0.6);
       transition: color .15s ease, background .15s ease;
     }
+    .cam-type-seg button svg { display: block; }
     .cam-type-seg button.active {
       background: rgba(0,0,0,0.55);
       color: #A8EFB7;
@@ -2433,9 +2435,15 @@
     <!-- Top-left: 3-way type segmented (Reference) or project chip (Project) -->
     <div class="cam-top-left">
       <div class="cam-pill cam-type-seg" id="cam-type-seg">
-        <button data-cam-type="building" class="active">Building</button>
-        <button data-cam-type="element">Element</button>
-        <button data-cam-type="graphic">Graphic</button>
+        <button data-cam-type="building" class="active" aria-label="Building">
+          <svg width="20" height="20" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M3 13 L14 4 L25 13"/><path d="M6 13 V24 H22 V13"/><rect x="12" y="16" width="4" height="8"/></svg>
+        </button>
+        <button data-cam-type="element" aria-label="Element">
+          <svg width="20" height="20" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M6 4 H22 V7 H6 Z"/><path d="M8 7 V21 H20 V7"/><line x1="12" y1="8" x2="12" y2="21"/><line x1="16" y1="8" x2="16" y2="21"/><path d="M5 21 H23 V24 H5 Z"/></svg>
+        </button>
+        <button data-cam-type="graphic" aria-label="Graphic">
+          <svg width="20" height="20" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M5 3 H18 L23 8 V25 H5 Z"/><path d="M18 3 V8 H23"/><line x1="9" y1="14" x2="19" y2="14"/><line x1="9" y1="18" x2="19" y2="18"/><line x1="9" y1="22" x2="15" y2="22"/></svg>
+        </button>
       </div>
       <button class="cam-pill cam-project-chip" id="cam-project-trigger" hidden>
         <span class="dot"></span>
