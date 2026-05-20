@@ -416,14 +416,14 @@
       padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
     }
     .cam-shutter {
-      width: 66px; height: 66px; border-radius: 999px;
-      border: 1.5px solid #fff; background: transparent;
+      width: 68px; height: 68px; border-radius: 999px;
+      border: 2.5px solid #fff; background: transparent;
       display: inline-flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
+      flex-shrink: 0; padding: 0;
       transition: transform 0.07s ease, opacity 0.15s ease;
     }
     .cam-shutter::after {
-      content: ""; width: 60px; height: 60px; border-radius: 999px; background: #fff;
+      content: ""; width: 54px; height: 54px; border-radius: 999px; background: #fff;
       transition: background 0.07s ease;
     }
     .cam-shutter:active { transform: scale(0.94); }
