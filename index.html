@@ -2761,7 +2761,7 @@
     //   architectural character — towers, sacred enclosures, dome+cross etc.)
     const TYPOLOGY = [
       'Residential', 'Office', 'Public', 'Commercial',
-      'Hospitality', 'Industrial', 'Heritage', 'Landscape',
+      'Hospitality', 'Other', 'Heritage', 'Landscape',
     ];
 
     // Eight building-scale concepts. Reworked to match the v2 pictograms:
@@ -2821,7 +2821,7 @@
       // Landscape intentionally omitted — the picker is hidden.
       Commercial:  ['outdoor', 'lobby', 'shop', 'showroom', 'workspace', 'bathroom', 'storage', 'service'],
       Hospitality: ['outdoor', 'lobby', 'bedroom', 'dining', 'bar', 'kitchen', 'spa', 'bathroom'],
-      Industrial:  ['outdoor', 'lobby', 'workspace', 'storage', 'lab', 'mechanical', 'bathroom', 'service'],
+      Other:       ['outdoor', 'lobby', 'hall', 'workspace', 'kitchen', 'bathroom', 'storage', 'service'],
       Heritage:    ['outdoor', 'hall', 'living', 'bedroom', 'library', 'chapel', 'kitchen', 'bathroom'],
     };
     function roomsForTypology(typ) {
