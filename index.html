@@ -2761,7 +2761,7 @@
     //   architectural character — towers, sacred enclosures, dome+cross etc.)
     const TYPOLOGY = [
       'Residential', 'Office', 'Public', 'Commercial',
-      'Hospitality', 'Other', 'Heritage', 'Landscape',
+      'Hospitality', 'Heritage', 'Landscape', 'Other',
     ];
 
     // Eight building-scale concepts. Reworked to match the v2 pictograms:
@@ -2813,16 +2813,17 @@
       { id: 'chapel',     label: 'Chapel',     hint: 'devotional, altar, prayer' },
       { id: 'storage',    label: 'Storage',    hint: 'warehouse, stockroom, archive' },
       { id: 'service',    label: 'Service',    hint: 'back-of-house, utility, plant' },
+      { id: 'other',      label: 'Other',      hint: 'something else' },
     ];
     const ROOMS_BY_TYPOLOGY = {
-      Residential: ['outdoor', 'living', 'bedroom', 'kitchen', 'bathroom', 'hall', 'workspace', 'storage'],
-      Office:      ['outdoor', 'lobby', 'workspace', 'meeting', 'kitchen', 'bathroom', 'living', 'storage'],
-      Public:      ['outdoor', 'lobby', 'hall', 'auditorium', 'library', 'bathroom', 'service', 'storage'],
+      Residential: ['outdoor', 'living', 'bedroom', 'kitchen', 'bathroom', 'hall', 'workspace', 'storage', 'other'],
+      Office:      ['outdoor', 'lobby', 'workspace', 'meeting', 'kitchen', 'bathroom', 'living', 'storage', 'other'],
+      Public:      ['outdoor', 'lobby', 'hall', 'auditorium', 'library', 'bathroom', 'service', 'storage', 'other'],
       // Landscape intentionally omitted — the picker is hidden.
-      Commercial:  ['outdoor', 'lobby', 'shop', 'showroom', 'workspace', 'bathroom', 'storage', 'service'],
-      Hospitality: ['outdoor', 'lobby', 'bedroom', 'dining', 'bar', 'kitchen', 'spa', 'bathroom'],
-      Other:       ['outdoor', 'lobby', 'hall', 'workspace', 'kitchen', 'bathroom', 'storage', 'service'],
-      Heritage:    ['outdoor', 'hall', 'living', 'bedroom', 'library', 'chapel', 'kitchen', 'bathroom'],
+      Commercial:  ['outdoor', 'lobby', 'shop', 'showroom', 'workspace', 'bathroom', 'storage', 'service', 'other'],
+      Hospitality: ['outdoor', 'lobby', 'bedroom', 'dining', 'bar', 'kitchen', 'spa', 'bathroom', 'other'],
+      Other:       ['outdoor', 'lobby', 'hall', 'workspace', 'kitchen', 'bathroom', 'storage', 'service', 'other'],
+      Heritage:    ['outdoor', 'hall', 'living', 'bedroom', 'library', 'chapel', 'kitchen', 'bathroom', 'other'],
     };
     function roomsForTypology(typ) {
       const ids = ROOMS_BY_TYPOLOGY[typ] || [];
@@ -5179,11 +5180,10 @@
         <line x1="34" y1="36" x2="34" y2="40" ${_v2S}/>
       </g>`),
       bathroom: _v2(`<g>
-        <rect x="6" y="10" width="14" height="10" ${_v2S}/>
-        <circle cx="13" cy="15" r="2" ${_v2h(0.7)}/>
-        <rect x="26" y="8" width="14" height="12" ${_v2S}/>
-        <path d="M26 20 Q26 30 30 32 H40 Q42 32 42 28 V20" ${_v2S}/>
-        <ellipse cx="33" cy="26" rx="6" ry="2" ${_v2h(0.7)}/>
+        <rect x="14" y="8" width="14" height="14" ${_v2S}/>
+        <path d="M10 22 H34 Q40 22 40 30 Q40 38 32 38 H16 Q10 38 10 32 Z" ${_v2S}/>
+        <ellipse cx="24" cy="30" rx="11" ry="4" ${_v2h(0.7)}/>
+        <circle cx="20" cy="12" r="1.2" ${_v2h(0.7)}/>
       </g>`),
       storage: _v2(`<g>
         <rect x="8" y="8" width="32" height="32" ${_v2S}/>
@@ -5272,6 +5272,10 @@
         <path d="M14 22 V40 H34 V22" ${_v2S}/>
         <path d="M24 14 V19 M21.5 16.5 H26.5" ${_v2S}/>
         <rect x="21" y="30" width="6" height="10" ${_v2h(0.8)}/>
+      </g>`),
+      other: _v2(`<g>
+        <circle cx="24" cy="24" r="14" ${_v2S}/>
+        <text x="24" y="30" text-anchor="middle" fill="currentColor" font-size="18" font-family="Inter" font-weight="500">?</text>
       </g>`),
     };
     function roomGlyph(id) { return _renderGlyph(ROOM_GLYPHS[id]); }
