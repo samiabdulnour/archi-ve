@@ -2554,24 +2554,53 @@
           <rect x="18" y="18" width="264" height="80" rx="0" fill="rgba(0,0,0,0.32)"/>
           <rect x="18" y="430" width="264" height="112" rx="0" fill="rgba(0,0,0,0.40)"/>
 
-          <!-- Top bar: type pill + reuse button + L/F + options -->
+          <!-- Top bar: 3-icon Type pill (left) + 3-icon Tag/Reuse/More pill (right) -->
           <g font-family="Inter,system-ui,sans-serif">
-            <!-- Type pill -->
-            <rect x="32" y="58" width="78" height="26" rx="13" fill="rgba(0,0,0,0.55)"/>
-            <text x="44" y="75" font-size="12" fill="white" font-weight="500">Building</text>
-            <text x="98" y="76" font-size="11" fill="rgba(255,255,255,0.7)">▾</text>
-            <!-- Reuse circle -->
-            <circle cx="124" cy="71" r="13" fill="rgba(0,0,0,0.55)"/>
-            <text x="124" y="76" font-size="13" fill="white" text-anchor="middle">↻</text>
+            <!-- Type segmented pill: Building (active) / Element / Graphic -->
+            <rect x="32" y="58" width="84" height="26" rx="13" fill="rgba(0,0,0,0.55)"/>
+            <!-- Active segment highlight under Building -->
+            <rect x="34" y="60" width="26" height="22" rx="11" fill="rgba(255,255,255,0.18)"/>
+            <!-- Building icon -->
+            <g transform="translate(40,63) scale(0.6)" stroke="white" stroke-width="1.8" fill="none" stroke-linejoin="round" stroke-linecap="round">
+              <path d="M3 13 L14 4 L25 13"/>
+              <path d="M6 13 V24 H22 V13"/>
+              <rect x="12" y="16" width="4" height="8"/>
+            </g>
+            <!-- Element icon (dim) -->
+            <g transform="translate(68,63) scale(0.6)" stroke="rgba(255,255,255,0.55)" stroke-width="1.8" fill="none" stroke-linejoin="round" stroke-linecap="round">
+              <path d="M6 4 H22 V7 H6 Z"/>
+              <path d="M8 7 V21 H20 V7"/>
+              <line x1="12" y1="8" x2="12" y2="21"/>
+              <line x1="16" y1="8" x2="16" y2="21"/>
+              <path d="M5 21 H23 V24 H5 Z"/>
+            </g>
+            <!-- Graphic icon (dim) -->
+            <g transform="translate(96,63) scale(0.6)" stroke="rgba(255,255,255,0.55)" stroke-width="1.8" fill="none" stroke-linejoin="round" stroke-linecap="round">
+              <path d="M5 3 H18 L23 8 V25 H5 Z"/>
+              <path d="M18 3 V8 H23"/>
+              <line x1="9" y1="14" x2="19" y2="14"/>
+              <line x1="9" y1="18" x2="19" y2="18"/>
+              <line x1="9" y1="22" x2="15" y2="22"/>
+            </g>
 
-            <!-- L/F pill -->
-            <rect x="200" y="58" width="44" height="26" rx="13" fill="rgba(0,0,0,0.55)"/>
-            <circle cx="213" cy="71" r="10" fill="white"/>
-            <text x="213" y="75" font-size="11" fill="#0F0F0E" text-anchor="middle" font-weight="600">L</text>
-            <text x="234" y="76" font-size="11" fill="rgba(255,255,255,0.55)" text-anchor="middle" font-weight="600">F</text>
-            <!-- Options dots -->
-            <circle cx="262" cy="71" r="13" fill="rgba(0,0,0,0.55)"/>
-            <text x="262" y="76" font-size="14" fill="white" text-anchor="middle" letter-spacing="-1">⋯</text>
+            <!-- Right pill: Tag (Lite/Full) · Reuse · More -->
+            <rect x="190" y="58" width="78" height="26" rx="13" fill="rgba(0,0,0,0.55)"/>
+            <!-- Tag icon (Lite shown active) -->
+            <g transform="translate(196,64) scale(0.62)" stroke="white" stroke-width="1.7" fill="none" stroke-linejoin="round" stroke-linecap="round">
+              <path d="M3 12.5 V4 H11.5 L21 13.5 L12.5 22 Z"/>
+              <circle cx="7.6" cy="8.4" r="1.4" stroke-width="1.4"/>
+            </g>
+            <!-- Reuse icon -->
+            <g transform="translate(218,64) scale(0.62)" stroke="white" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round">
+              <g opacity="0.55"><path d="M9 3 H15 L20 8 L15 13 H10"/></g>
+              <path d="M3 9 H10 L15 14 L10 19 H3 V9 Z"/>
+            </g>
+            <!-- More dots (3x3 grid) -->
+            <g fill="white">
+              <circle cx="244" cy="65" r="1.2"/><circle cx="249" cy="65" r="1.2"/><circle cx="254" cy="65" r="1.2"/>
+              <circle cx="244" cy="71" r="1.2"/><circle cx="249" cy="71" r="1.2"/><circle cx="254" cy="71" r="1.2"/>
+              <circle cx="244" cy="77" r="1.2"/><circle cx="249" cy="77" r="1.2"/><circle cx="254" cy="77" r="1.2"/>
+            </g>
 
             <!-- Shutter -->
             <circle cx="150" cy="430" r="28" fill="white" stroke="rgba(255,255,255,0.5)" stroke-width="4"/>
@@ -2579,11 +2608,11 @@
             <!-- Bottom bar -->
             <!-- Thumbnail circle -->
             <circle cx="42" cy="500" r="18" fill="#3a342c" stroke="white" stroke-width="2"/>
-            <!-- Mode toggle pill -->
-            <rect x="100" y="486" width="100" height="28" rx="14" fill="rgba(0,0,0,0.55)"/>
-            <rect x="103" y="489" width="48" height="22" rx="11" fill="#A8EFB7"/>
-            <text x="127" y="504" font-size="10" fill="#0F0F0E" text-anchor="middle" font-weight="600" letter-spacing="0.06em">REF</text>
-            <text x="175" y="504" font-size="10" fill="rgba(255,255,255,0.6)" text-anchor="middle" font-weight="600" letter-spacing="0.06em">PROJ</text>
+            <!-- Mode toggle pill (Reference / Project, full words) -->
+            <rect x="85" y="486" width="130" height="28" rx="14" fill="rgba(0,0,0,0.55)"/>
+            <rect x="88" y="489" width="68" height="22" rx="11" fill="#A8EFB7"/>
+            <text x="122" y="504" font-size="10" fill="#0F0F0E" text-anchor="middle" font-weight="600">Reference</text>
+            <text x="185" y="504" font-size="10" fill="rgba(255,255,255,0.6)" text-anchor="middle" font-weight="600">Project</text>
             <!-- Flip / selfie button -->
             <circle cx="258" cy="500" r="15" fill="rgba(0,0,0,0.55)"/>
             <text x="258" y="505" font-size="14" fill="white" text-anchor="middle">⟲</text>
@@ -2591,15 +2620,15 @@
 
           <!-- Numbered call-outs (mint pills with number + tail line to control) -->
           <g class="welcome-callouts" font-family="Inter,system-ui,sans-serif">
-            <!-- 1 — Type & Reuse (points down at type pill) -->
-            <line x1="78" y1="100" x2="78" y2="86" stroke="#A8EFB7" stroke-width="1.5"/>
-            <circle cx="78" cy="108" r="11" fill="#A8EFB7"/>
-            <text x="78" y="113" font-size="13" fill="#0F0F0E" text-anchor="middle" font-weight="700">1</text>
+            <!-- 1 — Type segmented (points down at type pill) -->
+            <line x1="74" y1="100" x2="74" y2="86" stroke="#A8EFB7" stroke-width="1.5"/>
+            <circle cx="74" cy="108" r="11" fill="#A8EFB7"/>
+            <text x="74" y="113" font-size="13" fill="#0F0F0E" text-anchor="middle" font-weight="700">1</text>
 
-            <!-- 2 — L/F + Settings -->
-            <line x1="222" y1="100" x2="222" y2="86" stroke="#A8EFB7" stroke-width="1.5"/>
-            <circle cx="222" cy="108" r="11" fill="#A8EFB7"/>
-            <text x="222" y="113" font-size="13" fill="#0F0F0E" text-anchor="middle" font-weight="700">2</text>
+            <!-- 2 — Tag · Reuse · More pill -->
+            <line x1="229" y1="100" x2="229" y2="86" stroke="#A8EFB7" stroke-width="1.5"/>
+            <circle cx="229" cy="108" r="11" fill="#A8EFB7"/>
+            <text x="229" y="113" font-size="13" fill="#0F0F0E" text-anchor="middle" font-weight="700">2</text>
 
             <!-- 3 — Shutter -->
             <line x1="195" y1="430" x2="180" y2="430" stroke="#A8EFB7" stroke-width="1.5"/>
@@ -2626,11 +2655,11 @@
 
       <!-- Legend keyed to the numbered call-outs above -->
       <ol class="welcome-legend">
-        <li><span class="welcome-num">1</span><div><b>Type &amp; Reuse</b><br>Pick what you're capturing — Building, Detail, or Graphic. The ↻ button reuses the tags from your last reference photo for fast repeats.</div></li>
-        <li><span class="welcome-num">2</span><div><b>Lite vs Full · Settings</b><br><b>L</b> saves now, tag later. <b>F</b> opens the tagger right after the shutter. The ⋯ icon opens settings.</div></li>
+        <li><span class="welcome-num">1</span><div><b>Type</b><br>Three icons in one pill — <b>Building</b>, <b>Element</b>, <b>Graphic</b>. Tap to set what you're capturing; the active icon highlights.</div></li>
+        <li><span class="welcome-num">2</span><div><b>Tag · Reuse · More</b><br>The right pill holds three actions. The <b>tag icon</b> toggles Lite ↔ Full (Lite saves now, Full opens the tagger after the shutter). <b>↻</b> reuses the tags from your last reference photo. <b>⋯</b> opens the settings sheet (grid, level, flash, vocabularies, theme).</div></li>
         <li><span class="welcome-num">3</span><div><b>Shutter</b><br>Tap to capture. In Reference Lite, a green toast lets you tag now or in the gallery later.</div></li>
         <li><span class="welcome-num">4</span><div><b>Gallery</b><br>Latest photo as a circular thumbnail. Tap to browse, search, filter, or share/delete in batches.</div></li>
-        <li><span class="welcome-num">5</span><div><b>Reference vs Project</b><br><b>Reference</b> for found photos out there. <b>Project</b> for site-specific shoots — pick the project once, shoot a sequence into it.</div></li>
+        <li><span class="welcome-num">5</span><div><b>Reference vs Project</b><br><b>Reference</b> for photos found out there. <b>Project</b> for site-specific shoots — pick the project once, shoot a sequence into it.</div></li>
         <li><span class="welcome-num">6</span><div><b>Flip camera</b><br>Switch between rear and front cameras.</div></li>
       </ol>
 
