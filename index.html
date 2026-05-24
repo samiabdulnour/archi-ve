@@ -2228,8 +2228,16 @@
       color: var(--danger);
       font-size: 1rem;
       font-weight: 500;
+      transition: background 0.15s ease, color 0.15s ease;
     }
     #delete-btn:active { background: var(--bg-elev-2); }
+    /* Armed state for the tap-again-to-confirm pattern. Replaces the
+       window.confirm() call, which iOS PWA standalone mode sometimes
+       silently dismisses. */
+    #delete-btn.armed {
+      background: var(--coral);
+      color: var(--accent-ink);
+    }
 
     /* Welcome / about screen */
     #view-welcome {
@@ -8158,17 +8166,55 @@
       await dbPut(currentDetailRecord);
     }
 
-    // Delete button
-    document.getElementById('delete-btn').addEventListener('click', async () => {
-      if (currentDetailId == null) return;
-      if (!confirm('Delete this photo?')) return;
-      await dbDelete(currentDetailId);
-      currentDetailId = null;
-      currentDetailRecord = null;
-      showView('gallery');
-      await renderGallery();
-      toast('Deleted');
-    });
+    // Delete button — tap-again-to-confirm. iOS Safari in PWA standalone
+    // mode sometimes silently dismisses window.confirm(), which made the
+    // previous version look broken (button does nothing). Replaced by an
+    // in-app armed state: first tap reskins the button coral with the
+    // text "Tap again to delete" and starts a 3s timer; a second tap
+    // within the window actually deletes; otherwise it disarms itself.
+    (function setupDeleteBtn() {
+      const btn = document.getElementById('delete-btn');
+      let armed = false;
+      let armTimer = null;
+      function disarm() {
+        armed = false;
+        btn.classList.remove('armed');
+        btn.textContent = 'Delete photo';
+        clearTimeout(armTimer); armTimer = null;
+      }
+      // Disarm whenever we open a different photo, so the armed state
+      // never bleeds across detail-view sessions.
+      const _openDetailOrig = openDetail;
+      openDetail = async function(id) {
+        disarm();
+        return _openDetailOrig(id);
+      };
+      btn.addEventListener('click', async () => {
+        if (currentDetailId == null) return;
+        if (!armed) {
+          armed = true;
+          btn.classList.add('armed');
+          btn.textContent = 'Tap again to delete';
+          armTimer = setTimeout(disarm, 3000);
+          return;
+        }
+        // Confirmed.
+        const idToDelete = currentDetailId;
+        disarm();
+        try {
+          await dbDelete(idToDelete);
+        } catch (err) {
+          console.error('Delete failed', err);
+          toast('Delete failed');
+          return;
+        }
+        currentDetailId = null;
+        currentDetailRecord = null;
+        showView('gallery');
+        await renderGallery();
+        toast('Deleted');
+      });
+    })();
 
     // ============================================================
     // TOAST
