@@ -3465,6 +3465,9 @@
         video.srcObject = mediaStream;
         const p = video.play();
         if (p && p.catch) p.catch(err => showCameraError('PlayBlocked', err && err.message));
+        // Restore the last picked zoom (best-effort — silent if unsupported).
+        const savedZoom = localStorage.getItem('archi-archive:zoom') || '1×';
+        applyTrackZoom(savedZoom);
       } catch (err) {
         showCameraError(err && err.name, err && err.message);
         if (mediaStream) {
@@ -3890,12 +3893,31 @@
       });
     });
 
-    // Zoom chip (1× / 2) — visual only for now; persists the choice.
+    // Zoom chip (1× / 2). Best-effort applyConstraints({ zoom }) on the
+    // active video track — supported on Chromium and on iOS Safari 17+
+    // for the rear camera. On older Safari the track exposes no `zoom`
+    // capability and the call is a no-op, so the UI changes but the
+    // frame doesn't. The visual state still persists so the next reopen
+    // remembers the choice.
+    async function applyTrackZoom(label) {
+      const track = mediaStream && mediaStream.getVideoTracks
+        && mediaStream.getVideoTracks()[0];
+      if (!track || !track.getCapabilities || !track.applyConstraints) return;
+      const caps = track.getCapabilities();
+      if (!caps.zoom) return;
+      const target = label === '2' ? 2 : 1;
+      const clamped = Math.max(caps.zoom.min || 1,
+                              Math.min(caps.zoom.max || target, target));
+      try { await track.applyConstraints({ advanced: [{ zoom: clamped }] }); }
+      catch { /* unsupported — leave the visual state alone */ }
+    }
     document.querySelectorAll('#cam-zoom [data-cam-zoom]').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         document.querySelectorAll('#cam-zoom [data-cam-zoom]')
           .forEach(b => b.classList.toggle('active', b === btn));
-        localStorage.setItem('archi-archive:zoom', btn.dataset.camZoom);
+        const z = btn.dataset.camZoom;
+        localStorage.setItem('archi-archive:zoom', z);
+        await applyTrackZoom(z);
       });
     });
 
@@ -3928,8 +3950,26 @@
         bar.style.transform = `rotate(${g}deg)`;
         level.classList.toggle('level', Math.abs(g) < 0.6);
       }
-      if (window.DeviceOrientationEvent) {
+      function attachListener() {
         window.addEventListener('deviceorientation', onTilt, { passive: true });
+      }
+      if (!window.DeviceOrientationEvent) return;
+      // iOS 13+ requires DeviceOrientationEvent.requestPermission() called
+      // from a user gesture. Older iOS / Android attach freely. We hook the
+      // FIRST tap on the camera view to ask for permission, then forget the
+      // listener — one ask per session is plenty.
+      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        const ask = async () => {
+          try {
+            const result = await DeviceOrientationEvent.requestPermission();
+            if (result === 'granted') attachListener();
+          } catch { /* user denied or browser quirk — silent */ }
+        };
+        const camView = document.getElementById('view-camera');
+        camView.addEventListener('touchstart', ask, { once: true, passive: true });
+        camView.addEventListener('click',       ask, { once: true });
+      } else {
+        attachListener();
       }
     })();
 
@@ -4089,38 +4129,45 @@
     }
 
     // Tap-to-focus: show a focus ring at the tap point, and best-effort tell
-    // the camera track to focus there. Browser support varies — the visual
-    // ring always shows so the gesture feels acknowledged.
+    // the camera track to focus there. iOS Safari can't actually move focus
+    // via track constraints (Apple doesn't expose it to the web), so the
+    // visual ring is the user-feedback half; the constraint call is a
+    // no-op on iPhone and lights up only on Chromium/Android.
     let focusTimer = null;
     document.getElementById('cam-video').addEventListener('click', async (event) => {
       const video = event.currentTarget;
       const rect = video.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
+      // Display position for the ring. cam-focus is absolute inside
+      // #view-camera which is position:relative and fills the viewport,
+      // so viewport-relative event.client* maps 1:1 to the ring's parent.
+      // (The previous version subtracted video.rect.left/top, which is
+      // wrong: that offsets the ring up by the height of the top band.)
       const ring = document.getElementById('cam-focus');
-      ring.style.left = x + 'px';
-      ring.style.top  = y + 'px';
+      ring.style.left = event.clientX + 'px';
+      ring.style.top  = event.clientY + 'px';
       ring.classList.add('show');
       clearTimeout(focusTimer);
       focusTimer = setTimeout(() => ring.classList.remove('show'), 850);
+
+      // Point-of-interest, normalised 0..1 within the video frame.
+      const poiX = (event.clientX - rect.left) / rect.width;
+      const poiY = (event.clientY - rect.top)  / rect.height;
 
       const track = mediaStream && mediaStream.getVideoTracks()[0];
       if (!track || !track.applyConstraints) return;
       const caps = track.getCapabilities ? track.getCapabilities() : {};
       const advanced = [];
-      // Refocus pulse: switch back to continuous if available, then immediately
-      // try a manual point-of-interest focus. Either may quietly fail per device.
       if (Array.isArray(caps.focusMode) && caps.focusMode.includes('continuous')) {
         advanced.push({ focusMode: 'continuous' });
       }
       if (Array.isArray(caps.focusMode) && caps.focusMode.includes('manual') && caps.pointsOfInterest !== undefined) {
         advanced.push({
           focusMode: 'manual',
-          pointsOfInterest: [{ x: x / rect.width, y: y / rect.height }],
+          pointsOfInterest: [{ x: poiX, y: poiY }],
         });
       }
       if (advanced.length === 0) return;
-      try { await track.applyConstraints({ advanced }); } catch { /* ignore unsupported */ }
+      try { await track.applyConstraints({ advanced }); } catch { /* unsupported on iOS Safari */ }
     });
 
     async function captureFrame() {
