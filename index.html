@@ -2131,6 +2131,12 @@
       font-weight: 700;
       letter-spacing: -0.02em;
     }
+    .welcome-by {
+      margin: 0.25rem 0 0;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      letter-spacing: 0.01em;
+    }
     .welcome-lede {
       margin: 0;
       color: var(--text-muted);
@@ -2201,6 +2207,17 @@
       letter-spacing: -0.01em;
     }
     .welcome-cta:active { opacity: 0.85; }
+    .welcome-colophon {
+      margin: 1.5rem 0 0;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-soft, rgba(127,127,127,0.18));
+      font-size: 0.78rem;
+      line-height: 1.45;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    .welcome-colophon p { margin: 0; }
+    .welcome-colophon p + p { margin-top: 0.25rem; }
 
     /* Settings sub-page rows */
     .settings-row {
@@ -2525,6 +2542,7 @@
     </header>
     <div class="welcome-body">
       <h1 class="welcome-title">archi-archive</h1>
+      <p class="welcome-by">by Sami Abdulnour</p>
       <p class="welcome-lede">
         A private photo journal for an architect. Take photos as you walk —
         site visits, references spotted in the world, exhibitions, details —
@@ -2664,6 +2682,11 @@
       </ol>
 
       <button class="welcome-cta" id="welcome-cta">Get started</button>
+
+      <div class="welcome-colophon">
+        <p>&copy; 2026 Sami Abdulnour. All rights reserved.</p>
+        <p>Maps: Leaflet (BSD-2) &middot; Type: Inter (SIL OFL)</p>
+      </div>
     </div>
   </section>
 
