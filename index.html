@@ -3,11 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ECECEC">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1B1A18">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta name="theme-color" content="#F0EFE9">
   <!-- Leaflet (used by the gallery's Map lens). Loaded from a CDN; this is the
        one external runtime dependency in the app. When we move to a native
        wrapper this will be swapped for MapKit. -->
@@ -17,102 +13,93 @@
   <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
           crossorigin=""></script>
-  <title>archi-archive</title>
+  <title>archi-ve</title>
   <style>
-    /* ============ THEME — paper & ink, with mode-color accents ============ */
+    /* Pinženýři Design System — Gruezi Condensed (workhorse) + Hellenic (editorial italic) */
+    @font-face {
+      font-family: "Gruezi";
+      src: url("fonts/RL-Gruezi-C-Regular.otf") format("opentype");
+      font-weight: 400; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: "Gruezi";
+      src: url("fonts/RL-Gruezi-C-RegularItalic.otf") format("opentype");
+      font-weight: 400; font-style: italic; font-display: swap;
+    }
+    @font-face {
+      font-family: "Gruezi";
+      src: url("fonts/RL-Gruezi-C-SemiBold.otf") format("opentype");
+      font-weight: 600; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: "Gruezi";
+      src: url("fonts/RL-Gruezi-C-Bold.otf") format("opentype");
+      font-weight: 700; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: "Hellenic";
+      src: url("fonts/RLHellenic-Regular.otf") format("opentype");
+      font-weight: 400; font-style: normal; font-display: swap;
+    }
+  </style>
+  <style>
+    /* ============ THEME — Pinženýři paper & ink ============
+       Personal photo journal for an architect.
+       Tokens map to the Pinženýři design system:
+       paper (warm off-white) + ink (warm near-black)
+       + three flat play colours: coral, mint, lemon.
+       No gradients, sharp corners by default, hairline rules everywhere. */
     :root {
-      color-scheme: light dark;
+      color-scheme: light;
 
-      /* Default = light (paper surface, ink text) */
-      --bg: #ECECEC;
-      --bg-elev: #F8F5EC;
-      --bg-elev-2: #E3DFD3;
-      --bg-input: #FFFFFF;
-      --text: #0F0F0E;
-      --text-muted: rgba(15,15,14,0.62);
-      --text-faint: rgba(15,15,14,0.38);
-      --border: rgba(15,15,14,0.16);
-      --border-strong: rgba(15,15,14,0.32);
+      /* — Surfaces — */
+      --paper:   #F0EFE9;  /* neutral warm off-white (limestone), no pink */
+      --paper-2: #FFFFFF;  /* plain white — for chips, inputs, sharp cards on paper */
+      --ink:     #16140F;  /* warm near-black */
+      --ink-2:   #3A352B;  /* soft ink for secondary text */
+      --ink-3:   #6E6657;  /* mid grey-brown for captions */
+      --rule:    #16140F;  /* hairline rule = ink */
 
-      /* Mode-coloured accents (applied selectively, not as a global tint) */
-      --reference: #A8EFB7;
-      --project:   #F2E961;
-      --save:      #FF5A4D;
+      /* — Play palette (one per artefact) — */
+      --coral: #F44E48;
+      --mint:  #7CE3A0;
+      --lemon: #E8E373;
 
-      /* Generic accent stays the ink — used for primary buttons, links, etc. */
-      --accent: #0F0F0E;
-      --accent-ink: #F2EFE7;
-      --danger: #FF5A4D;
-      --pill-bg: rgba(15,15,14,0.06);
-      --pill-active-bg: #0F0F0E;
-      --pill-active-text: #F2EFE7;
-      --overlay: rgba(15,15,14,0.45);
+      /* — App-level semantic tokens (mapped from palette) — */
+      --bg:        var(--paper);
+      --bg-elev:   var(--paper-2);
+      --bg-elev-2: #E5E3DA;          /* slightly deeper neutral for tiles */
+      --bg-input:  var(--paper-2);
+      --text:        var(--ink);
+      --text-muted:  var(--ink-2);
+      --text-faint:  var(--ink-3);
+      --border:        rgba(22,20,15,0.18);
+      --border-strong: rgba(22,20,15,0.42);
 
-      --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
-      --font-mono: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif; /* same — we no longer use a separate mono face */
+      /* — Mode-coloured accents (direct map: reference→mint, project→lemon, save→coral) — */
+      --reference: var(--mint);
+      --project:   var(--lemon);
+      --save:      var(--coral);
+
+      /* — Primary = CORAL (saturated, signature). Paper does most of the work,
+         coral is the call. — */
+      --accent:     var(--coral);
+      --accent-ink: var(--paper);
+      --danger:     var(--coral);
+      --pill-bg:        rgba(22,20,15,0.06);
+      --pill-active-bg:   var(--coral);
+      --pill-active-text: var(--paper);
+      --overlay: rgba(22,20,15,0.45);
+
+      /* — Type — Gruezi Condensed workhorse + Hellenic for editorial / metadata — */
+      --font-sans:    "Gruezi", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono:    "Hellenic", "Times Now", "Times New Roman", serif; /* metadata role */
+      --font-display: "Gruezi", ui-sans-serif, sans-serif;
+      --font-heading: "Hellenic", "Times Now", serif;
     }
 
-    /* Dark mode palette. Applied:
-         - automatically when prefers-color-scheme: dark AND the user hasn't
-           set a manual theme (no data-theme attribute on <html>);
-         - manually when the user picks Dark in Settings (data-theme="dark").
-       Soft dark grey, similar to Claude / Linear / iOS Files dark UI —
-       avoids the OLED-pure-black look. */
-    @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) {
-        --bg: #1B1A18;
-        --bg-elev: #232220;
-        --bg-elev-2: #2C2A27;
-        --bg-input: #232220;
-        --text: #F2EFE7;
-        --text-muted: rgba(242,239,231,0.62);
-        --text-faint: rgba(242,239,231,0.38);
-        --border: rgba(242,239,231,0.14);
-        --border-strong: rgba(242,239,231,0.3);
-
-        --accent: #F2EFE7;
-        --accent-ink: #1B1A18;
-        --pill-bg: rgba(242,239,231,0.08);
-        --pill-active-bg: #F2EFE7;
-        --pill-active-text: #1B1A18;
-        --overlay: rgba(0,0,0,0.65);
-      }
-    }
-    :root[data-theme="dark"] {
-      --bg: #1B1A18;
-      --bg-elev: #232220;
-      --bg-elev-2: #2C2A27;
-      --bg-input: #232220;
-      --text: #F2EFE7;
-      --text-muted: rgba(242,239,231,0.62);
-      --text-faint: rgba(242,239,231,0.38);
-      --border: rgba(242,239,231,0.14);
-      --border-strong: rgba(242,239,231,0.3);
-
-      --accent: #F2EFE7;
-      --accent-ink: #1B1A18;
-      --pill-bg: rgba(242,239,231,0.08);
-      --pill-active-bg: #F2EFE7;
-      --pill-active-text: #1B1A18;
-      --overlay: rgba(0,0,0,0.65);
-    }
-
-    /* Dark-mode polish: a hairline light border on the tile / segment
-       surfaces so they read distinct from the slightly-darker track. */
-    :root[data-theme="dark"] .sw-art,
-    :root[data-theme="dark"] .type-toggle,
-    :root[data-theme="dark"] .gal-lens-tabs,
-    :root[data-theme="dark"] .gal-subtabs {
-      border: 1px solid rgba(242,239,231,0.08);
-    }
-    @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) .sw-art,
-      :root:not([data-theme="light"]) .type-toggle,
-      :root:not([data-theme="light"]) .gal-lens-tabs,
-      :root:not([data-theme="light"]) .gal-subtabs {
-        border: 1px solid rgba(242,239,231,0.08);
-      }
-    }
+    /* Selection colour — lemon, per design system. */
+    ::selection { background: var(--lemon); color: var(--ink); }
 
     * { box-sizing: border-box; }
 
@@ -182,25 +169,27 @@
       width: 100%;
       max-width: 320px;
       padding: 1rem 1.25rem;
-      border-radius: 14px;
+      border: 1px solid var(--rule);
+      border-radius: 0;
       background: var(--accent);
       color: var(--accent-ink);
       font-size: 1.05rem;
       font-weight: 600;
-      letter-spacing: -0.01em;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
       text-align: center;
       cursor: pointer;
       user-select: none;
-      transition: opacity 0.1s ease;
+      transition: background var(--dur-fast) var(--ease-snap), color var(--dur-fast) var(--ease-snap);
     }
-    .take-photo:active { opacity: 0.7; }
+    .take-photo:active { background: var(--paper); color: var(--ink); }
 
     .take-photo.secondary {
-      background: var(--bg-elev);
-      color: var(--text);
-      border: 1px solid var(--border);
+      background: var(--paper-2);
+      color: var(--ink);
+      border: 1px solid var(--rule);
     }
-    .take-photo.secondary:active { background: var(--bg-elev-2); }
+    .take-photo.secondary:active { background: var(--paper); }
 
     .home-hint {
       color: var(--text-muted);
@@ -226,14 +215,16 @@
        Heights are fixed pt-ish values + safe-area insets. */
     :root {
       --cam-top-band: 116px;
-      --cam-bottom-band: 150px;
+      --cam-bottom-band: 184px;
+      /* Camera surface = paper, matches the rest of the app. */
+      --cam-bg: var(--paper);
     }
     #view-camera {
       padding: 0;
-      background: #000;
+      background: var(--cam-bg);
       position: relative;
       overflow: hidden;
-      color: #fff;
+      color: var(--ink);
     }
     /* Viewfinder photo sits between the two bands. */
     .cam-video {
@@ -244,25 +235,32 @@
       width: 100%;
       height: auto;
       object-fit: cover;
-      background: #1a1a1a;
+      background: var(--bg-elev-2);
       display: block;
     }
     .cam-band-top, .cam-band-bottom {
       position: absolute; left: 0; right: 0;
-      background: #000; z-index: 8;
+      background: var(--cam-bg); z-index: 8;
     }
-    .cam-band-top { top: 0; height: calc(var(--cam-top-band) + env(safe-area-inset-top, 0px)); }
-    .cam-band-bottom { bottom: 0; height: calc(var(--cam-bottom-band) + env(safe-area-inset-bottom, 0px)); }
+    .cam-band-top {
+      top: 0;
+      height: calc(var(--cam-top-band) + env(safe-area-inset-top, 0px));
+      border-bottom: 1px solid var(--ink);
+    }
+    .cam-band-bottom {
+      bottom: 0;
+      height: calc(var(--cam-bottom-band) + env(safe-area-inset-bottom, 0px));
+      border-top: 1px solid var(--ink);
+    }
 
-    /* iOS dark capsule recipe — shared by every pill/chip on the camera. */
+    /* Pinženýři inverted pill — black surface, paper hairline.
+       Mirror of the light design (white pill + ink hairline). */
     .cam-pill {
-      background: rgba(28,28,26,0.74);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      border: 1px solid rgba(255,255,255,0.04);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+      background: var(--cam-bg);
+      border: 1px solid var(--ink);
       border-radius: 999px;
-      color: #fff;
+      color: var(--ink);
+      box-shadow: none;
     }
 
     /* ---- Top band ---- */
@@ -280,14 +278,11 @@
       padding: 8px 14px;
     }
     .cam-top-right button {
-      background: transparent; border: 0; color: #fff;
+      background: transparent; border: 0; color: var(--ink);
       padding: 0; display: inline-flex; align-items: center;
     }
-    .cam-top-right .cam-icon-on { color: #fff; }
-    /* Reuse-on accent follows the capture mode: mint in Reference, yellow
-       in Project — same recipe as the mode pill and zoom chip. */
-    #view-camera.cam-mode-reference .cam-top-right #cam-reuse-toggle.active { color: #A8EFB7; }
-    #view-camera.cam-mode-project   .cam-top-right #cam-reuse-toggle.active { color: #F2E961; }
+    .cam-top-right .cam-icon-on { color: var(--ink); }
+    .cam-top-right #cam-reuse-toggle.active { color: var(--coral); }
 
     /* Type 3-way segmented control (Reference mode) */
     .cam-type-seg {
@@ -300,13 +295,13 @@
       display: inline-flex; align-items: center; justify-content: center;
       font-family: var(--font-sans);
       font-size: 11.5px; font-weight: 700; letter-spacing: -0.005em;
-      color: rgba(255,255,255,0.6);
+      color: rgba(22,20,15,0.6);
       transition: color .15s ease, background .15s ease;
     }
     .cam-type-seg button svg { display: block; }
     .cam-type-seg button.active {
-      background: rgba(0,0,0,0.55);
-      color: #A8EFB7;
+      background: #7CE3A0;
+      color: var(--ink);
     }
 
     /* Project chip (Project mode) */
@@ -316,17 +311,17 @@
     }
     .cam-project-chip .dot {
       width: 8px; height: 8px; border-radius: 999px;
-      background: #F2E961; flex-shrink: 0;
+      background: #E8E373; flex-shrink: 0;
     }
     .cam-project-chip .name {
-      font-size: 13.5px; font-weight: 600; letter-spacing: -0.005em; color: #fff;
+      font-size: 13.5px; font-weight: 600; letter-spacing: -0.005em; color: var(--ink);
       max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .cam-project-chip .divider {
-      width: 1px; height: 12px; background: rgba(255,255,255,0.18); flex-shrink: 0;
+      width: 1px; height: 12px; background: rgba(22,20,15,0.24); flex-shrink: 0;
     }
     .cam-project-chip .count {
-      font-size: 12.5px; font-weight: 500; color: rgba(255,255,255,0.62);
+      font-size: 12.5px; font-weight: 500; color: rgba(22,20,15,0.62);
       font-variant-numeric: tabular-nums;
     }
 
@@ -336,26 +331,27 @@
       top: calc(env(safe-area-inset-top, 0px) + 96px);
       left: 14px;
       min-width: 220px; max-width: 70vw; max-height: 56vh;
-      background: rgba(0,0,0,0.85);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      border-radius: 14px; padding: 0.4rem;
+      background: var(--cam-bg);
+      border: 1px solid var(--ink);
+      border-radius: 0;
+      padding: 0.4rem;
       overflow-y: auto; z-index: 30;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      box-shadow: 0 10px 30px rgba(22,20,15,0.12);
+      color: var(--ink);
     }
     .cam-project-popup .item {
       display: flex; align-items: center;
-      padding: 0.7rem 0.85rem; border-radius: 10px;
-      color: #fff; font-size: 0.95rem; cursor: pointer;
+      padding: 0.7rem 0.85rem; border-radius: 0;
+      color: var(--ink); font-size: 0.95rem; cursor: pointer;
     }
-    .cam-project-popup .item:active { background: rgba(255,255,255,0.08); }
-    .cam-project-popup .item.active { background: rgba(255,255,255,0.12); font-weight: 600; }
+    .cam-project-popup .item:active { background: rgba(22,20,15,0.08); }
+    .cam-project-popup .item.active { background: rgba(22,20,15,0.12); font-weight: 600; }
     .cam-project-popup .item.new {
-      color: #F2E961; border-top: 1px solid rgba(255,255,255,0.1);
+      color: var(--coral); border-top: 1px solid var(--border);
       margin-top: 0.2rem; padding-top: 0.8rem;
     }
     .cam-project-popup .empty {
-      padding: 0.8rem 0.85rem; color: #98989d; font-size: 0.85rem; text-align: center;
+      padding: 0.8rem 0.85rem; color: rgba(22,20,15,0.55); font-size: 0.85rem; text-align: center;
     }
 
     /* ---- Viewfinder overlays ---- */
@@ -389,8 +385,12 @@
       transition: background .12s ease;
     }
     .cam-level.level .bar {
-      background: #F2E961;
-      box-shadow: 0 0 6px rgba(242,233,97,0.45);
+      background: #7CE3A0;
+      box-shadow: 0 0 6px rgba(124,227,160,0.45);
+    }
+    #view-camera.cam-mode-project .cam-level.level .bar {
+      background: #E8E373;
+      box-shadow: 0 0 6px rgba(232,227,115,0.45);
     }
 
     /* Zoom chip, 14pt above the bottom band */
@@ -406,10 +406,10 @@
       padding: 4px 11px; border-radius: 999px;
       font-family: var(--font-sans);
       font-size: 12.5px; font-weight: 700; letter-spacing: 0.01em;
-      color: rgba(255,255,255,0.72);
+      color: rgba(22,20,15,0.72);
     }
-    .cam-zoom button.active { background: rgba(0,0,0,0.55); color: #A8EFB7; }
-    #view-camera.cam-mode-project .cam-zoom button.active { color: #F2E961; }
+    .cam-zoom button.active { background: #7CE3A0; color: var(--ink); }
+    #view-camera.cam-mode-project .cam-zoom button.active { background: #E8E373; color: var(--ink); }
 
     /* ---- Bottom band ---- */
     .cam-bottom {
@@ -417,22 +417,26 @@
       bottom: 0; height: calc(var(--cam-bottom-band) + env(safe-area-inset-bottom, 0px));
       z-index: 12;
       display: flex; flex-direction: column; align-items: center;
-      padding-top: 14px;
-      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+      padding-top: 22px;
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
+      gap: 22px;
     }
     .cam-shutter {
       width: 68px; height: 68px; border-radius: 999px;
-      border: 2.5px solid #fff; background: transparent;
+      border: 2.5px solid var(--ink); background: transparent;
       display: inline-flex; align-items: center; justify-content: center;
       flex-shrink: 0; padding: 0;
       transition: transform 0.07s ease, opacity 0.15s ease;
     }
     .cam-shutter::after {
-      content: ""; width: 54px; height: 54px; border-radius: 999px; background: #fff;
+      content: ""; width: 54px; height: 54px; border-radius: 999px; background: var(--coral);
       transition: background 0.07s ease;
     }
+    /* Mode-tinted shutter — green in reference, yellow in project. */
+    #view-camera.cam-mode-reference .cam-shutter::after { background: #7CE3A0; }
+    #view-camera.cam-mode-project   .cam-shutter::after { background: #E8E373; }
     .cam-shutter:active { transform: scale(0.94); }
-    .cam-shutter:active::after { background: #ddd; }
+    .cam-shutter:active::after { background: var(--paper); }
     .cam-shutter.disabled { opacity: 0.35; pointer-events: none; }
 
     .cam-secondary {
@@ -449,48 +453,48 @@
     .cam-thumb-wrap .layer { position: absolute; border-radius: 999px; }
     .cam-thumb-wrap .l-back {
       top: 3px; left: 14px; width: 34px; height: 34px;
-      background: #3a3a36; border: 1px solid rgba(255,255,255,0.18);
+      background: var(--cam-bg); border: 1px solid rgba(22,20,15,0.3);
     }
     .cam-thumb-wrap .l-mid {
       top: 1px; left: 8px; width: 38px; height: 38px;
-      background: #52524d; border: 1px solid rgba(255,255,255,0.32);
+      background: var(--cam-bg); border: 1px solid rgba(22,20,15,0.55);
     }
     .cam-thumb-wrap .l-front {
       top: 0; left: 0; width: 44px; height: 44px;
-      background-color: #222; background-size: cover; background-position: center;
-      border: 1.5px solid rgba(255,255,255,0.9);
+      background-color: var(--cam-bg); background-size: cover; background-position: center;
+      border: 1.5px solid var(--ink);
     }
-    .cam-thumb-wrap.empty .l-front { background-color: rgba(0,0,0,0.55); border-color: rgba(255,255,255,0.4); }
+    .cam-thumb-wrap.empty .l-front { background-color: var(--cam-bg); border-color: var(--ink); }
     .cam-thumb-badge {
       position: absolute; bottom: -2px; right: 0;
       min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
-      background: #fff; color: #000; font-size: 10px; font-weight: 700;
+      background: var(--paper); color: var(--ink); font-size: 10px; font-weight: 700;
       display: inline-flex; align-items: center; justify-content: center;
-      font-variant-numeric: tabular-nums; border: 1.5px solid #000; letter-spacing: -0.01em;
+      font-variant-numeric: tabular-nums; border: 1.5px solid var(--ink); letter-spacing: -0.01em;
     }
     .cam-thumb-dot {
       position: absolute; top: -1px; right: 4px;
       width: 10px; height: 10px; border-radius: 999px;
-      background: #FF5A4D; border: 1.5px solid #000;
+      background: #F44E48; border: 1.5px solid var(--ink);
     }
 
     /* Mode pill — REFERENCE / PROJECT */
     .cam-mode { display: inline-flex; align-items: center; padding: 3px; }
     .cam-mode-btn {
       background: transparent; border: 0;
-      padding: 7px 16px; border-radius: 999px;
+      padding: 6px 14px; border-radius: 999px;
       font-family: var(--font-sans);
-      font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-      color: rgba(255,255,255,0.62);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      color: rgba(22,20,15,0.62);
       transition: color .15s ease, background .15s ease;
     }
-    .cam-mode-btn.active[data-cam-mode="reference"] { background: rgba(0,0,0,0.5); color: #A8EFB7; }
-    .cam-mode-btn.active[data-cam-mode="project"]   { background: rgba(0,0,0,0.5); color: #F2E961; }
+    .cam-mode-btn.active[data-cam-mode="reference"] { background: #7CE3A0; color: var(--ink); }
+    .cam-mode-btn.active[data-cam-mode="project"]   { background: #E8E373; color: var(--ink); }
 
     /* Flip button */
     .cam-flip {
       width: 42px; height: 42px; border-radius: 999px;
-      color: #fff; border: 1px solid rgba(255,255,255,0.04);
+      color: var(--ink); border: 1px solid var(--ink); background: var(--cam-bg);
       display: inline-flex; align-items: center; justify-content: center;
     }
 
@@ -503,13 +507,12 @@
       position: absolute;
       left: 14px; right: 14px;
       bottom: calc(env(safe-area-inset-bottom, 0px) + 50px);
-      background: rgba(28,28,30,0.74);
-      backdrop-filter: blur(40px) saturate(180%);
-      -webkit-backdrop-filter: blur(40px) saturate(180%);
-      border-radius: 36px;
-      color: #fff;
-      padding: 32px 22px;
-      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+      background: var(--cam-bg);
+      border: 1px solid var(--ink);
+      border-radius: 0;
+      color: var(--ink);
+      padding: 28px 22px;
+      box-shadow: 0 24px 60px rgba(22,20,15,0.18);
       display: flex; flex-direction: column; gap: 22px;
       transform: translateY(12px); opacity: 0;
       transition: transform .3s cubic-bezier(.2,.7,.3,1), opacity .3s ease;
@@ -520,7 +523,7 @@
       justify-items: center; align-items: start;
     }
     .cam-set-row.single { grid-template-columns: 1fr; }
-    .cam-set-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 4px 28px; }
+    .cam-set-divider { height: 1px; background: rgba(22,20,15,0.18); margin: 4px 12px; }
     .cam-set-circle {
       background: transparent; border: 0; padding: 0;
       display: flex; flex-direction: column; align-items: center; gap: 9px;
@@ -528,24 +531,25 @@
     }
     .cam-set-circle .disc {
       width: 60px; height: 60px; border-radius: 999px;
-      background: rgba(50,50,52,0.85);
+      background: var(--cam-bg);
+      border: 1px solid var(--ink);
       display: inline-flex; align-items: center; justify-content: center;
-      color: #fff; position: relative;
+      color: var(--ink); position: relative;
       transition: background .15s ease, transform .12s ease-out;
     }
     .cam-set-circle:active .disc { transform: scale(0.94); }
-    .cam-set-circle.on .disc { background: rgba(242,233,97,0.18); }
+    .cam-set-circle.on .disc { background: #E8E373; color: var(--ink); border-color: #E8E373; }
     .cam-set-circle .lbl {
       font-size: 11px; font-weight: 600;
       letter-spacing: 0.06em; text-transform: uppercase;
-      color: rgba(255,255,255,0.96);
+      color: var(--ink);
     }
     .cam-set-circle .badge {
       position: absolute; bottom: -2px; right: -2px;
       min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
-      background: #fff; color: #000; font-size: 10px; font-weight: 700;
+      background: var(--paper); color: var(--ink); font-size: 10px; font-weight: 700;
       display: inline-flex; align-items: center; justify-content: center;
-      border: 2px solid rgba(28,28,30,1); font-variant-numeric: tabular-nums;
+      border: 2px solid var(--ink); font-variant-numeric: tabular-nums;
     }
 
     .cam-flash {
@@ -569,7 +573,7 @@
       position: absolute;
       width: 64px;
       height: 64px;
-      border: 1.5px solid #A8EFB7;
+      border: 1.5px solid #7CE3A0;
       border-radius: 4px;
       pointer-events: none;
       opacity: 0;
@@ -579,7 +583,7 @@
       box-shadow: 0 0 0 0.5px rgba(0,0,0,0.4);
     }
     /* Mode-tinted focus ring — green in reference, yellow in project. */
-    #view-camera.cam-mode-project .cam-focus { border-color: #F2E961; }
+    #view-camera.cam-mode-project .cam-focus { border-color: #E8E373; }
     .cam-focus.show {
       opacity: 1;
       transform: translate(-50%, -50%) scale(1);
@@ -593,8 +597,8 @@
       justify-content: center;
       padding: 1.5rem;
       text-align: center;
-      color: #fff;
-      background: rgba(0,0,0,0.92);
+      color: var(--ink);
+      background: var(--cam-bg);
       z-index: 20;
     }
     .cam-error-card {
@@ -621,8 +625,8 @@
       margin-top: 0.4rem;
       padding: 0.7rem 1rem;
       border-radius: 12px;
-      background: #A8EFB7;
-      color: #0F0F0E;
+      background: #7CE3A0;
+      color: #16140F;
       font-size: 0.95rem;
       font-weight: 600;
     }
@@ -708,26 +712,28 @@
       width: 100%;
       aspect-ratio: 1;
       max-height: 64px;
-      border-radius: 10px;
-      background: var(--bg-elev-2);
-      border: 1.5px solid transparent;
-      color: var(--text);
+      border-radius: 0;
+      background: var(--paper-2);
+      border: 1px solid var(--rule);
+      color: var(--ink);
       display: flex; align-items: center; justify-content: center;
       position: relative;
       overflow: hidden;
-      transition: background 0.12s ease, border-color 0.12s ease;
+      transition: background var(--dur-fast) var(--ease-snap), color var(--dur-fast) var(--ease-snap);
     }
     .sw-art > svg { width: 62%; height: 62%; }
     .sw-tile.active .sw-art {
-      background: var(--bg-elev);
-      border-color: var(--text);
+      background: var(--coral);
+      color: var(--ink);
+      border-color: var(--ink);
     }
     .sw-art .sw-check {
       position: absolute;
       top: 4px; right: 4px;
       width: 14px; height: 14px;
-      border-radius: 99px;
-      background: var(--reference);
+      border-radius: 0;
+      background: var(--paper);
+      border: 1px solid var(--ink);
       display: none;
       align-items: center;
       justify-content: center;
@@ -735,8 +741,8 @@
     .sw-art .sw-check::after {
       content: "";
       width: 5px; height: 5px;
-      border-right: 1.5px solid #0F0F0E;
-      border-bottom: 1.5px solid #0F0F0E;
+      border-right: 1.5px solid var(--ink);
+      border-bottom: 1.5px solid var(--ink);
       transform: rotate(45deg) translate(-1px, -1px);
     }
     .sw-tile.active .sw-art .sw-check { display: inline-flex; }
@@ -767,16 +773,17 @@
     }
     .type-toggle {
       display: flex;
-      background: var(--bg-elev-2);
-      border-radius: 10px;
-      padding: 3px;
+      background: var(--paper-2);
+      border: 1px solid var(--rule);
+      border-radius: 0;
+      padding: 0;
     }
     .type-segment {
       flex: 1;
-      padding: 7px 4px;
-      border-radius: 8px;
+      padding: 9px 4px;
+      border-radius: 0;
       background: transparent;
-      color: var(--text-muted);
+      color: var(--ink-2);
       font-size: 0.82rem;
       font-weight: 500;
       border: 0;
@@ -792,10 +799,10 @@
       color: currentColor;
     }
     .type-segment.active {
-      background: var(--bg-elev);
-      color: var(--text);
+      background: var(--coral);
+      color: var(--ink);
       font-weight: 600;
-      box-shadow: 0 1px 2px rgba(15,15,14,0.08);
+      box-shadow: none;
     }
 
     /* Author + Year side-by-side inputs */
@@ -873,14 +880,14 @@
 
     .type-btn {
       padding: 0.95rem 1.1rem;
-      background: var(--bg-elev);
-      border: 1px solid var(--border);
-      border-radius: 14px;
+      background: var(--paper-2);
+      border: 1px solid var(--rule);
+      border-radius: 0;
       color: var(--text);
       text-align: left;
       line-height: 1.3;
     }
-    .type-btn:active { background: var(--bg-elev-2); }
+    .type-btn:active { background: var(--paper); }
     .type-btn strong {
       display: block;
       font-weight: 600;
@@ -908,19 +915,20 @@
     }
 
     .chip {
-      padding: 0.45rem 0.85rem;
-      border-radius: 999px;
-      background: var(--pill-bg);
-      border: 0;
+      padding: 0.45rem 0.8rem;
+      border-radius: 0;
+      background: var(--paper-2);
+      border: 1px solid var(--rule);
       color: var(--text);
       font-size: 0.9rem;
       line-height: 1;
-      transition: opacity 0.1s ease;
+      transition: background var(--dur-fast) var(--ease-snap), color var(--dur-fast) var(--ease-snap);
     }
-    .chip:active { opacity: 0.6; }
+    .chip:active { background: var(--paper); }
     .chip.active {
       background: var(--pill-active-bg);
       color: var(--pill-active-text);
+      border-color: var(--ink);
     }
 
     .form-field {
@@ -1154,7 +1162,7 @@
     }
     .gallery-body .tile-dot-untagged {
       top: 6px; right: 6px;
-      background: #FF5A4D;
+      background: #F44E48;
       box-shadow: 0 0 0 1.5px rgba(255,255,255,0.85);
     }
     .gallery-body.selecting .tile-dot { display: none; }
@@ -1168,25 +1176,27 @@
     .gallery-body .tile-tag {
       position: absolute;
       max-width: calc(100% - 12px);
-      padding: 2px 7px;
-      border-radius: 6px;
+      padding: 3px 7px;
+      border-radius: 0;
+      font-family: var(--font-sans);
       font-size: 0.62rem;
       font-weight: 600;
-      letter-spacing: -0.005em;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
       line-height: 1.35;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       pointer-events: none;
-      color: #0F0F0E;
+      color: #16140F;
     }
     .gallery-body .tile-tag-project {
-      top: 6px; left: 6px;
-      background: #F2E961;
+      top: 0; left: 0;
+      background: #E8E373;
     }
     .gallery-body .tile-tag-reference {
-      bottom: 6px; left: 6px;
-      background: #A8EFB7;
+      bottom: 0; left: 0;
+      background: #7CE3A0;
     }
     .gallery-body.selecting .tile-tag { display: none; }
 
@@ -1199,14 +1209,11 @@
     .gal-subtabs {
       display: flex;
       gap: 0;
-      /* Top-only margin so the gaps between every stacked strip are equal
-         regardless of which parent owns each strip (lens-tabs sit outside
-         gallery-body, sub-tabs sit inside it). */
       margin: 8px 14px 0;
-      padding: 3px;
-      background: var(--bg-elev-2);
-      border-radius: 10px;
-      border: 0;
+      padding: 0;
+      background: var(--paper-2);
+      border: 1px solid var(--rule);
+      border-radius: 0;
       align-items: stretch;
       overflow-x: auto;
       scrollbar-width: none;
@@ -1224,9 +1231,9 @@
       min-width: 0;
       position: relative;
       background: transparent;
-      color: var(--text-muted);
-      padding: 7px 4px;
-      border-radius: 8px;
+      color: var(--ink-2);
+      padding: 9px 4px;
+      border-radius: 0;
       font-size: 0.88rem;
       font-weight: 500;
       letter-spacing: -0.005em;
@@ -1239,10 +1246,10 @@
     }
     .gal-lens-tab.active,
     .gal-subtabs .gal-subtab.active {
-      background: var(--bg-elev);
-      color: var(--text);
+      background: var(--coral);
+      color: var(--ink);
       font-weight: 600;
-      box-shadow: 0 1px 2px rgba(15,15,14,0.08);
+      box-shadow: none;
     }
     /* Spacer/count slots (used by some Project-lens sub-tab strips) sit
        outside the segmented track so the pills stay equal-width. */
@@ -1407,7 +1414,7 @@
       width: 9px; height: 9px;
       border-radius: 999px;
       background: var(--accent);
-      box-shadow: 0 0 0 2px rgba(15,15,14,0.45);
+      box-shadow: 0 0 0 2px rgba(22,20,15,0.45);
     }
     .gal-project-cover.empty {
       display: flex;
@@ -1613,7 +1620,7 @@
       font-size: 0.62rem !important;
     }
     @media (prefers-color-scheme: dark) {
-      .leaflet-control-attribution { background: rgba(15,15,14,0.7) !important; }
+      .leaflet-control-attribution { background: rgba(22,20,15,0.7) !important; }
       .leaflet-control-attribution a { color: var(--text-muted) !important; }
     }
     .gal-map-empty {
@@ -1705,8 +1712,8 @@
     .pd-eyebrow .pd-dot {
       width: 7px; height: 7px;
       border-radius: 999px;
-      background: #F2E961;
-      box-shadow: 0 0 0 1px rgba(15,15,14,0.4);
+      background: #E8E373;
+      box-shadow: 0 0 0 1px rgba(22,20,15,0.4);
     }
     .pd-eyebrow .sep { color: var(--text-faint); }
     .pd-title {
@@ -1741,7 +1748,7 @@
     .pd-stats .pd-stat-name { color: var(--text); font-weight: 500; }
     .pd-stats .pd-stat-rule {
       flex: 1; height: 1px;
-      background: rgba(15,15,14,0.12);
+      background: rgba(22,20,15,0.12);
       transform: translateY(-3px);
     }
     .pd-stats .pd-stat-count {
@@ -2043,19 +2050,22 @@
 
     .section {
       background: var(--bg-elev);
-      border-radius: 14px;
-      padding: 0.9rem 1rem;
+      border: 1px solid var(--rule);
+      border-radius: 0;
+      padding: 1rem 1.1rem;
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
     }
 
     .section-title {
-      font-family: var(--font-mono);
-      font-size: 0.65rem;
-      letter-spacing: -0.005em;
-      color: var(--text-muted);
-      margin: 0 0 0.15rem;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--coral);
+      margin: 0 0 0.35rem;
     }
 
     .keyword-list {
@@ -2068,12 +2078,12 @@
       display: inline-flex;
       align-items: center;
       gap: 0.35rem;
-      padding: 0.3rem 0.7rem;
-      background: var(--pill-bg);
-      border: 0;
-      border-radius: 999px;
-      color: var(--text);
-      font-size: 0.85rem;
+      padding: 0.3rem 0.55rem;
+      background: var(--paper-2);
+      border: 1px solid var(--rule);
+      border-radius: 0;
+      color: var(--ink);
+      font-size: 0.88rem;
     }
 
     .keyword-tag .remove {
@@ -2082,12 +2092,12 @@
     }
 
     .keyword-input {
-      padding: 0.5rem 0.85rem;
-      border-radius: 10px;
-      background: var(--pill-bg);
-      border: 0;
+      padding: 0.5rem 0.7rem;
+      border-radius: 0;
+      background: var(--paper-2);
+      border: 1px solid var(--rule);
       color: var(--text);
-      font-size: 0.9rem;
+      font-size: 0.92rem;
       flex: 1;
       min-width: 100px;
     }
@@ -2127,9 +2137,19 @@
     }
     .welcome-title {
       margin: 1rem 0 0;
-      font-size: 1.6rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
+      font-family: var(--font-heading);
+      font-size: 2.6rem;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      line-height: 0.96;
+      color: var(--ink);
+    }
+    .welcome-by {
+      margin: 0.25rem 0 0;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--ink-3);
+      letter-spacing: 0.01em;
     }
     .welcome-lede {
       margin: 0;
@@ -2162,8 +2182,9 @@
       display: flex;
       align-items: flex-start;
       gap: 0.7rem;
-      background: var(--bg-elev);
-      border-radius: 12px;
+      background: var(--paper-2);
+      border: 1px solid var(--rule);
+      border-radius: 0;
       padding: 0.7rem 0.8rem;
     }
     .welcome-legend li > div {
@@ -2177,30 +2198,48 @@
     }
     .welcome-num {
       flex-shrink: 0;
-      width: 22px;
-      height: 22px;
-      border-radius: 999px;
-      background: #A8EFB7;
-      color: #0F0F0E;
+      width: 26px;
+      height: 26px;
+      border: 1px solid var(--ink);
+      border-radius: 0;
+      background: var(--coral);
+      color: var(--ink);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.78rem;
+      font-family: var(--font-display);
+      font-size: 0.95rem;
       font-weight: 700;
-      letter-spacing: -0.005em;
+      letter-spacing: 0;
       margin-top: 1px;
     }
+    .welcome-legend li:nth-child(3n+2) .welcome-num { background: var(--mint); color: var(--ink); }
+    .welcome-legend li:nth-child(3n+3) .welcome-num { background: var(--lemon); color: var(--ink); }
     .welcome-cta {
       margin-top: 0.4rem;
       padding: 0.95rem;
-      border-radius: 14px;
+      border: 1px solid var(--rule);
+      border-radius: 0;
       background: var(--accent);
       color: var(--accent-ink);
       font-size: 1rem;
       font-weight: 600;
-      letter-spacing: -0.01em;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
     }
-    .welcome-cta:active { opacity: 0.85; }
+    .welcome-cta:active { background: var(--ink); color: var(--paper); }
+    .welcome-colophon {
+      margin: 1.5rem 0 0;
+      padding-top: 1rem;
+      border-top: 1px solid var(--rule);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      line-height: 1.5;
+      color: var(--ink-3);
+      text-align: center;
+    }
+    .welcome-colophon p { margin: 0; }
+    .welcome-colophon p + p { margin-top: 0.3rem; }
 
     /* Settings sub-page rows */
     .settings-row {
@@ -2278,8 +2317,8 @@
       flex-shrink: 0;
       width: 36px; height: 36px;
       border-radius: 8px;
-      background: #A8EFB7;
-      color: #0F0F0E;
+      background: #7CE3A0;
+      color: #16140F;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -2298,19 +2337,19 @@
       font-size: 0.95rem;
       font-weight: 600;
       letter-spacing: -0.01em;
-      color: #0F0F0E;
+      color: #16140F;
       line-height: 1.2;
     }
     #toast .toast-sub {
       font-size: 0.8rem;
-      color: rgba(15,15,14,0.62);
+      color: rgba(22,20,15,0.62);
       letter-spacing: -0.005em;
       line-height: 1.2;
     }
     #toast .toast-action {
       flex-shrink: 0;
-      background: #0F0F0E;
-      color: #F2EFE7;
+      background: #16140F;
+      color: #F4EEF0;
       border-radius: 999px;
       padding: 9px 16px;
       font-size: 0.88rem;
@@ -2321,7 +2360,7 @@
 
     /* When the toast is in lite mode, use the green-card layout (drop the
        round-pill default from the base #toast rule). */
-    #toast.toast-lite .toast-icon { background: #F2EFE7; }
+    #toast.toast-lite .toast-icon { background: #F4EEF0; }
 
     #toast.show {
       opacity: 1;
@@ -2346,7 +2385,7 @@
         <div id="settings-projects-list"></div>
       </div>
 
-      <div class="section">
+      <div class="section" hidden>
         <p class="section-title">Appearance</p>
         <div class="type-toggle-wrap" style="padding: 0; border-bottom: 0;">
           <div class="type-toggle" id="settings-theme-toggle" role="tablist" aria-label="Theme">
@@ -2377,7 +2416,7 @@
 
       <div class="section">
         <button class="settings-row" data-goto="welcome">
-          <span>How to use archi-archive</span><span class="settings-row-caret">&rsaquo;</span>
+          <span>How to use archi-ve</span><span class="settings-row-caret">&rsaquo;</span>
         </button>
       </div>
 
@@ -2521,10 +2560,11 @@
   <section id="view-welcome" class="view">
     <header class="gallery-header">
       <button class="back-btn" data-goto="home">&larr;</button>
-      <span class="meta-date">About archi-archive</span>
+      <span class="meta-date">About archi-ve</span>
     </header>
     <div class="welcome-body">
-      <h1 class="welcome-title">archi-archive</h1>
+      <h1 class="welcome-title">archi-ve</h1>
+      <p class="welcome-by">by Sami Abdulnour</p>
       <p class="welcome-lede">
         A private photo journal for an architect. Take photos as you walk —
         site visits, references spotted in the world, exhibitions, details —
@@ -2537,10 +2577,10 @@
       <div class="welcome-diagram-wrap">
         <svg class="welcome-diagram" viewBox="0 0 300 560" xmlns="http://www.w3.org/2000/svg" aria-label="Camera screen diagram">
           <!-- Phone shell -->
-          <rect x="10" y="10" width="280" height="540" rx="36" fill="#0F0F0E"/>
+          <rect x="10" y="10" width="280" height="540" rx="36" fill="#16140F"/>
           <rect x="18" y="18" width="264" height="524" rx="28" fill="#2a2a26"/>
           <!-- Status bar pill (Dynamic Island feel) -->
-          <rect x="125" y="28" width="50" height="10" rx="5" fill="#0F0F0E"/>
+          <rect x="125" y="28" width="50" height="10" rx="5" fill="#16140F"/>
 
           <!-- Live-preview backdrop with a subtle gradient -->
           <defs>
@@ -2554,24 +2594,53 @@
           <rect x="18" y="18" width="264" height="80" rx="0" fill="rgba(0,0,0,0.32)"/>
           <rect x="18" y="430" width="264" height="112" rx="0" fill="rgba(0,0,0,0.40)"/>
 
-          <!-- Top bar: type pill + reuse button + L/F + options -->
-          <g font-family="Inter,system-ui,sans-serif">
-            <!-- Type pill -->
-            <rect x="32" y="58" width="78" height="26" rx="13" fill="rgba(0,0,0,0.55)"/>
-            <text x="44" y="75" font-size="12" fill="white" font-weight="500">Building</text>
-            <text x="98" y="76" font-size="11" fill="rgba(255,255,255,0.7)">▾</text>
-            <!-- Reuse circle -->
-            <circle cx="124" cy="71" r="13" fill="rgba(0,0,0,0.55)"/>
-            <text x="124" y="76" font-size="13" fill="white" text-anchor="middle">↻</text>
+          <!-- Top bar: 3-icon Type pill (left) + 3-icon Tag/Reuse/More pill (right) -->
+          <g font-family="Gruezi,sans-serif">
+            <!-- Type segmented pill: Building (active) / Element / Graphic -->
+            <rect x="32" y="58" width="84" height="26" rx="13" fill="rgba(0,0,0,0.55)"/>
+            <!-- Active segment highlight under Building -->
+            <rect x="34" y="60" width="26" height="22" rx="11" fill="rgba(255,255,255,0.18)"/>
+            <!-- Building icon -->
+            <g transform="translate(40,63) scale(0.6)" stroke="white" stroke-width="1.8" fill="none" stroke-linejoin="round" stroke-linecap="round">
+              <path d="M3 13 L14 4 L25 13"/>
+              <path d="M6 13 V24 H22 V13"/>
+              <rect x="12" y="16" width="4" height="8"/>
+            </g>
+            <!-- Element icon (dim) -->
+            <g transform="translate(68,63) scale(0.6)" stroke="rgba(255,255,255,0.55)" stroke-width="1.8" fill="none" stroke-linejoin="round" stroke-linecap="round">
+              <path d="M6 4 H22 V7 H6 Z"/>
+              <path d="M8 7 V21 H20 V7"/>
+              <line x1="12" y1="8" x2="12" y2="21"/>
+              <line x1="16" y1="8" x2="16" y2="21"/>
+              <path d="M5 21 H23 V24 H5 Z"/>
+            </g>
+            <!-- Graphic icon (dim) -->
+            <g transform="translate(96,63) scale(0.6)" stroke="rgba(255,255,255,0.55)" stroke-width="1.8" fill="none" stroke-linejoin="round" stroke-linecap="round">
+              <path d="M5 3 H18 L23 8 V25 H5 Z"/>
+              <path d="M18 3 V8 H23"/>
+              <line x1="9" y1="14" x2="19" y2="14"/>
+              <line x1="9" y1="18" x2="19" y2="18"/>
+              <line x1="9" y1="22" x2="15" y2="22"/>
+            </g>
 
-            <!-- L/F pill -->
-            <rect x="200" y="58" width="44" height="26" rx="13" fill="rgba(0,0,0,0.55)"/>
-            <circle cx="213" cy="71" r="10" fill="white"/>
-            <text x="213" y="75" font-size="11" fill="#0F0F0E" text-anchor="middle" font-weight="600">L</text>
-            <text x="234" y="76" font-size="11" fill="rgba(255,255,255,0.55)" text-anchor="middle" font-weight="600">F</text>
-            <!-- Options dots -->
-            <circle cx="262" cy="71" r="13" fill="rgba(0,0,0,0.55)"/>
-            <text x="262" y="76" font-size="14" fill="white" text-anchor="middle" letter-spacing="-1">⋯</text>
+            <!-- Right pill: Tag (Lite/Full) · Reuse · More -->
+            <rect x="190" y="58" width="78" height="26" rx="13" fill="rgba(0,0,0,0.55)"/>
+            <!-- Tag icon (Lite shown active) -->
+            <g transform="translate(196,64) scale(0.62)" stroke="white" stroke-width="1.7" fill="none" stroke-linejoin="round" stroke-linecap="round">
+              <path d="M3 12.5 V4 H11.5 L21 13.5 L12.5 22 Z"/>
+              <circle cx="7.6" cy="8.4" r="1.4" stroke-width="1.4"/>
+            </g>
+            <!-- Reuse icon -->
+            <g transform="translate(218,64) scale(0.62)" stroke="white" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round">
+              <g opacity="0.55"><path d="M9 3 H15 L20 8 L15 13 H10"/></g>
+              <path d="M3 9 H10 L15 14 L10 19 H3 V9 Z"/>
+            </g>
+            <!-- More dots (3x3 grid) -->
+            <g fill="white">
+              <circle cx="244" cy="65" r="1.2"/><circle cx="249" cy="65" r="1.2"/><circle cx="254" cy="65" r="1.2"/>
+              <circle cx="244" cy="71" r="1.2"/><circle cx="249" cy="71" r="1.2"/><circle cx="254" cy="71" r="1.2"/>
+              <circle cx="244" cy="77" r="1.2"/><circle cx="249" cy="77" r="1.2"/><circle cx="254" cy="77" r="1.2"/>
+            </g>
 
             <!-- Shutter -->
             <circle cx="150" cy="430" r="28" fill="white" stroke="rgba(255,255,255,0.5)" stroke-width="4"/>
@@ -2579,62 +2648,67 @@
             <!-- Bottom bar -->
             <!-- Thumbnail circle -->
             <circle cx="42" cy="500" r="18" fill="#3a342c" stroke="white" stroke-width="2"/>
-            <!-- Mode toggle pill -->
-            <rect x="100" y="486" width="100" height="28" rx="14" fill="rgba(0,0,0,0.55)"/>
-            <rect x="103" y="489" width="48" height="22" rx="11" fill="#A8EFB7"/>
-            <text x="127" y="504" font-size="10" fill="#0F0F0E" text-anchor="middle" font-weight="600" letter-spacing="0.06em">REF</text>
-            <text x="175" y="504" font-size="10" fill="rgba(255,255,255,0.6)" text-anchor="middle" font-weight="600" letter-spacing="0.06em">PROJ</text>
+            <!-- Mode toggle pill (Reference / Project, full words) -->
+            <rect x="85" y="486" width="130" height="28" rx="14" fill="rgba(0,0,0,0.55)"/>
+            <rect x="88" y="489" width="68" height="22" rx="11" fill="#7CE3A0"/>
+            <text x="122" y="504" font-size="10" fill="#16140F" text-anchor="middle" font-weight="600">Reference</text>
+            <text x="185" y="504" font-size="10" fill="rgba(255,255,255,0.6)" text-anchor="middle" font-weight="600">Project</text>
             <!-- Flip / selfie button -->
             <circle cx="258" cy="500" r="15" fill="rgba(0,0,0,0.55)"/>
             <text x="258" y="505" font-size="14" fill="white" text-anchor="middle">⟲</text>
           </g>
 
           <!-- Numbered call-outs (mint pills with number + tail line to control) -->
-          <g class="welcome-callouts" font-family="Inter,system-ui,sans-serif">
-            <!-- 1 — Type & Reuse (points down at type pill) -->
-            <line x1="78" y1="100" x2="78" y2="86" stroke="#A8EFB7" stroke-width="1.5"/>
-            <circle cx="78" cy="108" r="11" fill="#A8EFB7"/>
-            <text x="78" y="113" font-size="13" fill="#0F0F0E" text-anchor="middle" font-weight="700">1</text>
+          <g class="welcome-callouts" font-family="Gruezi,sans-serif">
+            <!-- 1 — Type segmented (points down at type pill) -->
+            <line x1="74" y1="100" x2="74" y2="86" stroke="#7CE3A0" stroke-width="1.5"/>
+            <circle cx="74" cy="108" r="11" fill="#7CE3A0"/>
+            <text x="74" y="113" font-size="13" fill="#16140F" text-anchor="middle" font-weight="700">1</text>
 
-            <!-- 2 — L/F + Settings -->
-            <line x1="222" y1="100" x2="222" y2="86" stroke="#A8EFB7" stroke-width="1.5"/>
-            <circle cx="222" cy="108" r="11" fill="#A8EFB7"/>
-            <text x="222" y="113" font-size="13" fill="#0F0F0E" text-anchor="middle" font-weight="700">2</text>
+            <!-- 2 — Tag · Reuse · More pill -->
+            <line x1="229" y1="100" x2="229" y2="86" stroke="#7CE3A0" stroke-width="1.5"/>
+            <circle cx="229" cy="108" r="11" fill="#7CE3A0"/>
+            <text x="229" y="113" font-size="13" fill="#16140F" text-anchor="middle" font-weight="700">2</text>
 
             <!-- 3 — Shutter -->
-            <line x1="195" y1="430" x2="180" y2="430" stroke="#A8EFB7" stroke-width="1.5"/>
-            <circle cx="208" cy="430" r="11" fill="#A8EFB7"/>
-            <text x="208" y="435" font-size="13" fill="#0F0F0E" text-anchor="middle" font-weight="700">3</text>
+            <line x1="195" y1="430" x2="180" y2="430" stroke="#7CE3A0" stroke-width="1.5"/>
+            <circle cx="208" cy="430" r="11" fill="#7CE3A0"/>
+            <text x="208" y="435" font-size="13" fill="#16140F" text-anchor="middle" font-weight="700">3</text>
 
             <!-- 4 — Gallery thumbnail -->
-            <line x1="42" y1="465" x2="42" y2="481" stroke="#A8EFB7" stroke-width="1.5"/>
-            <circle cx="42" cy="455" r="11" fill="#A8EFB7"/>
-            <text x="42" y="460" font-size="13" fill="#0F0F0E" text-anchor="middle" font-weight="700">4</text>
+            <line x1="42" y1="465" x2="42" y2="481" stroke="#7CE3A0" stroke-width="1.5"/>
+            <circle cx="42" cy="455" r="11" fill="#7CE3A0"/>
+            <text x="42" y="460" font-size="13" fill="#16140F" text-anchor="middle" font-weight="700">4</text>
 
             <!-- 5 — Mode toggle -->
-            <line x1="150" y1="465" x2="150" y2="486" stroke="#A8EFB7" stroke-width="1.5"/>
-            <circle cx="150" cy="455" r="11" fill="#A8EFB7"/>
-            <text x="150" y="460" font-size="13" fill="#0F0F0E" text-anchor="middle" font-weight="700">5</text>
+            <line x1="150" y1="465" x2="150" y2="486" stroke="#7CE3A0" stroke-width="1.5"/>
+            <circle cx="150" cy="455" r="11" fill="#7CE3A0"/>
+            <text x="150" y="460" font-size="13" fill="#16140F" text-anchor="middle" font-weight="700">5</text>
 
             <!-- 6 — Selfie -->
-            <line x1="258" y1="465" x2="258" y2="485" stroke="#A8EFB7" stroke-width="1.5"/>
-            <circle cx="258" cy="455" r="11" fill="#A8EFB7"/>
-            <text x="258" y="460" font-size="13" fill="#0F0F0E" text-anchor="middle" font-weight="700">6</text>
+            <line x1="258" y1="465" x2="258" y2="485" stroke="#7CE3A0" stroke-width="1.5"/>
+            <circle cx="258" cy="455" r="11" fill="#7CE3A0"/>
+            <text x="258" y="460" font-size="13" fill="#16140F" text-anchor="middle" font-weight="700">6</text>
           </g>
         </svg>
       </div>
 
       <!-- Legend keyed to the numbered call-outs above -->
       <ol class="welcome-legend">
-        <li><span class="welcome-num">1</span><div><b>Type &amp; Reuse</b><br>Pick what you're capturing — Building, Detail, or Graphic. The ↻ button reuses the tags from your last reference photo for fast repeats.</div></li>
-        <li><span class="welcome-num">2</span><div><b>Lite vs Full · Settings</b><br><b>L</b> saves now, tag later. <b>F</b> opens the tagger right after the shutter. The ⋯ icon opens settings.</div></li>
+        <li><span class="welcome-num">1</span><div><b>Type</b><br>Three icons in one pill — <b>Building</b>, <b>Element</b>, <b>Graphic</b>. Tap to set what you're capturing; the active icon highlights.</div></li>
+        <li><span class="welcome-num">2</span><div><b>Tag · Reuse · More</b><br>The right pill holds three actions. The <b>tag icon</b> toggles Lite ↔ Full (Lite saves now, Full opens the tagger after the shutter). <b>↻</b> reuses the tags from your last reference photo. <b>⋯</b> opens the settings sheet (grid, level, flash, vocabularies, theme).</div></li>
         <li><span class="welcome-num">3</span><div><b>Shutter</b><br>Tap to capture. In Reference Lite, a green toast lets you tag now or in the gallery later.</div></li>
         <li><span class="welcome-num">4</span><div><b>Gallery</b><br>Latest photo as a circular thumbnail. Tap to browse, search, filter, or share/delete in batches.</div></li>
-        <li><span class="welcome-num">5</span><div><b>Reference vs Project</b><br><b>Reference</b> for found photos out there. <b>Project</b> for site-specific shoots — pick the project once, shoot a sequence into it.</div></li>
+        <li><span class="welcome-num">5</span><div><b>Reference vs Project</b><br><b>Reference</b> for photos found out there. <b>Project</b> for site-specific shoots — pick the project once, shoot a sequence into it.</div></li>
         <li><span class="welcome-num">6</span><div><b>Flip camera</b><br>Switch between rear and front cameras.</div></li>
       </ol>
 
       <button class="welcome-cta" id="welcome-cta">Get started</button>
+
+      <div class="welcome-colophon">
+        <p>&copy; 2026 Sami Abdulnour. All rights reserved.</p>
+        <p>Maps: Leaflet (BSD-2) &middot; Type: Gruezi & Hellenic (Pinženýři)</p>
+      </div>
     </div>
   </section>
 
@@ -3341,7 +3415,7 @@
       flash: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M15 3 L7 16 H13 L11 25 L21 12 H15 Z"/></svg>`,
       flashSlash: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M15 3 L7 16 H13 L11 25 L21 12 H15 Z" opacity="0.5"/><line x1="4" y1="3" x2="24" y2="25" stroke-width="2"/></svg>`,
       timer: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><circle cx="14" cy="16" r="9"/><path d="M14 16 V10"/><path d="M11 3 H17"/><path d="M14 3 V6"/></svg>`,
-      aspect: (txt = '4:3') => `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M3 8 V4 H7"/><path d="M25 8 V4 H21"/><path d="M3 20 V24 H7"/><path d="M25 20 V24 H21"/><text x="14" y="17.5" text-anchor="middle" font-size="9" font-weight="700" fill="currentColor" stroke="none" font-family="Inter" letter-spacing="-0.5">${txt}</text></svg>`,
+      aspect: (txt = '4:3') => `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M3 8 V4 H7"/><path d="M25 8 V4 H21"/><path d="M3 20 V24 H7"/><path d="M25 20 V24 H21"/><text x="14" y="17.5" text-anchor="middle" font-size="9" font-weight="700" fill="currentColor" stroke="none" font-family="Gruezi,sans-serif" letter-spacing="-0.5">${txt}</text></svg>`,
       grid: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="3" width="22" height="22"/><line x1="10.3" y1="3" x2="10.3" y2="25"/><line x1="17.7" y1="3" x2="17.7" y2="25"/><line x1="3" y1="10.3" x2="25" y2="10.3"/><line x1="3" y1="17.7" x2="25" y2="17.7"/></svg>`,
       level: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><rect x="2" y="10" width="24" height="8" rx="1.5"/><circle cx="14" cy="14" r="2" fill="currentColor" stroke="none"/><line x1="7" y1="10" x2="7" y2="18" opacity="0.5"/><line x1="21" y1="10" x2="21" y2="18" opacity="0.5"/></svg>`,
       exposure: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><circle cx="14" cy="14" r="11"/><line x1="7" y1="10" x2="11" y2="10"/><line x1="9" y1="8" x2="9" y2="12"/><line x1="17" y1="18" x2="21" y2="18"/></svg>`,
@@ -4282,7 +4356,7 @@
     //   Beam, Vault, Dome, Truss, Corridor) so existing photos that were
     //   tagged before the v2 vocabulary still render correctly.
     //
-    // Inverted details (windows, doors, paper insets) use #F2EFE7 so they
+    // Inverted details (windows, doors, paper insets) use #F0EFE9 so they
     // match the new paper colour and disappear cleanly into the page.
     const _v2S = 'stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"';
     const _v2h = (w = 0.8) => `stroke="currentColor" stroke-width="${w}" fill="none"`;
@@ -4523,7 +4597,7 @@
       // v2 — circled question mark
       Other:        _v2(`<g>
         <circle cx="24" cy="24" r="14" ${_v2S}/>
-        <text x="24" y="30" text-anchor="middle" fill="currentColor" font-size="18" font-family="Inter" font-weight="500">?</text>
+        <text x="24" y="30" text-anchor="middle" fill="currentColor" font-size="18" font-family="Gruezi,sans-serif" font-weight="500">?</text>
       </g>`),
       // v2 — institutional facade: pediment + four columns + base + flag
       // pole. Consolidates the v2 Cultural / Educational / Civic into one
@@ -4620,7 +4694,7 @@
       // v2 — circled question mark, generic catch-all.
       other:       _v2(`<g>
         <circle cx="24" cy="24" r="14" ${_v2S}/>
-        <text x="24" y="30" text-anchor="middle" fill="currentColor" font-size="18" font-family="Inter" font-weight="500">?</text>
+        <text x="24" y="30" text-anchor="middle" fill="currentColor" font-size="18" font-family="Gruezi,sans-serif" font-weight="500">?</text>
       </g>`),
       // v1 back-compat — Craft and Color stay so historical tags still render.
       craft:       _v2(_v2Craft),
@@ -4692,8 +4766,8 @@
       Joint:     _v2(`<g>
         <rect x="8" y="20" width="32" height="8" ${_v2S}/>
         <rect x="20" y="8" width="8" height="32" ${_v2S}/>
-        <circle cx="24" cy="24" r="5" ${_v2h(1.2)} fill="#F2EFE7"/>
-        <text x="24" y="26" text-anchor="middle" font-size="5" fill="currentColor" font-family="Inter" font-weight="600">A</text>
+        <circle cx="24" cy="24" r="5" ${_v2h(1.2)} fill="#F0EFE9"/>
+        <text x="24" y="26" text-anchor="middle" font-size="5" fill="currentColor" font-family="Gruezi,sans-serif" font-weight="600">A</text>
       </g>`),
       // v2 — running-bond paving plan
       Pavement:  _v2(_v2Pavement),
@@ -4748,7 +4822,7 @@
       // v2 — circled question mark, generic catch-all.
       Other: _v2(`<g>
         <circle cx="24" cy="24" r="14" ${_v2S}/>
-        <text x="24" y="30" text-anchor="middle" fill="currentColor" font-size="18" font-family="Inter" font-weight="500">?</text>
+        <text x="24" y="30" text-anchor="middle" fill="currentColor" font-size="18" font-family="Gruezi,sans-serif" font-weight="500">?</text>
       </g>`),
       // v2 — generic plumbing fixture: tap above a basin. Stands in for
       // Sink / Toilet / Tap / Lamp in legacy tagged photos.
@@ -4987,8 +5061,8 @@
       </g>`),
 
       // v1 back-compat — kept so old tagged photos still render
-      Threshold: '<rect x="4" y="14" width="32" height="12" fill="currentColor"/><g stroke="#F2EFE7" stroke-width="1.5" stroke-linecap="round"><line x1="11" y1="14" x2="11" y2="26"/><line x1="20" y1="14" x2="20" y2="26"/><line x1="29" y1="14" x2="29" y2="26"/></g>',
-      Balcony:   '<rect x="6" y="20" width="28" height="14" fill="currentColor"/><g fill="#F2EFE7"><rect x="9" y="23" width="2" height="9"/><rect x="14" y="23" width="2" height="9"/><rect x="19" y="23" width="2" height="9"/><rect x="24" y="23" width="2" height="9"/><rect x="29" y="23" width="2" height="9"/></g>',
+      Threshold: '<rect x="4" y="14" width="32" height="12" fill="currentColor"/><g stroke="#F0EFE9" stroke-width="1.5" stroke-linecap="round"><line x1="11" y1="14" x2="11" y2="26"/><line x1="20" y1="14" x2="20" y2="26"/><line x1="29" y1="14" x2="29" y2="26"/></g>',
+      Balcony:   '<rect x="6" y="20" width="28" height="14" fill="currentColor"/><g fill="#F0EFE9"><rect x="9" y="23" width="2" height="9"/><rect x="14" y="23" width="2" height="9"/><rect x="19" y="23" width="2" height="9"/><rect x="24" y="23" width="2" height="9"/><rect x="29" y="23" width="2" height="9"/></g>',
       Vault:     '<path d="M6 32 V20 Q6 8 20 8 Q34 8 34 20 V32 H28 V20 Q28 14 20 14 Q12 14 12 20 V32 Z" fill="currentColor"/>',
       Dome:      '<g fill="currentColor"><path d="M6 30 Q6 6 20 6 Q34 6 34 30 Z"/></g><rect x="4" y="30" width="32" height="3" fill="currentColor"/>',
       Truss:     '<g stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,32 20,8 36,32"/><line x1="4" y1="32" x2="36" y2="32"/><line x1="14" y1="32" x2="20" y2="8"/><line x1="26" y1="32" x2="20" y2="8"/></g>',
@@ -5117,7 +5191,7 @@
       // v2 — circled question mark, same family as the typology Other glyph.
       other: _v2(`<g>
         <circle cx="24" cy="24" r="14" ${_v2S}/>
-        <text x="24" y="30" text-anchor="middle" fill="currentColor" font-size="18" font-family="Inter" font-weight="500">?</text>
+        <text x="24" y="30" text-anchor="middle" fill="currentColor" font-size="18" font-family="Gruezi,sans-serif" font-weight="500">?</text>
       </g>`),
     };
     function graphicKindGlyph(id) { return _renderGlyph(GRAPHIC_KIND_GLYPHS[id]); }
@@ -5325,7 +5399,7 @@
       </g>`),
       other: _v2(`<g>
         <circle cx="24" cy="24" r="14" ${_v2S}/>
-        <text x="24" y="30" text-anchor="middle" fill="currentColor" font-size="18" font-family="Inter" font-weight="500">?</text>
+        <text x="24" y="30" text-anchor="middle" fill="currentColor" font-size="18" font-family="Gruezi,sans-serif" font-weight="500">?</text>
       </g>`),
     };
     function roomGlyph(id) { return _renderGlyph(ROOM_GLYPHS[id]); }
@@ -5339,7 +5413,7 @@
     function materialPatternSvg(name) {
       const id = 'mat-' + name.toLowerCase().replace(/[^a-z0-9]/g, '');
       const INK = getComputedStyle(document.documentElement)
-        .getPropertyValue('--text').trim() || '#0F0F0E';
+        .getPropertyValue('--text').trim() || '#16140F';
       const map = {
         // Aggregate dots — concrete fines.
         Concrete: `<pattern id="${id}" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="0.8" fill="${INK}"/><circle cx="4.5" cy="3.5" r="0.7" fill="${INK}"/><circle cx="2.2" cy="4.8" r="0.55" fill="${INK}"/></pattern>`,
@@ -5361,7 +5435,7 @@
         // v1 back-compat — older tags still render with their own pattern.
         'Brick & Tile': `<pattern id="${id}" width="14" height="8" patternUnits="userSpaceOnUse"><rect x="0" y="0" width="13" height="3" fill="none" stroke="${INK}" stroke-width="0.9"/><rect x="-7" y="4" width="13" height="3" fill="none" stroke="${INK}" stroke-width="0.9"/><rect x="7" y="4" width="13" height="3" fill="none" stroke="${INK}" stroke-width="0.9"/></pattern>`,
         Steel: `<pattern id="${id}" width="6" height="6" patternUnits="userSpaceOnUse"><line x1="-1" y1="7" x2="7" y2="-1" stroke="${INK}" stroke-width="0.9"/></pattern>`,
-        Other: `<pattern id="${id}" width="40" height="40" patternUnits="userSpaceOnUse"><text x="20" y="26" text-anchor="middle" fill="${INK}" font-size="20" font-family="Inter" font-weight="700">?</text></pattern>`,
+        Other: `<pattern id="${id}" width="40" height="40" patternUnits="userSpaceOnUse"><text x="20" y="26" text-anchor="middle" fill="${INK}" font-size="20" font-family="Gruezi,sans-serif" font-weight="700">?</text></pattern>`,
       };
       const def = map[name] || `<pattern id="${id}" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="none"/></pattern>`;
       return `<svg width="56" height="56" viewBox="0 0 56 56" preserveAspectRatio="none"><defs>${def}</defs><rect width="56" height="56" fill="url(#${id})"/></svg>`;
@@ -6228,11 +6302,11 @@
         if (navigator.canShare && navigator.canShare({ files })) {
           await navigator.share({
             files,
-            title: `${files.length} from archi-archive`,
+            title: `${files.length} from archi-ve`,
           });
         } else if (navigator.share) {
           // Fallback: share at least the title (no files supported).
-          await navigator.share({ title: `${files.length} from archi-archive` });
+          await navigator.share({ title: `${files.length} from archi-ve` });
           toast('Files not supported by share — copy manually');
         } else {
           toast('Sharing not supported on this browser');
@@ -7857,7 +7931,7 @@
       el.innerHTML = '';
       if (color) {
         el.style.background = color;
-        el.style.color = '#0F0F0E';
+        el.style.color = '#16140F';
       } else {
         el.style.background = '';
         el.style.color = '';
@@ -7890,9 +7964,9 @@
       const el = document.getElementById('toast');
       el.innerHTML = '';
       el.classList.add('toast-lite');
-      el.style.background = '#A8EFB7';
-      el.style.color = '#0F0F0E';
-      el.style.borderRadius = '14px';
+      el.style.background = '#7CE3A0';
+      el.style.color = '#16140F';
+      el.style.borderRadius = '0';
       el.style.padding = '10px 8px 10px 12px';
       const icon = document.createElement('div');
       icon.className = 'toast-icon';
