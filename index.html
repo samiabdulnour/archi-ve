@@ -2246,13 +2246,27 @@
     }
     .welcome-title {
       margin: 1rem 0 0;
-      font-family: var(--font-sans);
+      font-family: var(--font-sans);  /* "ARCHI" half — overridden by spans */
       font-size: 3rem;
       font-weight: 700;
       letter-spacing: -0.02em;
       line-height: 0.95;
       color: var(--ink);
       text-transform: none;
+    }
+    /* Two-font wordmark — "ARCHI" in Gruezi Bold + "-ve." in Hellenic.
+       Used in the welcome title and gallery header. Hellenic reads slightly
+       larger at the same point size, so we nudge it down a hair to match. */
+    .wm-archi {
+      font-family: var(--font-sans);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .wm-ve {
+      font-family: var(--font-mono);  /* Hellenic */
+      font-weight: 400;
+      font-style: normal;
+      letter-spacing: -0.01em;
     }
     .welcome-by {
       margin: 0.25rem 0 0;
@@ -2673,7 +2687,7 @@
       <span class="meta-date">About archi-ve</span>
     </header>
     <div class="welcome-body">
-      <h1 class="welcome-title">ARCHI-ve.</h1>
+      <h1 class="welcome-title"><span class="wm-archi">ARCHI</span><span class="wm-ve">-ve.</span></h1>
       <p class="welcome-by">by Sami Abdulnour</p>
       <p class="welcome-lede">
         A private photo journal for an architect. Take photos as you walk —
@@ -2831,7 +2845,7 @@
           </svg>
         </button>
       </div>
-      <h1 class="gal-title">ARCHI-ve.</h1>
+      <h1 class="gal-title"><span class="wm-archi">ARCHI</span><span class="wm-ve">-ve.</span></h1>
       <div class="gal-header-right">
         <button class="gal-select-btn" id="gal-select-btn">Select</button>
       </div>
