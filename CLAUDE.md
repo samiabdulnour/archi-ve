@@ -25,7 +25,6 @@ A single user (the owner) on their own iPhone. Not multi-user. Not public. No ac
 
 ## Scope — out (for now)
 
-- **Importing existing photos from the Camera Roll.** Only photos taken *through* the app are archived. This may change later.
 - Cloud sync, multi-device, sharing, accounts, login.
 - Editing photos (crop, filter, rotate).
 - Any backend server. The app is 100% client-side.
