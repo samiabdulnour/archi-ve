@@ -4,6 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" id="theme-color-meta" content="#F0EFE9">
+
+  <!-- PWA + iOS Home Screen ----------------------------------------------
+       manifest.webmanifest covers the cross-browser PWA bits (icon list,
+       theme/background, display mode). The apple-* metas duplicate the
+       same intent for iOS Safari, which only partially reads the manifest.
+       Together they make "Share → Add to Home Screen" launch the app in a
+       full-screen window with the right icon, splash, and status bar. -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" sizes="180x180" href="ios/icon-180.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="ios/icon-167.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="ios/icon-152.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="ios/icon-120.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="ios/favicon-32.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ARCHI-ve">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
+
   <!-- Leaflet (used by the gallery's Map lens). Loaded from a CDN; this is the
        one external runtime dependency in the app. When we move to a native
        wrapper this will be swapped for MapKit. -->
@@ -13,7 +32,7 @@
   <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
           crossorigin=""></script>
-  <title>archi-ve</title>
+  <title>ARCHI-ve</title>
   <style>
     /* Pinženýři Design System — Gruezi Condensed (workhorse) + Hellenic (editorial italic) */
     @font-face {

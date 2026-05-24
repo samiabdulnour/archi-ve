@@ -1,0 +1,16 @@
+{
+  "appId": "com.archi-ve.app",
+  "appName": "ARCHI-ve",
+  "webDir": ".",
+  "bundledWebRuntime": false,
+  "ios": {
+    "contentInset": "always",
+    "scheme": "ARCHI-ve",
+    "preferredContentMode": "mobile",
+    "limitsNavigationsToAppBoundDomains": true
+  },
+  "server": {
+    "iosScheme": "capacitor",
+    "androidScheme": "https"
+  }
+}

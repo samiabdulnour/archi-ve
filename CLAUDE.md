@@ -29,7 +29,12 @@ A single user (the owner) on their own iPhone. Not multi-user. Not public. No ac
 - Cloud sync, multi-device, sharing, accounts, login.
 - Editing photos (crop, filter, rotate).
 - Any backend server. The app is 100% client-side.
-- Native iOS app. This is a web app opened in Safari/Chrome.
+
+## iOS app (in scope as of 2026-05-24)
+
+The app is also shipped to the App Store as a native iOS app via **Capacitor** — a thin wrapper around the same `index.html`, not a rewrite. Bundle ID: `com.archi-ve.app`. App name: ARCHI-ve. See `BUILD-IOS.md` for the step-by-step build, and `APPSTORE.md` for listing copy + screenshots. Web app at `samiabdulnour.github.io/archi-ve/` stays the canonical source; Capacitor syncs from it.
+
+Do not add native iOS Swift code, Cordova plugins, or fork the codebase. Anything iOS-specific lives in `capacitor.config.json`, `BUILD-IOS.md`, or — at submission time — the auto-generated `/ios` Xcode project (which is committed but never hand-edited).
 
 ## Target platforms
 
@@ -85,4 +90,6 @@ Place (GPS) and time (timestamp) come free from the phone — do not tag them ma
 
 ## Current stage
 
-**Stage 0 complete.** Taxonomy locked, grounded in real photo patterns. Next: **Stage 1** — a single page with a "Take photo" button that opens the iPhone camera and displays the photo on screen. No tagging, no saving yet.
+**Stages 1–4 shipped.** Capture loop, tag taxonomy, gallery with lens/sub-tab filters, light + dark themes. Web app live at `samiabdulnour.github.io/archi-ve/`.
+
+**Next:** App Store submission via Capacitor. Web codebase is feature-stable; the iOS prep (manifest, icons, capacitor.config, BUILD-IOS.md, APPSTORE.md) is in place. Owner is waiting on Apple Developer Program enrolment approval, then will build on their Mac per `BUILD-IOS.md`.
