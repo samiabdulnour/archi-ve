@@ -284,7 +284,10 @@
       padding: 0; display: inline-flex; align-items: center;
     }
     .cam-top-right .cam-icon-on { color: #fff; }
-    .cam-top-right #cam-reuse-toggle.active { color: #F2E961; }
+    /* Reuse-on accent follows the capture mode: mint in Reference, yellow
+       in Project — same recipe as the mode pill and zoom chip. */
+    #view-camera.cam-mode-reference .cam-top-right #cam-reuse-toggle.active { color: #A8EFB7; }
+    #view-camera.cam-mode-project   .cam-top-right #cam-reuse-toggle.active { color: #F2E961; }
 
     /* Type 3-way segmented control (Reference mode) */
     .cam-type-seg {
