@@ -81,6 +81,7 @@ Place (GPS) and time (timestamp) come free from the phone — do not tag them ma
 - Before adding a new dependency or pattern, explain the tradeoff and ask.
 - When the owner describes a bug, they describe the *symptom* — debug from that, don't assume.
 - Commit to git at the end of each working stage with a clear message.
+- **Auto-merge policy (owner preference, 2026-05-24):** when Claude pushes a PR for changes Claude wrote, Claude squash-merges it directly into `main` without waiting for manual review. The owner reviews on the live site after GitHub Pages rebuilds (~1–3 min). This means: be conservative about what you push — no speculative refactors, no breaking changes to the IndexedDB schema or `archi-archive:*` localStorage keys without explicit confirmation. Anything that touches data integrity, capture flow, or could lose photos still requires asking first.
 
 ## Current stage
 
