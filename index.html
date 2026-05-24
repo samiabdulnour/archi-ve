@@ -2816,14 +2816,14 @@
       { id: 'other',      label: 'Other',      hint: 'something else' },
     ];
     const ROOMS_BY_TYPOLOGY = {
-      Residential: ['outdoor', 'living', 'bedroom', 'kitchen', 'bathroom', 'hall', 'workspace', 'storage', 'other'],
-      Office:      ['outdoor', 'lobby', 'workspace', 'meeting', 'kitchen', 'bathroom', 'living', 'storage', 'other'],
-      Public:      ['outdoor', 'lobby', 'hall', 'auditorium', 'library', 'bathroom', 'service', 'storage', 'other'],
+      Residential: ['outdoor', 'living', 'bedroom', 'kitchen', 'bathroom', 'hall', 'workspace', 'other'],
+      Office:      ['outdoor', 'lobby', 'workspace', 'meeting', 'kitchen', 'bathroom', 'living', 'other'],
+      Public:      ['outdoor', 'lobby', 'hall', 'auditorium', 'library', 'bathroom', 'service', 'other'],
       // Landscape intentionally omitted — the picker is hidden.
-      Commercial:  ['outdoor', 'lobby', 'shop', 'showroom', 'workspace', 'bathroom', 'storage', 'service', 'other'],
-      Hospitality: ['outdoor', 'lobby', 'bedroom', 'dining', 'bar', 'kitchen', 'spa', 'bathroom', 'other'],
-      Other:       ['outdoor', 'lobby', 'hall', 'workspace', 'kitchen', 'bathroom', 'storage', 'service', 'other'],
-      Heritage:    ['outdoor', 'hall', 'living', 'bedroom', 'library', 'chapel', 'kitchen', 'bathroom', 'other'],
+      Commercial:  ['outdoor', 'lobby', 'shop', 'showroom', 'workspace', 'bathroom', 'service', 'other'],
+      Hospitality: ['outdoor', 'lobby', 'bedroom', 'dining', 'kitchen', 'spa', 'bathroom', 'other'],
+      Other:       ['outdoor', 'lobby', 'hall', 'workspace', 'kitchen', 'bathroom', 'service', 'other'],
+      Heritage:    ['outdoor', 'hall', 'living', 'bedroom', 'library', 'chapel', 'bathroom', 'other'],
     };
     function roomsForTypology(typ) {
       const ids = ROOMS_BY_TYPOLOGY[typ] || [];
@@ -5180,10 +5180,13 @@
         <line x1="34" y1="36" x2="34" y2="40" ${_v2S}/>
       </g>`),
       bathroom: _v2(`<g>
-        <rect x="14" y="8" width="14" height="14" ${_v2S}/>
-        <path d="M10 22 H34 Q40 22 40 30 Q40 38 32 38 H16 Q10 38 10 32 Z" ${_v2S}/>
-        <ellipse cx="24" cy="30" rx="11" ry="4" ${_v2h(0.7)}/>
-        <circle cx="20" cy="12" r="1.2" ${_v2h(0.7)}/>
+        <path d="M10 12 V18" ${_v2S}/>
+        <path d="M8 18 H14" ${_v2S}/>
+        <path d="M6 22 V32 Q6 36 10 36 H38 Q42 36 42 32 V22 Z" ${_v2S}/>
+        <line x1="6" y1="22" x2="42" y2="22" ${_v2S}/>
+        <line x1="12" y1="36" x2="12" y2="40" ${_v2S}/>
+        <line x1="36" y1="36" x2="36" y2="40" ${_v2S}/>
+        <circle cx="38" cy="29" r="1.4" ${_v2h(0.7)}/>
       </g>`),
       storage: _v2(`<g>
         <rect x="8" y="8" width="32" height="32" ${_v2S}/>
