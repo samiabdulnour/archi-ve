@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ECECEC">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1B1A18">
+  <title>Privacy Policy — archi-ve</title>
+  <style>
+    :root {
+      --bg: #ECECEC;
+      --surface: #FBFBF8;
+      --ink: #1B1A18;
+      --ink-muted: rgba(27,26,24,0.65);
+      --rule: rgba(27,26,24,0.12);
+      --accent: #1B1A18;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1B1A18;
+        --surface: #232220;
+        --ink: #F2EFE7;
+        --ink-muted: rgba(242,239,231,0.62);
+        --rule: rgba(242,239,231,0.14);
+        --accent: #F2EFE7;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.55;
+      -webkit-text-size-adjust: 100%;
+    }
+    main {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+    header {
+      margin-bottom: 2rem;
+    }
+    h1 {
+      margin: 0 0 0.3rem;
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .updated {
+      color: var(--ink-muted);
+      font-size: 0.9rem;
+      margin: 0;
+    }
+    h2 {
+      margin: 2.2rem 0 0.6rem;
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    p, ul { margin: 0 0 0.9rem; }
+    ul { padding-left: 1.2rem; }
+    li { margin-bottom: 0.35rem; }
+    a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+    .summary {
+      background: var(--surface);
+      border: 1px solid var(--rule);
+      border-radius: 14px;
+      padding: 1rem 1.1rem;
+      margin: 1.2rem 0 0;
+    }
+    .summary p:last-child { margin-bottom: 0; }
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.2rem;
+      border-top: 1px solid var(--rule);
+      color: var(--ink-muted);
+      font-size: 0.85rem;
+    }
+    footer a { color: inherit; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Privacy Policy</h1>
+      <p class="updated">archi-ve &middot; Last updated 24 May 2026</p>
+    </header>
+
+    <section class="summary">
+      <p><strong>Short version:</strong> archi-ve is a private photo journal. Everything you capture — photos, tags, notes, locations — is stored only on your device. There is no account, no server, no analytics, and nothing is uploaded anywhere by the app.</p>
+    </section>
+
+    <h2>1. Who runs this app</h2>
+    <p>archi-ve is built and maintained by Sami Abdulnour, an independent developer. Contact: <a href="mailto:sami.abdulnour@gmail.com">sami.abdulnour@gmail.com</a>.</p>
+
+    <h2>2. What the app stores on your device</h2>
+    <p>When you use archi-ve, the following is saved in your device's local storage (IndexedDB and localStorage). None of it leaves your device through this app:</p>
+    <ul>
+      <li><strong>Photos</strong> you take through the app's camera.</li>
+      <li><strong>Tags</strong> you assign (Type, Mode, room, element, finish, etc.).</li>
+      <li><strong>Notes</strong> you optionally type alongside a photo.</li>
+      <li><strong>Project names</strong> you create.</li>
+      <li><strong>Approximate GPS coordinates</strong> (latitude / longitude) attached to a photo, captured from the device's location service at the moment of capture, only if you grant location permission.</li>
+      <li><strong>Settings and preferences</strong> (theme, capture mode, etc.).</li>
+    </ul>
+    <p>If you uninstall the app or clear its storage, this data is permanently deleted. There is no backup or sync to any external service.</p>
+
+    <h2>3. What the app sends to third parties</h2>
+    <p>archi-ve has no backend of its own. To work, the app loads or contacts a small number of public third-party services. Your captured photos and tags are <em>never</em> sent to any of these services.</p>
+    <ul>
+      <li><strong>Google Fonts</strong> (fonts.googleapis.com, fonts.gstatic.com) — the app loads the Inter typeface from Google's font CDN when it starts. Google may log your IP address as part of normal web traffic.</li>
+      <li><strong>unpkg CDN</strong> (unpkg.com) — the app loads the Leaflet mapping library from unpkg when it starts. unpkg may log your IP address.</li>
+      <li><strong>OpenStreetMap tile server</strong> (tile.openstreetmap.org) — when you open the Map view, the app requests map tiles for the visible area. The OSM Foundation may log the requesting IP and the map area requested.</li>
+      <li><strong>Nominatim reverse geocoder</strong> (nominatim.openstreetmap.org) — to display a human-readable place name next to a photo's coordinates, the app sends the latitude/longitude (rounded to ~1 km) to Nominatim and caches the answer locally so the same coordinate is not looked up again.</li>
+      <li><strong>Apple Maps</strong> (maps.apple.com) — when you tap a location link, the operating system opens Apple Maps with the coordinate. This is a standard OS action; the app itself transmits nothing.</li>
+    </ul>
+    <p>Each of these services has its own privacy policy. The app does not include any analytics, advertising SDKs, tracking pixels, or third-party identifiers.</p>
+
+    <h2>4. Permissions the app requests</h2>
+    <ul>
+      <li><strong>Camera</strong> — required, so you can take photos. Without it the app cannot function. The camera feed is shown on screen and is only captured when you press the shutter.</li>
+      <li><strong>Location</strong> — optional. If granted, each captured photo records the approximate coordinates of where it was taken, stored locally with the photo. You can deny this permission and the app will still work; photos simply won't have a location attached.</li>
+      <li><strong>Photo Library</strong> — not requested. The app does not read photos from your existing camera roll.</li>
+    </ul>
+    <p>You can change either permission at any time in iOS Settings &rsaquo; Privacy &amp; Security.</p>
+
+    <h2>5. Children</h2>
+    <p>archi-ve is intended for adult use as a personal work journal. It is not directed at children under 13 and does not knowingly collect any information from them.</p>
+
+    <h2>6. Data retention and deletion</h2>
+    <p>All data lives on your device for as long as the app is installed. To delete everything, either delete individual photos from inside the app's Gallery, or uninstall the app, or use iOS Settings &rsaquo; General &rsaquo; iPhone Storage &rsaquo; archi-ve to clear its data. There is no developer-side data store to request deletion from, because none exists.</p>
+
+    <h2>7. Changes to this policy</h2>
+    <p>If this policy changes, the new version replaces this page and the "Last updated" date above is revised. Because the app stores nothing about you, there is no notification list to email; checking this page is the only way to see updates.</p>
+
+    <h2>8. Contact</h2>
+    <p>Questions or concerns: <a href="mailto:sami.abdulnour@gmail.com">sami.abdulnour@gmail.com</a>.</p>
+
+    <footer>
+      &copy; 2026 Sami Abdulnour. All rights reserved. &middot; <a href="./">Back to app</a>
+    </footer>
+  </main>
+</body>
+</html>
