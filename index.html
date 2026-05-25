@@ -2140,7 +2140,15 @@
       border-radius: 10px;
       background: #2a2a26;
       display: block;
+      /* The animation classes below toggle transform on the image. The
+         element survives renderDetail() (renderDetail just changes src),
+         so a slide-out / slide-in pair sandwiches the data swap. */
+      transition: transform 200ms ease, opacity 200ms ease;
     }
+    .detail-slide-out-left  { transform: translateX(-100%); opacity: 0; }
+    .detail-slide-out-right { transform: translateX( 100%); opacity: 0; }
+    .detail-slide-in-prep-left  { transform: translateX(-100%); opacity: 0; transition: none; }
+    .detail-slide-in-prep-right { transform: translateX( 100%); opacity: 0; transition: none; }
 
     .section {
       background: var(--bg-elev);
@@ -8165,24 +8173,26 @@
     // Serialised save: queue concurrent calls so the latest snapshot of
     // currentDetailRecord always wins, and so a save in-flight from a
     // tile-tap can't be skipped if the user hits Back / swipes right
-    // after. Returns a promise that resolves once the queued write
-    // (if any) is flushed.
+    // after. Returns a promise that resolves once everything queued has
+    // actually been flushed to IndexedDB.
     let _saveInFlight = null;
-    let _saveQueued   = false;
+    let _detailDirty  = false;
     async function saveDetailRecord() {
       if (!currentDetailRecord) return;
-      if (_saveInFlight) { _saveQueued = true; return _saveInFlight; }
-      const doSave = async () => {
-        currentDetailRecord.search_text = buildSearchText(currentDetailRecord);
-        await dbPut(currentDetailRecord);
-      };
+      _detailDirty = true;
+      // If a save is already running, wait for it to finish then start
+      // a fresh one — guarantees the latest snapshot is written.
+      while (_saveInFlight) {
+        try { await _saveInFlight; } catch { /* logged inside */ }
+      }
       _saveInFlight = (async () => {
-        try { await doSave(); }
-        finally {
-          if (_saveQueued && currentDetailRecord) {
-            _saveQueued = false;
-            try { await doSave(); } catch (err) { console.error(err); }
-          }
+        try {
+          currentDetailRecord.search_text = buildSearchText(currentDetailRecord);
+          await dbPut(currentDetailRecord);
+        } catch (err) {
+          console.error('Detail save failed', err);
+          throw err;
+        } finally {
           _saveInFlight = null;
         }
       })();
@@ -8203,14 +8213,17 @@
     // ----- Detail back-button: flush + save before leaving -----
     document.getElementById('detail-back').addEventListener('click', async () => {
       flushDetailEdits();
+      const wasDirty = _detailDirty;
       try { await saveDetailRecord(); } catch (err) { console.error(err); }
+      _detailDirty = false;
       currentDetailId = null;
       currentDetailRecord = null;
       showView('gallery');
-      // Repaint the gallery so the photo's bucket / untagged dot reflects
-      // the freshly saved tags. Without this the user sees the pre-tag
-      // state and assumes nothing was saved.
+      // Repaint the gallery so the freshly saved tags show in the
+      // correct bucket / clear the untagged dot.
       try { await renderGallery(); } catch (err) { console.error(err); }
+      // Explicit acknowledgement that something was persisted.
+      if (wasDirty) toast('Saved');
     });
 
     // ----- Swipe left/right to navigate between photos -----
@@ -8254,7 +8267,28 @@
       if (ni < 0 || ni >= lastRenderedRecs.length) return;
       flushDetailEdits();
       try { await saveDetailRecord(); } catch (err) { console.error(err); }
+
+      const img = document.getElementById('detail-img');
+      // dir = +1 (next)  → current slides off LEFT, new slides in from RIGHT.
+      // dir = -1 (prev)  → current slides off RIGHT, new slides in from LEFT.
+      const outClass = dir > 0 ? 'detail-slide-out-left' : 'detail-slide-out-right';
+      const prepClass = dir > 0 ? 'detail-slide-in-prep-right' : 'detail-slide-in-prep-left';
+      // Strip any prior animation state and start the slide-out.
+      img.classList.remove('detail-slide-out-left', 'detail-slide-out-right',
+                           'detail-slide-in-prep-left', 'detail-slide-in-prep-right');
+      img.classList.add(outClass);
+      // Wait for the slide-out to land before swapping the photo.
+      await new Promise(r => setTimeout(r, 200));
+      // Reposition off-screen on the opposite side WITHOUT animating, swap
+      // the src via openDetail, then remove the prep class so the natural
+      // CSS transition snaps the image back to centre.
+      img.classList.remove(outClass);
+      img.classList.add(prepClass);
+      // Force reflow so the browser commits the off-screen position
+      // before the prep class is removed (which triggers the transition).
+      void img.offsetHeight;
       await openDetail(lastRenderedRecs[ni].id);
+      img.classList.remove(prepClass);
     }
 
     // Delete button — tap-again-to-confirm. iOS Safari in PWA standalone
@@ -8274,10 +8308,13 @@
         clearTimeout(armTimer); armTimer = null;
       }
       // Disarm whenever we open a different photo, so the armed state
-      // never bleeds across detail-view sessions.
+      // never bleeds across detail-view sessions. Also reset the
+      // detail-dirty flag — opening a new photo starts a fresh edit
+      // session, no edits yet.
       const _openDetailOrig = openDetail;
       openDetail = async function(id) {
         disarm();
+        _detailDirty = false;
         return _openDetailOrig(id);
       };
       btn.addEventListener('click', async () => {
