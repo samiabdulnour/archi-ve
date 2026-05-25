@@ -591,6 +591,47 @@
       display: inline-flex; align-items: center; justify-content: center;
     }
 
+    /* ---- Device rotation (iOS Camera idiom) ----
+       The bands stay anchored to the device frame (which is what iOS Camera
+       does). Only icons and labels INSIDE the chrome rotate to stay
+       upright in the user's eye. Triggered by screen.orientation.angle
+       being mirrored onto #view-camera as a data-orientation attribute. */
+    .cam-type-seg button > svg,
+    .cam-top-right button > svg,
+    .cam-flip > svg,
+    .cam-zoom button,
+    .cam-mode-btn,
+    .cam-thumb-wrap,
+    .cam-project-chip .name,
+    .cam-project-chip .count {
+      transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
+      transform-origin: 50% 50%;
+    }
+    #view-camera[data-orientation="90"] .cam-type-seg button > svg,
+    #view-camera[data-orientation="90"] .cam-top-right button > svg,
+    #view-camera[data-orientation="90"] .cam-flip > svg,
+    #view-camera[data-orientation="90"] .cam-zoom button,
+    #view-camera[data-orientation="90"] .cam-mode-btn,
+    #view-camera[data-orientation="90"] .cam-thumb-wrap,
+    #view-camera[data-orientation="90"] .cam-project-chip .name,
+    #view-camera[data-orientation="90"] .cam-project-chip .count { transform: rotate(-90deg); }
+    #view-camera[data-orientation="-90"] .cam-type-seg button > svg,
+    #view-camera[data-orientation="-90"] .cam-top-right button > svg,
+    #view-camera[data-orientation="-90"] .cam-flip > svg,
+    #view-camera[data-orientation="-90"] .cam-zoom button,
+    #view-camera[data-orientation="-90"] .cam-mode-btn,
+    #view-camera[data-orientation="-90"] .cam-thumb-wrap,
+    #view-camera[data-orientation="-90"] .cam-project-chip .name,
+    #view-camera[data-orientation="-90"] .cam-project-chip .count { transform: rotate(90deg); }
+    #view-camera[data-orientation="180"] .cam-type-seg button > svg,
+    #view-camera[data-orientation="180"] .cam-top-right button > svg,
+    #view-camera[data-orientation="180"] .cam-flip > svg,
+    #view-camera[data-orientation="180"] .cam-zoom button,
+    #view-camera[data-orientation="180"] .cam-mode-btn,
+    #view-camera[data-orientation="180"] .cam-thumb-wrap,
+    #view-camera[data-orientation="180"] .cam-project-chip .name,
+    #view-camera[data-orientation="180"] .cam-project-chip .count { transform: rotate(180deg); }
+
     /* ---- Settings / More panel (iOS Camera More-sheet idiom) ---- */
     .cam-set-backdrop {
       position: absolute; inset: 0; z-index: 40;
@@ -3955,6 +3996,32 @@
       updateCameraModeUI();
       toast('Reusing: ' + summariseReuseTags(last));
     });
+
+    // ----- Device rotation: iOS Camera idiom -----
+    // Mirror screen.orientation.angle onto #view-camera as a data attribute.
+    // CSS then rotates icons / text inside camera controls to stay upright
+    // in the viewer's eye while the bands stay anchored to the device.
+    // We normalise to -90 / 0 / 90 / 180 so the CSS selectors stay tidy.
+    (function setupCameraOrientation() {
+      const view = document.getElementById('view-camera');
+      if (!view) return;
+      function apply() {
+        let a = 0;
+        if (screen.orientation && typeof screen.orientation.angle === 'number') {
+          a = screen.orientation.angle;          // modern: 0 | 90 | 180 | 270
+        } else if (typeof window.orientation === 'number') {
+          a = window.orientation;                // legacy iOS: 0 | 90 | -90 | 180
+        }
+        // Normalise 270 → -90 so portrait-left and landscape-left match.
+        if (a === 270) a = -90;
+        view.setAttribute('data-orientation', String(a));
+      }
+      apply();
+      window.addEventListener('orientationchange', apply);
+      if (screen.orientation && screen.orientation.addEventListener) {
+        screen.orientation.addEventListener('change', apply);
+      }
+    })();
 
     // ----- Level overlay — rotate the centre hairline with device tilt -----
     (function setupLevel() {
