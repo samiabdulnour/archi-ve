@@ -8162,10 +8162,31 @@
       return row;
     }
 
+    // Serialised save: queue concurrent calls so the latest snapshot of
+    // currentDetailRecord always wins, and so a save in-flight from a
+    // tile-tap can't be skipped if the user hits Back / swipes right
+    // after. Returns a promise that resolves once the queued write
+    // (if any) is flushed.
+    let _saveInFlight = null;
+    let _saveQueued   = false;
     async function saveDetailRecord() {
       if (!currentDetailRecord) return;
-      currentDetailRecord.search_text = buildSearchText(currentDetailRecord);
-      await dbPut(currentDetailRecord);
+      if (_saveInFlight) { _saveQueued = true; return _saveInFlight; }
+      const doSave = async () => {
+        currentDetailRecord.search_text = buildSearchText(currentDetailRecord);
+        await dbPut(currentDetailRecord);
+      };
+      _saveInFlight = (async () => {
+        try { await doSave(); }
+        finally {
+          if (_saveQueued && currentDetailRecord) {
+            _saveQueued = false;
+            try { await doSave(); } catch (err) { console.error(err); }
+          }
+          _saveInFlight = null;
+        }
+      })();
+      return _saveInFlight;
     }
 
     // Flush any focused text field so its `input` handler commits its value
@@ -8186,6 +8207,10 @@
       currentDetailId = null;
       currentDetailRecord = null;
       showView('gallery');
+      // Repaint the gallery so the photo's bucket / untagged dot reflects
+      // the freshly saved tags. Without this the user sees the pre-tag
+      // state and assumes nothing was saved.
+      try { await renderGallery(); } catch (err) { console.error(err); }
     });
 
     // ----- Swipe left/right to navigate between photos -----
