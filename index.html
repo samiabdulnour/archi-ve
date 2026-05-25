@@ -2219,25 +2219,8 @@
     #view-settings-element .section-title,
     #view-settings-graphic .section-title { font-family: var(--font-sans); }
 
-    /* Primary save action, paired with #delete-btn. Both sit at the very
-       bottom of the detail view above the safe-area inset. Save is the
-       coral primary action since tagging is the dominant verb in this view. */
-    #save-btn {
-      margin: 1.5rem 14px 0.5rem;
-      padding: 0.95rem;
-      border-radius: 12px;
-      background: var(--coral);
-      color: var(--accent-ink);
-      border: 0;
-      font-size: 1rem;
-      font-weight: 600;
-      letter-spacing: -0.005em;
-      transition: opacity 0.15s ease;
-    }
-    #save-btn:active { opacity: 0.85; }
-
     #delete-btn {
-      margin: 0 14px 0.5rem;
+      margin: 1.5rem 14px 0.5rem;
       padding: 0.85rem;
       border-radius: 12px;
       background: var(--bg-elev);
@@ -2963,12 +2946,13 @@
   <!-- ============ DETAIL / ENRICH ============ -->
   <section id="view-detail" class="view">
     <header class="gallery-header">
-      <button class="back-btn" data-goto="gallery">&larr;</button>
+      <!-- No data-goto on this back button — see detail-back handler below.
+           Back has to flush pending text-field edits before navigating away. -->
+      <button class="back-btn" id="detail-back">&larr;</button>
       <span class="meta-date" id="detail-date"></span>
     </header>
     <img id="detail-img" alt="">
     <div id="detail-body"></div>
-    <button id="save-btn">Save</button>
     <button id="delete-btn">Delete photo</button>
   </section>
 
@@ -8184,28 +8168,69 @@
       await dbPut(currentDetailRecord);
     }
 
-    // Explicit "Save" action. Tag interactions already auto-save on each
-    // tap — this button is the user-facing confirmation: it commits any
-    // pending edits, shows a Saved toast, and returns to the gallery so
-    // the owner can flow through a batch of untagged imports without
-    // hunting for the small back arrow at the top.
-    document.getElementById('save-btn').addEventListener('click', async () => {
-      if (!currentDetailRecord) return;
-      try {
-        await saveDetailRecord();
-      } catch (err) {
-        console.error('Save failed', err);
-        toast('Save failed');
-        return;
+    // Flush any focused text field so its `input` handler commits its value
+    // to currentDetailRecord BEFORE we save. Without this, typing in a
+    // textarea and immediately tapping back/swiping would lose the last
+    // keystrokes (they'd be in the DOM but not in the record).
+    function flushDetailEdits() {
+      const a = document.activeElement;
+      if (a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT')) {
+        a.blur();
       }
-      const wasUntagged = !currentDetailRecord.tags_human ||
-        !currentDetailRecord.tags_human.type;
+    }
+
+    // ----- Detail back-button: flush + save before leaving -----
+    document.getElementById('detail-back').addEventListener('click', async () => {
+      flushDetailEdits();
+      try { await saveDetailRecord(); } catch (err) { console.error(err); }
       currentDetailId = null;
       currentDetailRecord = null;
       showView('gallery');
-      await renderGallery();
-      toast(wasUntagged ? 'Saved (still untagged)' : 'Saved');
     });
+
+    // ----- Swipe left/right to navigate between photos -----
+    // Uses the current gallery's lastRenderedRecs as the order. Swipe right
+    // (finger drags right) = previous photo; swipe left = next photo.
+    // Saves the current photo's edits before navigating so nothing is lost
+    // mid-tag. No-op at the ends of the list.
+    (function setupDetailSwipe() {
+      const view = document.getElementById('view-detail');
+      if (!view) return;
+      let startX = 0, startY = 0, startTime = 0, tracking = false;
+      view.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        startTime = Date.now();
+        tracking = true;
+      }, { passive: true });
+      view.addEventListener('touchend', async (e) => {
+        if (!tracking) return;
+        tracking = false;
+        if (e.changedTouches.length !== 1) return;
+        const dx = e.changedTouches[0].clientX - startX;
+        const dy = e.changedTouches[0].clientY - startY;
+        const dt = Date.now() - startTime;
+        // Distinguish swipe from scroll / tap.
+        if (Math.abs(dx) < 60) return;                 // too short
+        if (Math.abs(dx) < Math.abs(dy) * 1.4) return; // mostly vertical
+        if (dt > 600) return;                          // too slow
+        const dir = dx > 0 ? -1 : +1;                  // right-drag = prev
+        await navigateDetail(dir);
+      }, { passive: true });
+    })();
+
+    async function navigateDetail(dir) {
+      if (!Array.isArray(lastRenderedRecs) || lastRenderedRecs.length === 0) return;
+      if (currentDetailId == null) return;
+      const i = lastRenderedRecs.findIndex(r => r.id === currentDetailId);
+      if (i === -1) return;
+      const ni = i + dir;
+      if (ni < 0 || ni >= lastRenderedRecs.length) return;
+      flushDetailEdits();
+      try { await saveDetailRecord(); } catch (err) { console.error(err); }
+      await openDetail(lastRenderedRecs[ni].id);
+    }
 
     // Delete button — tap-again-to-confirm. iOS Safari in PWA standalone
     // mode sometimes silently dismisses window.confirm(), which made the
