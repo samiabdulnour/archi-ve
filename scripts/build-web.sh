@@ -28,5 +28,6 @@ cp index.html             "$OUT/"
 cp manifest.webmanifest   "$OUT/"
 cp -R fonts               "$OUT/"
 cp -R icons               "$OUT/"
+cp -R vendor              "$OUT/"
 
 echo "✓ wrote $(find "$OUT" -type f | wc -l | tr -d ' ') files into ./$OUT/"

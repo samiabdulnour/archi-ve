@@ -23,15 +23,14 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="format-detection" content="telephone=no">
 
-  <!-- Leaflet (used by the gallery's Map lens). Loaded from a CDN; this is the
-       one external runtime dependency in the app. When we move to a native
-       wrapper this will be swapped for MapKit. -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-        crossorigin="">
-  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-          crossorigin=""></script>
+  <!-- Leaflet (used by the gallery's Map lens). Bundled locally so the app
+       launches with no network call — Apple discourages mandatory network
+       requests on launch, and this keeps the gallery responsive offline
+       (tiles still need a connection, but the map renders an empty grid
+       instead of a blank pane). When we move to native MapKit later, this
+       will be swapped out. Files live in /vendor/leaflet/. -->
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <script defer src="vendor/leaflet/leaflet.js"></script>
   <title>ARCHI-ve</title>
   <style>
     /* Pinženýři Design System — Gruezi Condensed (workhorse) + Hellenic (editorial italic) */
