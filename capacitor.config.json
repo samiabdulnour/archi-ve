@@ -1,7 +1,7 @@
 {
-  "appId": "com.archi-ve.app",
+  "appId": "com.samiabdulnour.archive",
   "appName": "ARCHI-ve",
-  "webDir": ".",
+  "webDir": "www",
   "bundledWebRuntime": false,
   "ios": {
     "contentInset": "always",
