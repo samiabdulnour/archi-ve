@@ -10,7 +10,7 @@ Draft copy and metadata for the App Store Connect submission. Edit before submit
 | --- | --- |
 | **App name** | ARCHI-ve |
 | **Subtitle** | Architect's photo archive |
-| **Bundle ID** | com.archi-ve.app |
+| **Bundle ID** | com.samiabdulnour.archive |
 | **SKU** | archive-ios-001 |
 | **Primary category** | Photo & Video |
 | **Secondary category** | Productivity |
@@ -142,5 +142,5 @@ themes. Built for the way architects actually shoot.
 - [ ] Host `PRIVACY.html` at a public URL (GitHub Pages can serve a markdown file rendered to HTML).
 - [ ] Take and edit the six screenshots in the Simulator.
 - [ ] Decide whether to bundle Leaflet locally instead of via CDN (Apple sometimes flags mandatory network calls on launch).
-- [ ] Confirm bundle ID `com.archi-ve.app` is available in App Store Connect — fall back to `com.samiabdulnour.archive` if not.
+- [ ] Confirm bundle ID `com.samiabdulnour.archive` is available in App Store Connect. (Capacitor doesn't allow dashes, so `com.archi-ve.app` couldn't be used.)
 - [ ] Increment the version in Xcode each build (1.0.0 / build 1 for first submission).

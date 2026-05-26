@@ -31,10 +31,14 @@ npm init -y
 npm install --save @capacitor/core @capacitor/ios
 npm install --save-dev @capacitor/cli
 
+# Stage the web assets into ./www/ — Capacitor copies that folder into
+# the iOS app bundle on every sync. ./www/ is git-ignored; rebuild any
+# time the web app changes.
+bash scripts/build-web.sh
+
 # Capacitor reads capacitor.config.json (already in this repo) for appId,
-# appName, and webDir. So `init` is a no-op when the config exists — but
-# run it once to register the package with the CLI:
-npx cap init "ARCHI-ve" "com.archi-ve.app" --web-dir=.
+# appName, and webDir. Init writes the config it doesn't already know.
+npx cap init "ARCHI-ve" "com.samiabdulnour.archive" --web-dir=www
 
 # Add the iOS platform. This creates an /ios folder with an Xcode project.
 npx cap add ios
@@ -43,13 +47,19 @@ npx cap add ios
 npx cap sync ios
 ```
 
-The `/ios` folder is committed-friendly. The `/node_modules` folder is not — make sure `.gitignore` excludes it (see Step 6).
+The `/ios` folder is git-friendly (commit it after the first add). `/node_modules/` and `/www/` are git-ignored (see `.gitignore`).
+
+**Each time you change `index.html` or any web asset and want to re-build the iOS app:**
+
+```bash
+bash scripts/build-web.sh && npx cap sync ios
+```
 
 ---
 
 ## 2. App icon: drop the 1024 into the Xcode project
 
-The repo already contains generated icons in `/ios/icon-*.png`. For the iOS app bundle we need them placed into Xcode's Asset Catalog.
+The repo already contains generated icons in `/icons/icon-*.png`. For the iOS app bundle we need them placed into Xcode's Asset Catalog.
 
 ```bash
 npx cap open ios
@@ -58,10 +68,10 @@ npx cap open ios
 That opens Xcode on the generated project. In Xcode's left sidebar:
 
 1. Open **App → App → Assets.xcassets → AppIcon**.
-2. Drag `ios/icon-1024.png` from Finder onto the **App Store iOS 1024pt** slot.
+2. Drag `icons/icon-1024.png` from Finder onto the **App Store iOS 1024pt** slot.
 3. Xcode auto-generates the smaller sizes from the 1024.
 
-If Xcode doesn't auto-generate (older versions), drag each size into its matching slot using the file naming convention in `/ios/icon-*.png`.
+If Xcode doesn't auto-generate (older versions), drag each size into its matching slot using the file naming convention in `/icons/icon-*.png`.
 
 ---
 
@@ -72,7 +82,7 @@ In Xcode, with the **App** target selected:
 1. **Signing & Capabilities** tab.
 2. Tick **Automatically manage signing**.
 3. **Team**: pick your Apple Developer team from the dropdown.
-4. **Bundle Identifier**: should read `com.archi-ve.app`. If Xcode complains it's taken, change to `com.<yourname>.archive` and update `capacitor.config.json` too.
+4. **Bundle Identifier**: should read `com.samiabdulnour.archive` (set in `capacitor.config.json`). Capacitor doesn't allow dashes, so the wordmark "ARCHI-ve" lives in the display name, not the bundle ID.
 5. Click **+ Capability** and add:
    - **Camera** — for live capture via getUserMedia in the WebView.
    - Add an **Info.plist key** `NSCameraUsageDescription` = `"ARCHI-ve uses the camera to capture photos for your archive."`
