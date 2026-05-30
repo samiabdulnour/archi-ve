@@ -337,23 +337,19 @@
       overflow: hidden;
       color: var(--ink);
     }
-    /* Viewfinder feed fills the entire camera view. iOS WKWebView's
-       <video> ignored implicit height (top+bottom) AND mis-computed the
-       explicit `calc(100% - …)` form on iPhone 17 — the round 12 calc
-       resolved to too large a value, pushing the feed past the band top
-       and behind the shutter. inset:0 + width/height 100% is
-       unambiguous: video fills the camera view; .cam-band-top and
-       .cam-band-bottom (z-index:8) visually cover its top and bottom
-       portions, leaving the centre as the visible viewfinder. */
+    /* Viewfinder photo sits between the two bands. height: auto was making
+       the video size to its natural 4:3 aspect ratio, leaving giant
+       letterbox gaps above the bottom band. Letting top/bottom define
+       the height + object-fit: cover crops the feed to fill the space. */
     .cam-video {
       position: absolute;
-      inset: 0;
+      top: calc(var(--cam-top-band) + env(safe-area-inset-top, 0px));
+      left: 0; right: 0;
+      bottom: calc(var(--cam-bottom-band) + env(safe-area-inset-bottom, 0px));
       width: 100%;
-      height: 100%;
       object-fit: cover;
       background: var(--bg-elev-2);
       display: block;
-      z-index: 1;
     }
     .cam-band-top, .cam-band-bottom {
       position: absolute; left: 0; right: 0;
