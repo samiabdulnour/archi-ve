@@ -992,40 +992,6 @@
       border-bottom-color: var(--text);
     }
 
-    /* Save bar — full-width ink button stuck to the bottom of the scrolling
-       capture view. position:sticky stays anchored to the view's scroll
-       viewport; position:fixed mis-anchors inside iOS WKWebView when the
-       body is overflow:hidden, scrolling away with the form content. */
-    .sw-save-bar {
-      position: sticky;
-      bottom: 0;
-      margin-top: auto;
-      padding: 10px 14px max(env(safe-area-inset-bottom, 10px), 10px);
-      z-index: 20;
-      pointer-events: none;
-      background: linear-gradient(to top, var(--bg) 80%, transparent);
-    }
-    .sw-save-btn {
-      pointer-events: auto;
-      width: 100%;
-      background: var(--text);
-      /* --bg flips with the theme like --text, so the contrast pair stays
-         legible in both modes. --accent-ink is locked light (it pairs with
-         the coral --accent) and made the text invisible on dark-mode ink. */
-      color: var(--bg);
-      border: 0;
-      padding: 12px;
-      border-radius: 12px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-    .sw-save-btn:active { opacity: 0.85; }
-
     /* Capture flow chip layout: equal-width auto-fit grid (cleaner than flex-wrap). */
     #capture-step-container .chip-row {
       display: grid;
@@ -1215,6 +1181,25 @@
       color: var(--accent);
       line-height: 1;
     }
+
+    /* Header save button used on capture + detail views. Top-right
+       coral pill explicitly commits the form's tag selection to
+       IndexedDB. The back arrow is the implicit "leave without
+       committing" — saves photo untagged in capture, discards edits
+       in detail. */
+    .header-save-btn {
+      margin-left: auto;
+      padding: 0.45rem 1rem;
+      border: 0;
+      border-radius: 999px;
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+    }
+    .header-save-btn:active { opacity: 0.85; }
 
     .search-input {
       flex: 1;
@@ -2761,8 +2746,9 @@
   <!-- ============ CAPTURE ============ -->
   <section id="view-capture" class="view">
     <header class="gallery-header">
-      <button class="back-btn" id="capture-back">&larr;</button>
+      <button class="back-btn" id="capture-back" aria-label="Back without tagging">&larr;</button>
       <span class="meta-date" id="capture-step-label"></span>
+      <button class="header-save-btn" id="capture-save">Save</button>
     </header>
     <div style="padding: 0 1rem; display:flex; flex-direction:column; gap:1rem;">
       <img id="capture-preview" alt="">
@@ -3028,10 +3014,12 @@
   <!-- ============ DETAIL / ENRICH ============ -->
   <section id="view-detail" class="view">
     <header class="gallery-header">
-      <!-- No data-goto on this back button — see detail-back handler below.
-           Back has to flush pending text-field edits before navigating away. -->
-      <button class="back-btn" id="detail-back">&larr;</button>
+      <!-- Back arrow = leave without committing tag edits (the in-memory
+           record is discarded). Save (top-right) explicitly commits to
+           IndexedDB. See detail-back / detail-save handlers below. -->
+      <button class="back-btn" id="detail-back" aria-label="Back without saving">&larr;</button>
       <span class="meta-date" id="detail-date"></span>
+      <button class="header-save-btn" id="detail-save">Save</button>
     </header>
     <img id="detail-img" alt="">
     <div id="detail-body"></div>
@@ -4541,18 +4529,35 @@
       renderCaptureStep();
     }
 
-    // Back arrow in the capture/tag flow: save whatever tags have been chosen
-    // so far and jump straight back to the camera — single tap, not a
-    // step-by-step undo. Photos with partial tags survive in the archive and
-    // can be finished later from the gallery. This keeps the "10 second
-    // capture loop" intact when the user wants to shoot again immediately.
+    // Back arrow = leave the form WITHOUT committing the in-progress tag
+    // selection. The photo is preserved untagged (only the `type` chosen at
+    // shutter time is kept) so it survives in the archive and can be tagged
+    // later from the gallery. To explicitly commit the tag selection, use
+    // the Save button in the top-right.
     document.getElementById('capture-back').addEventListener('click', async () => {
       if (!pendingBlob) {
         resetCapture();
         showView('home');
         return;
       }
+      // Drop everything except `type` so finishCapture writes an untagged
+      // record. Type is the head choice from the camera (Reference pill),
+      // not really a tag — it disambiguates which form a future editor opens.
+      const keepType = captureDraft && captureDraft.type ? captureDraft.type : null;
+      captureDraft = { type: keepType };
       try { await finishCapture({ silent: true }); } catch (err) { console.error(err); }
+    });
+
+    // Save button = commit the in-progress tag selection. Same as the old
+    // bottom-bar "Save · N tags" button — kept the JS, moved the UI to
+    // the top-right of the header.
+    document.getElementById('capture-save').addEventListener('click', async () => {
+      if (!pendingBlob) {
+        resetCapture();
+        showView('home');
+        return;
+      }
+      try { await finishCapture({ silent: false }); } catch (err) { console.error(err); }
     });
 
     function resetCapture() {
@@ -5909,37 +5914,6 @@
       return f;
     }
 
-    function buildSaveBar() {
-      const bar = document.createElement('div');
-      bar.className = 'sw-save-bar';
-      const btn = document.createElement('button');
-      btn.className = 'sw-save-btn';
-      const update = () => {
-        const t = captureDraft;
-        let n = 0;
-        if (t.typology) n++;
-        if (t.element_name) n++;
-        if (t.graphic_kind) n++;
-        n += (t.concepts || []).length;
-        n += (t.materials || []).length;
-        if (t.creator) n++;
-        if (t.year) n++;
-        if (t.note) n++;
-        btn.innerHTML = (n > 0
-          ? `Save · ${n} ${n === 1 ? 'tag' : 'tags'}`
-          : 'Save without tags') + ' &rarr;';
-      };
-      btn.addEventListener('click', finishCapture);
-      bar.appendChild(btn);
-      // Re-count whenever the user touches anything in the form.
-      const observer = new MutationObserver(update);
-      // Recount on any click — the save bar re-evaluates after each tap.
-      document.addEventListener('click', update, true);
-      document.addEventListener('input', update, true);
-      update();
-      return bar;
-    }
-
     // ============================================================
     // Building form (single page, all sections)
     // ============================================================
@@ -6016,7 +5990,6 @@
       }
       if (getFlowStepEnabled('building', 'author_year')) c.appendChild(buildAuthorYearSection());
       if (getFlowStepEnabled('building', 'note'))         c.appendChild(buildPersonalNoteSection());
-      c.appendChild(buildSaveBar());
     }
 
     function buildAuthorYearSection({ target, onChange } = {}) {
@@ -6213,7 +6186,6 @@
       }
       if (getFlowStepEnabled('element', 'author_year')) c.appendChild(buildAuthorYearSection());
       if (getFlowStepEnabled('element', 'note'))         c.appendChild(buildPersonalNoteSection());
-      c.appendChild(buildSaveBar());
     }
 
     // Graphic form: kind chips at the top; the per-kind detail fields and the
@@ -6274,7 +6246,6 @@
         }
       }
       if (getFlowStepEnabled('graphic', 'note')) c.appendChild(buildPersonalNoteSection());
-      c.appendChild(buildSaveBar());
     }
 
 
@@ -8290,8 +8261,21 @@
       }
     }
 
-    // ----- Detail back-button: flush + save before leaving -----
+    // Detail back arrow = leave WITHOUT saving the in-progress edits.
+    // currentDetailRecord is dropped; the next openDetail re-reads the
+    // original record from IndexedDB, so the edits effectively never
+    // happened. Save (top-right) is the explicit commit.
     document.getElementById('detail-back').addEventListener('click', async () => {
+      _detailDirty = false;
+      currentDetailId = null;
+      currentDetailRecord = null;
+      showView(_detailReturnTo);
+      // Repaint the gallery in case it's the next view shown.
+      try { await renderGallery(); } catch (err) { console.error(err); }
+    });
+
+    // Detail save button = commit edits to IndexedDB and leave.
+    document.getElementById('detail-save').addEventListener('click', async () => {
       flushDetailEdits();
       const wasDirty = _detailDirty;
       try { await saveDetailRecord(); } catch (err) { console.error(err); }
@@ -8299,11 +8283,7 @@
       currentDetailId = null;
       currentDetailRecord = null;
       showView(_detailReturnTo);
-      // Repaint the gallery so the freshly saved tags show in the
-      // correct bucket / clear the untagged dot — even when returning
-      // to the camera, so the gallery is fresh when next opened.
       try { await renderGallery(); } catch (err) { console.error(err); }
-      // Explicit acknowledgement that something was persisted.
       if (wasDirty) toast('Saved');
     });
 
