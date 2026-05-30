@@ -337,19 +337,16 @@
       overflow: hidden;
       color: var(--ink);
     }
-    /* Viewfinder photo sits between the two bands. <video> elements on
-       iOS WKWebView ignore implicit height from top+bottom and fall back
-       to their intrinsic 4:3 ratio — letterboxing the feed and leaving
-       a giant empty band below. Set the height EXPLICITLY via calc so
-       the feed fills the space; object-fit: cover crops to the box. */
+    /* Viewfinder photo sits between the two bands. height: auto was making
+       the video size to its natural 4:3 aspect ratio, leaving giant
+       letterbox gaps above the bottom band. Letting top/bottom define
+       the height + object-fit: cover crops the feed to fill the space. */
     .cam-video {
       position: absolute;
       top: calc(var(--cam-top-band) + env(safe-area-inset-top, 0px));
       left: 0; right: 0;
+      bottom: calc(var(--cam-bottom-band) + env(safe-area-inset-bottom, 0px));
       width: 100%;
-      height: calc(100% - var(--cam-top-band) - var(--cam-bottom-band)
-                   - env(safe-area-inset-top, 0px)
-                   - env(safe-area-inset-bottom, 0px));
       object-fit: cover;
       background: var(--bg-elev-2);
       display: block;
