@@ -204,13 +204,11 @@
       color: var(--text);
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-      /* Lock the viewport to the visible area so iOS Safari can't rubber-band
-         (drag the page up/down past its boundaries). Each .view manages its
-         own internal scroll below — camera stays clipped, gallery/detail/
-         settings scroll within themselves. Without this, dragging anywhere
-         on the camera view shifts the whole page down. */
-      height: 100%;
-      overflow: hidden;
+      /* Prevent rubber-band but DON'T set overflow: hidden — that combo with
+         inner overflow-y: auto silently breaks scroll in iOS WKWebView.
+         Each .view scrolls the document normally; the camera view applies
+         touch-action: none on itself to block scroll-drag, instead of
+         relying on a body-level overflow lock. */
       overscroll-behavior: none;
     }
 
@@ -228,25 +226,24 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* Views: only one shown at a time. Each view is sized to the SMALL
-       viewport (the guaranteed-visible portion that excludes any dynamic
-       browser chrome) and scrolls its own content via plain block layout
-       + overflow:auto — iOS WKWebView sometimes refuses to pan a flex
-       column even with -webkit-overflow-scrolling, so we use block.
-       Children that need stacking (header + body) stack naturally in
-       block flow; sticky headers still work because .view is the scroll
-       container. */
-    .view {
-      display: none;
-      position: relative;
+    /* Views: only one shown at a time. Normal block flow — the document
+       itself scrolls (not an inner container), so iOS WKWebView's pan
+       gesture works natively without any -webkit-overflow-scrolling
+       trickery. */
+    .view { display: none; }
+    .view.active { display: block; }
+    /* Camera is a fixed full-viewport overlay — locked at the top, no
+     * scroll, no rubber-band. touch-action: none prevents pan-scroll
+     * gestures from triggering the document's natural scroll. */
+    #view-camera.active {
+      position: fixed;
+      inset: 0;
       height: 100vh;
       height: 100svh;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
+      overflow: hidden;
+      touch-action: none;
+      z-index: 5;
     }
-    .view.active { display: block; }
-    /* Camera is a fixed viewport — no internal scroll. */
-    #view-camera.active { overflow: hidden; }
 
     .hidden-file {
       position: absolute;
