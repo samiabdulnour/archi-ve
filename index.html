@@ -204,6 +204,14 @@
       color: var(--text);
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      /* Lock the viewport to the visible area so iOS Safari can't rubber-band
+         (drag the page up/down past its boundaries). Each .view manages its
+         own internal scroll below — camera stays clipped, gallery/detail/
+         settings scroll within themselves. Without this, dragging anywhere
+         on the camera view shifts the whole page down. */
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
     }
 
     button, input, textarea {
@@ -220,14 +228,19 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* Views: only one shown at a time */
+    /* Views: only one shown at a time. Each view is sized to the viewport
+       and scrolls its own content (since html/body are locked, above). */
     .view {
       display: none;
       flex-direction: column;
-      min-height: 100vh;
-      min-height: 100dvh;
+      height: 100vh;
+      height: 100dvh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     .view.active { display: flex; }
+    /* Camera is a fixed viewport — no internal scroll. */
+    #view-camera.active { overflow: hidden; }
 
     .hidden-file {
       position: absolute;
@@ -590,47 +603,6 @@
       display: inline-flex; align-items: center; justify-content: center;
     }
 
-    /* ---- Device rotation (iOS Camera idiom) ----
-       The bands stay anchored to the device frame (which is what iOS Camera
-       does). Only icons and labels INSIDE the chrome rotate to stay
-       upright in the user's eye. Triggered by screen.orientation.angle
-       being mirrored onto #view-camera as a data-orientation attribute. */
-    .cam-type-seg button > svg,
-    .cam-top-right button > svg,
-    .cam-flip > svg,
-    .cam-zoom button,
-    .cam-mode-btn,
-    .cam-thumb-wrap,
-    .cam-project-chip .name,
-    .cam-project-chip .count {
-      transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
-      transform-origin: 50% 50%;
-    }
-    #view-camera[data-orientation="90"] .cam-type-seg button > svg,
-    #view-camera[data-orientation="90"] .cam-top-right button > svg,
-    #view-camera[data-orientation="90"] .cam-flip > svg,
-    #view-camera[data-orientation="90"] .cam-zoom button,
-    #view-camera[data-orientation="90"] .cam-mode-btn,
-    #view-camera[data-orientation="90"] .cam-thumb-wrap,
-    #view-camera[data-orientation="90"] .cam-project-chip .name,
-    #view-camera[data-orientation="90"] .cam-project-chip .count { transform: rotate(-90deg); }
-    #view-camera[data-orientation="-90"] .cam-type-seg button > svg,
-    #view-camera[data-orientation="-90"] .cam-top-right button > svg,
-    #view-camera[data-orientation="-90"] .cam-flip > svg,
-    #view-camera[data-orientation="-90"] .cam-zoom button,
-    #view-camera[data-orientation="-90"] .cam-mode-btn,
-    #view-camera[data-orientation="-90"] .cam-thumb-wrap,
-    #view-camera[data-orientation="-90"] .cam-project-chip .name,
-    #view-camera[data-orientation="-90"] .cam-project-chip .count { transform: rotate(90deg); }
-    #view-camera[data-orientation="180"] .cam-type-seg button > svg,
-    #view-camera[data-orientation="180"] .cam-top-right button > svg,
-    #view-camera[data-orientation="180"] .cam-flip > svg,
-    #view-camera[data-orientation="180"] .cam-zoom button,
-    #view-camera[data-orientation="180"] .cam-mode-btn,
-    #view-camera[data-orientation="180"] .cam-thumb-wrap,
-    #view-camera[data-orientation="180"] .cam-project-chip .name,
-    #view-camera[data-orientation="180"] .cam-project-chip .count { transform: rotate(180deg); }
-
     /* ---- Settings / More panel (iOS Camera More-sheet idiom) ---- */
     .cam-set-backdrop {
       position: absolute; inset: 0; z-index: 40;
@@ -776,7 +748,7 @@
     }
     #view-capture .gallery-header {
       background: var(--bg);
-      padding: 0.5rem 0.9rem;
+      padding: calc(env(safe-area-inset-top, 0px) + 0.5rem) 0.9rem 0.5rem;
       min-height: 38px;
     }
     #view-capture .back-btn { color: var(--text); }
@@ -981,7 +953,10 @@
       pointer-events: auto;
       width: 100%;
       background: var(--text);
-      color: var(--accent-ink);
+      /* --bg flips with the theme like --text, so the contrast pair stays
+         legible in both modes. --accent-ink is locked light (it pairs with
+         the coral --accent) and made the text invisible on dark-mode ink. */
+      color: var(--bg);
       border: 0;
       padding: 12px;
       border-radius: 12px;
@@ -1164,7 +1139,10 @@
     .gallery-header {
       display: flex;
       align-items: center;
-      padding: 0.6rem 1rem;
+      /* Add safe-area-top to the sticky header so back-arrow / title /
+         icons sit below the Dynamic Island instead of overlapping it.
+         Replaces the implicit space the body-scroll setup used to give. */
+      padding: calc(env(safe-area-inset-top, 0px) + 0.6rem) 1rem 0.6rem;
       gap: 0.6rem;
       position: sticky;
       top: 0;
@@ -1199,7 +1177,7 @@
     .gal-header {
       justify-content: space-between;
       gap: 0.4rem;
-      padding: 0.5rem 0.6rem;
+      padding: calc(env(safe-area-inset-top, 0px) + 0.5rem) 0.6rem 0.5rem;
     }
     .gal-header .back-btn {
       font-size: 1.25rem;
@@ -2691,7 +2669,7 @@
     <div class="cam-zoom" id="cam-zoom">
       <div class="cam-pill cam-zoom-inner">
         <button data-cam-zoom="1×" class="active">1×</button>
-        <button data-cam-zoom="2">2</button>
+        <button data-cam-zoom="2">2×</button>
       </div>
     </div>
 
@@ -3152,7 +3130,6 @@
     let pendingLabelBlob = null;  // optional label photo during capture
     let captureDraft = null;      // tags_human being built during capture
     let captureStep = null;       // current step name
-    let captureBackStack = [];    // history of steps visited (for back button)
 
     let activeFilters = {
       type: 'all', search: '', project: null,
@@ -3168,6 +3145,12 @@
     };
     let currentDetailId = null;
     let currentDetailRecord = null;
+    // Where the back-arrow in the detail view should return to. Set by each
+    // entry point: 'gallery' when a gallery tile is tapped, 'home' (camera)
+    // when the post-capture "Tag now" toast is tapped. Preserved across
+    // swipe-navigation between photos so a long viewing session always exits
+    // back where it began.
+    let _detailReturnTo = 'gallery';
     let objectUrls = [];
 
     // For label-input: context-dependent behaviour
@@ -3443,6 +3426,26 @@
     // ============================================================
     // VIEW SWITCHING
     // ============================================================
+    // Orientation lock — Capacitor plugin (@capacitor/screen-orientation).
+    // On the web build the plugin is absent, so both calls are silent no-ops.
+    // On iOS, locking forces the WebView to stay portrait while the camera
+    // is shown — preserves the portrait-anchored camera layout.
+    function _screenOrientationPlugin() {
+      return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ScreenOrientation) || null;
+    }
+    async function lockOrientationPortrait() {
+      const p = _screenOrientationPlugin();
+      if (!p) return;
+      try { await p.lock({ orientation: 'portrait' }); }
+      catch (e) { console.warn('ScreenOrientation.lock failed', e); }
+    }
+    async function unlockOrientation() {
+      const p = _screenOrientationPlugin();
+      if (!p) return;
+      try { await p.unlock(); }
+      catch (e) { console.warn('ScreenOrientation.unlock failed', e); }
+    }
+
     function showView(name) {
       // 'home' is now the camera
       if (name === 'home') name = 'camera';
@@ -3450,7 +3453,9 @@
       const view = document.getElementById('view-' + name);
       if (!view) return;
       view.classList.add('active');
-      window.scrollTo(0, 0);
+      // Each view manages its own scroll (body is locked) — reset the view
+      // itself, not the window.
+      view.scrollTop = 0;
 
       // Camera stream lifecycle: only run while the camera view is active.
       if (name === 'camera') {
@@ -3458,9 +3463,14 @@
         hideCameraError();
         startCameraStream();
         refreshCameraThumb();
+        // Lock to portrait while the camera is shown (Capacitor only — the
+        // plugin is a no-op in the web build). Camera layout is designed
+        // for portrait; landscape reflows the bands into a thin strip.
+        lockOrientationPortrait();
       } else {
         stopCameraStream();
         closeProjectPopup();
+        unlockOrientation();
       }
       // The fixed-position scrubber would otherwise float over other views.
       if (name !== 'gallery' && typeof teardownTimeScrubber === 'function') {
@@ -3996,32 +4006,6 @@
       toast('Reusing: ' + summariseReuseTags(last));
     });
 
-    // ----- Device rotation: iOS Camera idiom -----
-    // Mirror screen.orientation.angle onto #view-camera as a data attribute.
-    // CSS then rotates icons / text inside camera controls to stay upright
-    // in the viewer's eye while the bands stay anchored to the device.
-    // We normalise to -90 / 0 / 90 / 180 so the CSS selectors stay tidy.
-    (function setupCameraOrientation() {
-      const view = document.getElementById('view-camera');
-      if (!view) return;
-      function apply() {
-        let a = 0;
-        if (screen.orientation && typeof screen.orientation.angle === 'number') {
-          a = screen.orientation.angle;          // modern: 0 | 90 | 180 | 270
-        } else if (typeof window.orientation === 'number') {
-          a = window.orientation;                // legacy iOS: 0 | 90 | -90 | 180
-        }
-        // Normalise 270 → -90 so portrait-left and landscape-left match.
-        if (a === 270) a = -90;
-        view.setAttribute('data-orientation', String(a));
-      }
-      apply();
-      window.addEventListener('orientationchange', apply);
-      if (screen.orientation && screen.orientation.addEventListener) {
-        screen.orientation.addEventListener('change', apply);
-      }
-    })();
-
     // ----- Level overlay — rotate the centre hairline with device tilt -----
     (function setupLevel() {
       const level = document.getElementById('cam-level');
@@ -4178,7 +4162,6 @@
         pendingBlob = blob;
         pendingLabelBlob = null;
         captureDraft = { ...referenceReuseTags };
-        captureBackStack = [];
         captureStep = null;
         await finishCapture({ silent: true });
         toast('Saved · reused tags');
@@ -4189,7 +4172,6 @@
         pendingBlob = blob;
         pendingLabelBlob = null;
         captureDraft = { type: getReferenceType() };
-        captureBackStack = [];
         captureStep = null;
         const id = await finishCapture({ silent: true });
         toastLiteSaved(id);
@@ -4282,7 +4264,6 @@
       // skip the "What is this?" step and open the matching form straight away.
       const t = getReferenceType();
       captureDraft = { type: t };
-      captureBackStack = [];
       captureStep = 'form-' + t;
       const preview = document.getElementById('capture-preview');
       const url = URL.createObjectURL(blob);
@@ -4530,19 +4511,22 @@
     };
 
     function setCaptureStep(next) {
-      if (captureStep) captureBackStack.push(captureStep);
       captureStep = next;
       renderCaptureStep();
     }
 
-    document.getElementById('capture-back').addEventListener('click', () => {
-      if (captureBackStack.length === 0) {
+    // Back arrow in the capture/tag flow: save whatever tags have been chosen
+    // so far and jump straight back to the camera — single tap, not a
+    // step-by-step undo. Photos with partial tags survive in the archive and
+    // can be finished later from the gallery. This keeps the "10 second
+    // capture loop" intact when the user wants to shoot again immediately.
+    document.getElementById('capture-back').addEventListener('click', async () => {
+      if (!pendingBlob) {
         resetCapture();
         showView('home');
         return;
       }
-      captureStep = captureBackStack.pop();
-      renderCaptureStep();
+      try { await finishCapture({ silent: true }); } catch (err) { console.error(err); }
     });
 
     function resetCapture() {
@@ -4550,7 +4534,6 @@
       pendingLabelBlob = null;
       captureDraft = null;
       captureStep = null;
-      captureBackStack = [];
     }
     function renderCaptureStep() {
       const c = stepContainer;
@@ -6745,7 +6728,7 @@
       tile.appendChild(check);
       tile.addEventListener('click', () => {
         if (selectionMode) toggleTileSelection(rec.id);
-        else openDetail(rec.id);
+        else { _detailReturnTo = 'gallery'; openDetail(rec.id); }
       });
       return tile;
     }
@@ -8284,9 +8267,10 @@
       _detailDirty = false;
       currentDetailId = null;
       currentDetailRecord = null;
-      showView('gallery');
+      showView(_detailReturnTo);
       // Repaint the gallery so the freshly saved tags show in the
-      // correct bucket / clear the untagged dot.
+      // correct bucket / clear the untagged dot — even when returning
+      // to the camera, so the gallery is fresh when next opened.
       try { await renderGallery(); } catch (err) { console.error(err); }
       // Explicit acknowledgement that something was persisted.
       if (wasDirty) toast('Saved');
@@ -8486,6 +8470,7 @@
         clearTimeout(toastTimer);
         el.classList.remove('show');
         el.style.pointerEvents = 'none';
+        _detailReturnTo = 'home';
         openDetail(id);
       });
       el.appendChild(icon);
