@@ -326,8 +326,8 @@
          the shutter (68px) + the cam-secondary row (48px) above the home
          indicator. Shutter and cam-secondary are position:fixed to the
          viewport, so these values control the visual cream band only. */
-      --cam-top-band: 60px;
-      --cam-bottom-band: 152px;
+      --cam-top-band: 72px;
+      --cam-bottom-band: 168px;
       /* Camera surface = paper, matches the rest of the app. */
       --cam-bg: var(--paper);
     }
@@ -547,9 +547,12 @@
     .cam-shutter {
       /* Pinned directly to the viewport so it sits at a known position
          above the cam-secondary row, independent of the .cam-bottom
-         flex container's quirks. Centered horizontally with translate. */
+         flex container's quirks. Centered horizontally with translate.
+         bottom offset = --cam-bottom-band - 14 - 68 (shutter height) so
+         the gap between the band's top border and the shutter top edge
+         matches the 14px gap between band top and the zoom pill above. */
       position: fixed;
-      bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 86px);
       left: 50%;
       transform: translateX(-50%);
       z-index: 13;
