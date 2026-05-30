@@ -321,11 +321,13 @@
     /* Three regions: black top band, live viewfinder, black bottom band.
        Heights are fixed pt-ish values + safe-area insets. */
     :root {
-      /* Bands are kept small so the viewfinder takes most of the screen.
-         Top: just enough for the type-seg + tag pills. Bottom: shutter +
-         cam-secondary row (thumb / mode pill / flip) above safe-area. */
-      --cam-top-band: 96px;
-      --cam-bottom-band: 168px;
+      /* Bands kept tight so the viewfinder gets the screen. Top is just
+         the top icon pills (~32px tall) plus safe-area-top. Bottom holds
+         the shutter (68px) + the cam-secondary row (48px) above the home
+         indicator. Shutter and cam-secondary are position:fixed to the
+         viewport, so these values control the visual cream band only. */
+      --cam-top-band: 60px;
+      --cam-bottom-band: 152px;
       /* Camera surface = paper, matches the rest of the app. */
       --cam-bg: var(--paper);
     }
@@ -336,14 +338,16 @@
       overflow: hidden;
       color: var(--ink);
     }
-    /* Viewfinder photo sits between the two bands. */
+    /* Viewfinder photo sits between the two bands. height: auto was making
+       the video size to its natural 4:3 aspect ratio, leaving giant
+       letterbox gaps above the bottom band. Letting top/bottom define
+       the height + object-fit: cover crops the feed to fill the space. */
     .cam-video {
       position: absolute;
       top: calc(var(--cam-top-band) + env(safe-area-inset-top, 0px));
       left: 0; right: 0;
       bottom: calc(var(--cam-bottom-band) + env(safe-area-inset-bottom, 0px));
       width: 100%;
-      height: auto;
       object-fit: cover;
       background: var(--bg-elev-2);
       display: block;
@@ -376,13 +380,16 @@
     /* ---- Top band ---- */
     .cam-top-left {
       position: absolute;
-      top: calc(env(safe-area-inset-top, 0px) + 56px);
+      /* Sit just below the Dynamic Island / status bar, not way below it.
+         16px is enough breathing room on iPhones with safe-area-inset-top
+         already accounting for the island. */
+      top: calc(env(safe-area-inset-top, 0px) + 16px);
       left: 14px; z-index: 20;
       display: inline-flex; align-items: center;
     }
     .cam-top-right {
       position: absolute;
-      top: calc(env(safe-area-inset-top, 0px) + 56px);
+      top: calc(env(safe-area-inset-top, 0px) + 16px);
       right: 14px; z-index: 20;
       display: inline-flex; align-items: center; gap: 18px;
       padding: 8px 14px;
@@ -538,12 +545,21 @@
       gap: 14px;
     }
     .cam-shutter {
+      /* Pinned directly to the viewport so it sits at a known position
+         above the cam-secondary row, independent of the .cam-bottom
+         flex container's quirks. Centered horizontally with translate. */
+      position: fixed;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 13;
       width: 68px; height: 68px; border-radius: 999px;
       border: 2.5px solid var(--ink); background: transparent;
       display: inline-flex; align-items: center; justify-content: center;
       flex-shrink: 0; padding: 0;
       transition: transform 0.07s ease, opacity 0.15s ease;
     }
+    .cam-shutter:active { transform: translateX(-50%) scale(0.94); }
     .cam-shutter::after {
       content: ""; width: 54px; height: 54px; border-radius: 999px; background: var(--coral);
       transition: background 0.07s ease;
@@ -551,17 +567,21 @@
     /* Mode-tinted shutter — green in reference, yellow in project. */
     #view-camera.cam-mode-reference .cam-shutter::after { background: #7CE3A0; }
     #view-camera.cam-mode-project   .cam-shutter::after { background: #E8E373; }
-    .cam-shutter:active { transform: scale(0.94); }
     .cam-shutter:active::after { background: var(--paper); }
     .cam-shutter.disabled { opacity: 0.35; pointer-events: none; }
 
-    .cam-secondary {
-      margin-top: auto;
-      width: 100%;
+    /* cam-secondary detached from .cam-bottom flex flow — pinned directly
+       to the viewport bottom so it can't be eaten by parent layout math.
+       This row was disappearing on iPhone Air when nested inside the
+       flex column of .cam-bottom regardless of margin/grid tweaks. */
+    #view-camera .cam-secondary {
+      position: fixed;
+      left: 14px; right: 14px;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+      z-index: 13;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0 24px;
       min-height: 48px;
     }
 
