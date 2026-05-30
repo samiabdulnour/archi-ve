@@ -230,19 +230,21 @@
 
     /* Views: only one shown at a time. Each view is sized to the SMALL
        viewport (the guaranteed-visible portion that excludes any dynamic
-       browser chrome) and scrolls its own content. Using 100svh — not
-       100dvh — keeps the camera bottom band reliably above the home
-       indicator on every iPhone model; dvh let the bottom band overflow
-       into the home indicator on iPhone Air. */
+       browser chrome) and scrolls its own content via plain block layout
+       + overflow:auto — iOS WKWebView sometimes refuses to pan a flex
+       column even with -webkit-overflow-scrolling, so we use block.
+       Children that need stacking (header + body) stack naturally in
+       block flow; sticky headers still work because .view is the scroll
+       container. */
     .view {
       display: none;
-      flex-direction: column;
+      position: relative;
       height: 100vh;
       height: 100svh;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
-    .view.active { display: flex; }
+    .view.active { display: block; }
     /* Camera is a fixed viewport — no internal scroll. */
     #view-camera.active { overflow: hidden; }
 
