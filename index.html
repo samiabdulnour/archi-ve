@@ -399,7 +399,9 @@
       padding: 0; display: inline-flex; align-items: center;
     }
     .cam-top-right .cam-icon-on { color: var(--ink); }
-    .cam-top-right #cam-reuse-toggle.active { color: var(--coral); }
+    /* Active tag icon (reuse-last-tags) renders in the Reference-mode
+       mint green to match the active mode pill and shutter ring colour. */
+    .cam-top-right #cam-reuse-toggle.active { color: #7CE3A0; }
 
     /* Type 3-way segmented control (Reference mode) */
     .cam-type-seg {
@@ -3674,6 +3676,10 @@
       exposure: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><circle cx="14" cy="14" r="11"/><line x1="7" y1="10" x2="11" y2="10"/><line x1="9" y1="8" x2="9" y2="12"/><line x1="17" y1="18" x2="21" y2="18"/></svg>`,
       folder: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M3 9 V21 a1.5 1.5 0 0 0 1.5 1.5 H23.5 a1.5 1.5 0 0 0 1.5-1.5 V11 a1.5 1.5 0 0 0-1.5-1.5 H13 L10.5 7 H4.5 a1.5 1.5 0 0 0-1.5 1.5 Z"/></svg>`,
       appearance: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><circle cx="14" cy="14" r="7"/><path d="M14 7 a7 7 0 0 1 0 14 Z" fill="currentColor" stroke="none"/><path d="M14 1 V4"/><path d="M14 24 V27"/><path d="M1 14 H4"/><path d="M24 14 H27"/><path d="M4 4 L6.2 6.2"/><path d="M21.8 21.8 L24 24"/><path d="M4 24 L6.2 21.8"/><path d="M21.8 6.2 L24 4"/></svg>`,
+      // Classic cogwheel (Feather-style) for the Settings entry — eight
+      // teeth around a hollow centre. Replaces the previous sun/moon
+      // (appearance) glyph that didn't read as "settings" at a glance.
+      gear: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
       materials: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="3" width="10" height="10"/><rect x="15" y="3" width="10" height="10"/><rect x="3" y="15" width="10" height="10"/><rect x="15" y="15" width="10" height="10" fill="currentColor" stroke="none"/></svg>`,
       building: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M3 13 L14 4 L25 13"/><path d="M6 13 V24 H22 V13"/><rect x="12" y="16" width="4" height="8"/></svg>`,
       element: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M6 4 H22 V7 H6 Z"/><path d="M8 7 V21 H20 V7"/><line x1="12" y1="8" x2="12" y2="21"/><line x1="16" y1="8" x2="16" y2="21"/><path d="M5 21 H23 V24 H5 Z"/></svg>`,
@@ -3724,7 +3730,6 @@
         kids.forEach(k => r.appendChild(k));
         return r;
       };
-      const divider = () => { const d = document.createElement('div'); d.className = 'cam-set-divider'; return d; };
 
       // Row 1 — Flash / Timer / Aspect
       panel.appendChild(row(
@@ -3750,29 +3755,15 @@
         buildSetCircle({ iconHtml: SI.level, label: 'Level', on: camPrefs.levelOn, onClick: () => {
           camPrefs.levelOn = !camPrefs.levelOn; saveCamPrefs(camPrefs); applyCamOverlays(); openCamSettings();
         }}),
-        buildSetCircle({ iconHtml: SI.exposure, label: 'Exposure', onClick: () => {
-          toast('Exposure follows the system camera on web');
+        // Settings takes the third slot in row 2 (previously Exposure, which
+        // we couldn't make work via getUserMedia anyway). Cog-wheel icon
+        // reads as Settings at a glance.
+        buildSetCircle({ iconHtml: SI.gear, label: 'Settings', onClick: async () => {
+          closeCamSettings(); await renderSettings(); showView('settings');
         }})
       ));
 
-      panel.appendChild(divider());
-
-      // Row 3 — Settings (one entry that opens the full Settings page).
-      // Previously this area had two rows of six entries
-      // (Projects / Materials / Dark / Building / Element / Graphic) that
-      // each opened the same Settings view (or a sub-tab). Consolidated into
-      // a single Settings button so the camera panel stays focused on
-      // capture controls; theme + taxonomy editing live inside Settings.
-      const settingsRow = document.createElement('div');
-      settingsRow.className = 'cam-set-row single';
-      settingsRow.appendChild(buildSetCircle({
-        iconHtml: SI.appearance,
-        label: 'Settings',
-        onClick: async () => { closeCamSettings(); await renderSettings(); showView('settings'); },
-      }));
-      panel.appendChild(settingsRow);
-
-      // Row 4 — How to use (centred)
+      // How to use — single centred entry.
       const single = document.createElement('div');
       single.className = 'cam-set-row single';
       single.appendChild(buildSetCircle({ iconHtml: SI.help, label: 'How to use', onClick: () => {
