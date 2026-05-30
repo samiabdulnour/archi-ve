@@ -228,13 +228,17 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* Views: only one shown at a time. Each view is sized to the viewport
-       and scrolls its own content (since html/body are locked, above). */
+    /* Views: only one shown at a time. Each view is sized to the SMALL
+       viewport (the guaranteed-visible portion that excludes any dynamic
+       browser chrome) and scrolls its own content. Using 100svh — not
+       100dvh — keeps the camera bottom band reliably above the home
+       indicator on every iPhone model; dvh let the bottom band overflow
+       into the home indicator on iPhone Air. */
     .view {
       display: none;
       flex-direction: column;
       height: 100vh;
-      height: 100dvh;
+      height: 100svh;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
@@ -318,7 +322,11 @@
        Heights are fixed pt-ish values + safe-area insets. */
     :root {
       --cam-top-band: 116px;
-      --cam-bottom-band: 184px;
+      /* Bottom band needs enough room for shutter (68) + cam-secondary row
+         (thumb / mode pill / flip = ~50) above the iPhone home-indicator
+         safe area. 184 was too tight — content rendered partly behind /
+         clipped by the home indicator on iPhone Air. */
+      --cam-bottom-band: 220px;
       /* Camera surface = paper, matches the rest of the app. */
       --cam-bg: var(--paper);
     }
@@ -940,14 +948,18 @@
       border-bottom-color: var(--text);
     }
 
-    /* Save bar — full-width ink button at the bottom of the capture view */
+    /* Save bar — full-width ink button stuck to the bottom of the scrolling
+       capture view. position:sticky stays anchored to the view's scroll
+       viewport; position:fixed mis-anchors inside iOS WKWebView when the
+       body is overflow:hidden, scrolling away with the form content. */
     .sw-save-bar {
-      position: fixed;
-      left: 0; right: 0;
-      bottom: max(env(safe-area-inset-bottom, 10px), 10px);
-      padding: 0 14px;
+      position: sticky;
+      bottom: 0;
+      margin-top: auto;
+      padding: 10px 14px max(env(safe-area-inset-bottom, 10px), 10px);
       z-index: 20;
       pointer-events: none;
+      background: linear-gradient(to top, var(--bg) 80%, transparent);
     }
     .sw-save-btn {
       pointer-events: auto;
@@ -3679,13 +3691,6 @@
       const panel = document.getElementById('cam-set-panel');
       panel.innerHTML = '';
 
-      const projectCount = (await getProjectNames()).length;
-      const materialsCount = getCustom('materiality').length;
-      const themeLabel = loadTheme();
-
-      const flashLabel = 'Flash · ' + (camPrefs.flash === 'off' ? 'Off' : camPrefs.flash === 'on' ? 'On' : 'Auto');
-      const timerLabel = 'Timer' + (camPrefs.timer ? ' · ' + camPrefs.timer + 's' : '');
-
       const row = (...kids) => {
         const r = document.createElement('div');
         r.className = 'cam-set-row';
@@ -3725,34 +3730,22 @@
 
       panel.appendChild(divider());
 
-      // Row 3 — Projects / Materials / Appearance
-      panel.appendChild(row(
-        buildSetCircle({ iconHtml: SI.folder, label: 'Projects', badge: projectCount > 0 ? projectCount : null, onClick: async () => {
-          closeCamSettings(); await renderSettings(); showView('settings');
-        }}),
-        buildSetCircle({ iconHtml: SI.materials, label: 'Materials', badge: materialsCount > 0 ? materialsCount : null, onClick: async () => {
-          closeCamSettings(); await renderSettings(); showView('settings');
-        }}),
-        buildSetCircle({ iconHtml: SI.appearance, label: themeLabel, onClick: () => {
-          const next = themeLabel === 'auto' ? 'light' : themeLabel === 'light' ? 'dark' : 'auto';
-          setTheme(next); openCamSettings();
-        }})
-      ));
+      // Row 3 — Settings (one entry that opens the full Settings page).
+      // Previously this area had two rows of six entries
+      // (Projects / Materials / Dark / Building / Element / Graphic) that
+      // each opened the same Settings view (or a sub-tab). Consolidated into
+      // a single Settings button so the camera panel stays focused on
+      // capture controls; theme + taxonomy editing live inside Settings.
+      const settingsRow = document.createElement('div');
+      settingsRow.className = 'cam-set-row single';
+      settingsRow.appendChild(buildSetCircle({
+        iconHtml: SI.appearance,
+        label: 'Settings',
+        onClick: async () => { closeCamSettings(); await renderSettings(); showView('settings'); },
+      }));
+      panel.appendChild(settingsRow);
 
-      // Row 4 — Building / Element / Graphic taxonomy editors
-      panel.appendChild(row(
-        buildSetCircle({ iconHtml: SI.building, label: 'Building', onClick: async () => {
-          closeCamSettings(); await renderSettings(); showView('settings-building');
-        }}),
-        buildSetCircle({ iconHtml: SI.element, label: 'Element', onClick: async () => {
-          closeCamSettings(); await renderSettings(); showView('settings-element');
-        }}),
-        buildSetCircle({ iconHtml: SI.graphic, label: 'Graphic', onClick: async () => {
-          closeCamSettings(); await renderSettings(); showView('settings-graphic');
-        }})
-      ));
-
-      // Row 5 — How to use (centred)
+      // Row 4 — How to use (centred)
       const single = document.createElement('div');
       single.className = 'cam-set-row single';
       single.appendChild(buildSetCircle({ iconHtml: SI.help, label: 'How to use', onClick: () => {
@@ -4538,7 +4531,12 @@
     function renderCaptureStep() {
       const c = stepContainer;
       c.innerHTML = '';
-      document.getElementById('capture-step-label').textContent = STEP_LABEL[captureStep] || '';
+      // The form already shows the chosen type as the giant Building / Element
+      // / Graphic segmented tab — duplicating it as a header title (in the
+      // Hellenic editorial-italic font) collided visually with the iPhone
+      // status-bar clock. Header stays empty here; the back arrow alone is
+      // enough chrome.
+      document.getElementById('capture-step-label').textContent = '';
 
       if (captureStep === 'type')          renderTypeStep(c);
       else if (captureStep === 'form-building' ||
