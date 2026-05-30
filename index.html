@@ -579,7 +579,7 @@
        to the viewport bottom so it can't be eaten by parent layout math.
        This row was disappearing on iPhone Air when nested inside the
        flex column of .cam-bottom regardless of margin/grid tweaks. */
-    #view-camera .cam-secondary {
+    #view-camera.active .cam-secondary {
       position: fixed;
       left: 14px; right: 14px;
       bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
@@ -588,6 +588,21 @@
       justify-content: space-between;
       align-items: center;
       min-height: 48px;
+    }
+    /* Hide all of the camera view's absolute/fixed-positioned chrome when
+       the camera view isn't active. iOS WKWebView sometimes keeps these
+       on screen even when their parent has display:none — they were
+       overlaying the bottom of the settings page and blocking scroll. */
+    #view-camera:not(.active) .cam-shutter,
+    #view-camera:not(.active) .cam-secondary,
+    #view-camera:not(.active) .cam-band-top,
+    #view-camera:not(.active) .cam-band-bottom,
+    #view-camera:not(.active) .cam-bottom,
+    #view-camera:not(.active) .cam-zoom,
+    #view-camera:not(.active) .cam-grid,
+    #view-camera:not(.active) .cam-level,
+    #view-camera:not(.active) .cam-video {
+      display: none !important;
     }
 
     /* Thumb — stacked roll effect */
