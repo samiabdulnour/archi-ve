@@ -321,12 +321,11 @@
     /* Three regions: black top band, live viewfinder, black bottom band.
        Heights are fixed pt-ish values + safe-area insets. */
     :root {
-      --cam-top-band: 116px;
-      /* Bottom band needs enough room for shutter (68) + cam-secondary row
-         (thumb / mode pill / flip = ~50) above the iPhone home-indicator
-         safe area. 184 was too tight — content rendered partly behind /
-         clipped by the home indicator on iPhone Air. */
-      --cam-bottom-band: 220px;
+      /* Bands are kept small so the viewfinder takes most of the screen.
+         Top: just enough for the type-seg + tag pills. Bottom: shutter +
+         cam-secondary row (thumb / mode pill / flip) above safe-area. */
+      --cam-top-band: 96px;
+      --cam-bottom-band: 168px;
       /* Camera surface = paper, matches the rest of the app. */
       --cam-bg: var(--paper);
     }
@@ -524,15 +523,19 @@
     .cam-zoom button.active { background: #7CE3A0; color: #16140F; }
     #view-camera.cam-mode-project .cam-zoom button.active { background: #E8E373; color: #16140F; }
 
-    /* ---- Bottom band ---- */
+    /* ---- Bottom band ----
+       Tight padding/gap so the band fits shutter (68) + cam-secondary (48)
+       on small bottom-band heights. Earlier the math added up to MORE than
+       the band's content area on iPhone Air, silently pushing cam-secondary
+       into the home-indicator safe area where it disappeared. */
     .cam-bottom {
       position: absolute; left: 0; right: 0;
       bottom: 0; height: calc(var(--cam-bottom-band) + env(safe-area-inset-bottom, 0px));
       z-index: 12;
       display: flex; flex-direction: column; align-items: center;
-      padding-top: 22px;
-      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
-      gap: 22px;
+      padding-top: 14px;
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+      gap: 14px;
     }
     .cam-shutter {
       width: 68px; height: 68px; border-radius: 999px;
@@ -553,13 +556,14 @@
     .cam-shutter.disabled { opacity: 0.35; pointer-events: none; }
 
     .cam-secondary {
-      margin-top: auto; width: 100%;
-      display: grid; grid-template-columns: 1fr auto 1fr;
-      align-items: center; padding: 0 24px;
+      margin-top: auto;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 24px;
+      min-height: 48px;
     }
-    .cam-secondary > :nth-child(1) { justify-self: start; }
-    .cam-secondary > :nth-child(2) { justify-self: center; }
-    .cam-secondary > :nth-child(3) { justify-self: end; }
 
     /* Thumb — stacked roll effect */
     .cam-thumb-wrap { position: relative; width: 54px; height: 48px; margin-left: -4px; background: transparent; border: 0; }
