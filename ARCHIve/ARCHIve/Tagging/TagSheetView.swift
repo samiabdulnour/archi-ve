@@ -11,7 +11,19 @@ struct TagSheetView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Query private var allPhotos: [Photo]
     @State private var tags = HumanTags()
+    @State private var project = ""
+
+    /// Distinct project names already in use, for one-tap reuse.
+    private var existingProjects: [String] {
+        var seen = Set<String>(); var out: [String] = []
+        for p in allPhotos {
+            guard let name = p.project, !name.isEmpty, !seen.contains(name) else { continue }
+            seen.insert(name); out.append(name)
+        }
+        return out.sorted()
+    }
 
     var body: some View {
         NavigationStack {
@@ -46,7 +58,7 @@ struct TagSheetView: View {
                         .disabled(tags.type == nil)
                 }
             }
-            .onAppear { tags = photo.humanTags }
+            .onAppear { tags = photo.humanTags; project = photo.project ?? "" }
         }
         .interactiveDismissDisabled(false)
     }
@@ -137,6 +149,25 @@ struct TagSheetView: View {
                 set: { tags.note = $0.isEmpty ? nil : $0 }), axis: .vertical)
                 .lineLimit(1...4)
                 .textFieldStyle(.roundedBorder)
+            projectSection
+        }
+    }
+
+    /// Project association lives on the Photo (not in HumanTags). Tap an existing
+    /// project to reuse it, or type a new one. Tapping the active chip clears it.
+    private var projectSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionLabel("Project")
+            if !existingProjects.isEmpty {
+                chipGrid(existingProjects.map { ($0, $0, nil as String?) }) { id in
+                    project == id
+                } toggle: { id in
+                    project = (project == id) ? "" : id
+                }
+            }
+            TextField("New project name", text: $project)
+                .textFieldStyle(.roundedBorder)
+                .autocorrectionDisabled()
         }
     }
 
@@ -211,6 +242,8 @@ struct TagSheetView: View {
 
     private func commit() {
         photo.humanTags = tags
+        let trimmed = project.trimmingCharacters(in: .whitespacesAndNewlines)
+        photo.project = trimmed.isEmpty ? nil : trimmed
         try? modelContext.save()
         finish()
     }
