@@ -2,6 +2,12 @@
 
 A personal, private photo-journal app for an architect. The owner takes photos from everyday life that relate to their architectural work — site visits, references spotted in the world, exhibitions, details, whatever catches the eye — tags them with a small structured vocabulary, and browses them later by tag.
 
+## ⚠️ DIRECTION CHANGE — native-first for the App Store (owner directive, 2026-06-01)
+
+**The goal is now a high-quality, fully functional native iPhone app shipped to the App Store. The web app and GitHub Pages deployment are NO LONGER a target.** The owner explicitly lifted the constraints that were limiting app quality: the "no native iOS Swift", "plain HTML/CSS/JS only", "one or two files", and "web app is the canonical source / Capacitor syncs from it" rules below are **superseded**. Build the app in whatever interface/stack best serves quality and the native iOS experience, even if it means substantially more work (e.g. native AVFoundation camera for real flash/focus/exposure, native UI screens, native storage).
+
+The product intent is unchanged — fast capture, structured two-tap tagging, the Kind/Context-derived taxonomy (see below), reliable local storage, browse-by-tag, separate `tags_human` / `tags_machine` fields. Only the *implementation constraints* are relaxed. The exact target architecture (full native rewrite vs. incremental native migration from the existing Capacitor/web build) is being decided with the owner; older sections of this file describe the previous web-only design and remain as reference for the existing behavior to preserve.
+
 ## Who this is for
 
 A single user (the owner) on their own iPhone. Not multi-user. Not public. No accounts, no sharing, no cloud sync in early stages.
@@ -34,6 +40,8 @@ A single user (the owner) on their own iPhone. Not multi-user. Not public. No ac
 The app is also shipped to the App Store as a native iOS app via **Capacitor** — a thin wrapper around the same `index.html`, not a rewrite. Bundle ID: `com.archi-ve.app`. App name: ARCHI-ve. See `BUILD-IOS.md` for the step-by-step build, and `APPSTORE.md` for listing copy + screenshots. Web app at `samiabdulnour.github.io/archi-ve/` stays the canonical source; Capacitor syncs from it.
 
 Do not add native iOS Swift code, Cordova plugins, or fork the codebase. Anything iOS-specific lives in `capacitor.config.json`, `BUILD-IOS.md`, or — at submission time — the auto-generated `/ios` Xcode project (which is committed but never hand-edited).
+
+**Documented exception (owner-approved 2026-06-01):** one piece of hand-written native Swift is allowed — `ios/App/App/NativeMotion.swift` (a small CoreMotion plugin + a `MotionBridgeViewController`). It exists because the web DeviceMotion API inside WKWebView only delivers after a user tap, which left the camera level/icon-spin frozen on launch; CoreMotion gravity needs no permission or gesture. Do NOT delete it as part of "no native Swift" cleanup. It is wired via `Main.storyboard` (custom class `MotionBridgeViewController`) and registered in `App.xcodeproj/project.pbxproj` — these three edits to the otherwise-generated `/ios` project must be preserved across any `cap` regeneration. See memory `ios-device-motion`.
 
 ## Target platforms
 
