@@ -9,7 +9,7 @@ import SwiftData
 /// image-recognition suggestions; empty for now, never merged with human
 /// tags so intent and guesses stay distinguishable forever).
 @Model
-final class Photo {
+final class Photo: Identifiable {
     /// Stable id (UUID string) — matches the web app's record id style.
     @Attribute(.unique) var id: String
 
@@ -79,4 +79,16 @@ struct HumanTags: Codable, Equatable {
     // Graphic branch
     var graphicKind: String?       // artwork, book, drawing, ...
     var visual: [String] = []      // Colorful, Monochrome, ...
+
+    // Free-text extras (optional)
+    var authorYear: String?        // "Aalto, 1939" etc.
+    var note: String?              // personal note
+
+    /// A draft is "tagged" once a type is chosen.
+    var isEmpty: Bool {
+        type == nil && typology == nil && room == nil && concepts.isEmpty
+            && element == nil && materials.isEmpty && colors.isEmpty
+            && graphicKind == nil && visual.isEmpty
+            && (authorYear?.isEmpty ?? true) && (note?.isEmpty ?? true)
+    }
 }

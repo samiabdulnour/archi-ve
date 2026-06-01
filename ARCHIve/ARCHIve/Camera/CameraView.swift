@@ -15,6 +15,7 @@ struct CameraView: View {
     @State private var shutterFlash = false
     @State private var baseZoom: CGFloat = 1.0
     @State private var savedCount = 0
+    @State private var tagTarget: Photo?
 
     var body: some View {
         GeometryReader { geo in
@@ -34,10 +35,15 @@ struct CameraView: View {
         .onAppear {
             camera.requestAccessAndConfigure()
             motion.start()
+            LocationProvider.shared.start()
         }
         .onDisappear {
             camera.stop()
             motion.stop()
+            LocationProvider.shared.stop()
+        }
+        .sheet(item: $tagTarget, onDismiss: { camera.start() }) { photo in
+            TagSheetView(photo: photo) { tagTarget = nil }
         }
     }
 
@@ -272,10 +278,16 @@ struct CameraView: View {
         camera.capture { data in
             withAnimation(.easeOut(duration: 0.2)) { shutterFlash = false }
             guard let data else { return }
-            let photo = Photo(imageData: data)
+            let coord = LocationProvider.shared.last
+            let photo = Photo(imageData: data,
+                              latitude: coord?.latitude,
+                              longitude: coord?.longitude)
             modelContext.insert(photo)
             try? modelContext.save()
             savedCount += 1
+            // Pause the session and open the tag sheet for this shot.
+            camera.stop()
+            tagTarget = photo
         }
     }
 }
