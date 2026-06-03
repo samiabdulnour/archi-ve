@@ -138,23 +138,23 @@ struct CameraView: View {
     // Both top pills share the same height (36pt buttons + 4pt padding) and
     // icon weight so left and right read as a matched pair, native-style.
     private var typeSegment: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 2) {
             ForEach(TagVocab.types) { t in
                 let active = camera.captureType == t.id
                 Button { camera.captureType = t.id } label: {
                     KindGlyph(id: t.id, color: active ? .black : .white.opacity(0.85))
-                        .frame(width: 22, height: 22)
-                        .frame(width: 36, height: 36)
+                        .frame(width: 17, height: 17)
+                        .frame(width: 29, height: 29)
                         .background(active ? Circle().fill(.white) : Circle().fill(.clear))
                 }
             }
         }
-        .padding(4)
+        .padding(3)
         .background(Capsule().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
     }
 
     private var actionPill: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 2) {
             pillButton(tagMode == .full ? "tag.fill" : "tag", active: tagMode == .full) {
                 tagMode = tagMode == .full ? .lite : .full
             }
@@ -163,16 +163,16 @@ struct CameraView: View {
             }
             pillButton("circle.grid.3x3.fill", active: false) { showSettings = true }
         }
-        .padding(4)
+        .padding(.horizontal, 6).padding(.vertical, 3)
         .background(Capsule().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
     }
 
     private func pillButton(_ symbol: String, active: Bool, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 19, weight: .medium))
+                .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(active ? Palette.coral : .white)
-                .frame(width: 36, height: 36)
+                .frame(width: 29, height: 29)
         }
     }
 
@@ -180,14 +180,14 @@ struct CameraView: View {
     /// (matches the old app); tap to choose / change the project.
     private var projectPill: some View {
         Button { showProjectPicker = true } label: {
-            HStack(spacing: 8) {
-                Circle().fill(Palette.lemon).frame(width: 8, height: 8)
+            HStack(spacing: 7) {
+                Circle().fill(Palette.lemon).frame(width: 7, height: 7)
                 Text(camera.currentProject ?? "Pick project")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white)
             }
-            .padding(.horizontal, 14)
-            .frame(height: 44)
+            .padding(.horizontal, 12)
+            .frame(height: 35)
             .background(Capsule().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
         }
     }
@@ -199,8 +199,8 @@ struct CameraView: View {
         // by the Reference/Project toggle, not the shutter colour.
         Button(action: onShutter) {
             ZStack {
-                Circle().stroke(.white, lineWidth: 4).frame(width: 74, height: 74)
-                Circle().fill(.white).frame(width: 66, height: 66)
+                Circle().stroke(.white, lineWidth: 2.5).frame(width: 72, height: 72)
+                Circle().fill(.white).frame(width: 64, height: 64)
             }
         }
         .disabled(countdown != nil)
