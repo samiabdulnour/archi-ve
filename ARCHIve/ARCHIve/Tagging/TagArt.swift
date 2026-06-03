@@ -149,7 +149,7 @@ struct KindGlyph: View {
 
 // MARK: - Line-art glyphs (Typology / Graphic kinds / Visual)
 
-enum ArtGroup { case typology, graphic, visual, concept }
+enum ArtGroup { case typology, graphic, visual, concept, room }
 
 /// Architectural line-art for the remaining tag groups, in a 48-unit space.
 /// Typology + Graphic are ported from the web app's SVGs where available;
@@ -343,8 +343,95 @@ struct LineArtGlyph: View {
                 poly([(33,13),(38,12),(37,17)])
                 dot(9,36,1.6); dot(38,11,1.6)
 
+            // MARK: Rooms (ported from the web _v2 room glyphs; 1.5 stroke)
+            case (.room, "library"):
+                rect(6,6,36,36,1.5); line(6,20,42,20,1.5); line(6,34,42,34,1.5)
+                for x in [10.0,14,18,22,26,30,34,38] { line(x,8,x,18,0.7); line(x,22,x,32,0.7) }
+            case (.room, "auditorium"):
+                rect(10,8,28,8,1.5)
+                for y in [22.0,28,34,40] { line(6,y,42,y,0.8) }
+            case (.room, "shop"):
+                poly([(6,16),(24,8),(42,16)],1.5); poly([(8,16),(8,42),(40,42),(40,16)],1.5)
+                rect(14,22,20,16,0.8); line(24,22,24,38,0.6); line(14,30,34,30,0.6)
+            case (.room, "showroom"):
+                rect(6,6,36,36,1.5); line(6,34,42,34,1.5)
+                rect(12,14,6,20,0.7); circle(24,22,5,0.7); rect(32,18,6,16,0.7)
+            case (.room, "bar"):
+                poly([(6,26),(42,26),(42,32),(6,32)],close:true,1.5); line(14,32,14,40,1.5); line(34,32,34,40,1.5)
+                rect(11,10,3,14,0.7); rect(18,8,3,16,0.7); rect(25,10,3,14,0.7); rect(32,12,3,12,0.7)
+            case (.room, "spa"):
+                for y in [16.0,24,32,40] {
+                    quad(1.5, [(6,y),(18,y),(30,y),(42,y)], controls: [(12,y-4),(24,y+4),(36,y-4)])
+                }
+            case (.room, "lab"):
+                stroke(1.5) { p in
+                    p.move(to: CGPoint(x:18,y:8)); p.addLine(to: CGPoint(x:30,y:8)); p.addLine(to: CGPoint(x:30,y:16))
+                    p.addLine(to: CGPoint(x:36,y:36)); p.addQuadCurve(to: CGPoint(x:32,y:40), control: CGPoint(x:36,y:40))
+                    p.addLine(to: CGPoint(x:16,y:40)); p.addQuadCurve(to: CGPoint(x:12,y:36), control: CGPoint(x:12,y:40))
+                    p.addLine(to: CGPoint(x:18,y:16)); p.closeSubpath()
+                }
+                line(14,28,34,28,0.7); dot(20,34,0.8); dot(25,32,0.6); dot(29,35,0.7)
+            case (.room, "mechanical"):
+                circle(24,24,9,1.5); circle(24,24,3,0.9)
+                for a in stride(from: 0.0, to: 360.0, by: 45.0) {
+                    let r = a * .pi/180
+                    line(24+cos(r)*9, 24+sin(r)*9, 24+cos(r)*12, 24+sin(r)*12, 1.5)
+                }
+            case (.room, "chapel"):
+                poly([(12,22),(24,12),(36,22)],1.5); poly([(14,22),(14,40),(34,40),(34,22)],1.5)
+                line(24,14,24,19,1.5); line(21.5,16.5,26.5,16.5,1.5); rect(21,30,6,10,0.8)
+            case (.room, "stairs"):
+                poly([(6,40),(6,32),(14,32),(14,24),(22,24),(22,16),(30,16),(30,8),(42,8)],1.5)
+                line(6,40,42,40,1.5); line(42,8,42,40,0.7)
+            case (.room, "atrium"):
+                line(14,6,34,6,1.5); line(14,10,34,10,0.7); line(6,10,6,42,1.5); line(42,10,42,42,1.5)
+                line(6,42,42,42,1.5); line(14,42,14,22,0.7); line(34,42,34,22,0.7)
+            case (.room, "lounge"):
+                line(10,22,10,36,1.5); line(38,22,38,36,1.5); poly([(14,22),(34,22),(34,28)],1.5)
+                poly([(6,26),(42,26),(42,32),(6,32)],close:true,1.5); line(12,32,12,40,1.5); line(36,32,36,40,1.5)
+            case (.room, "window"):
+                rect(6,8,36,30,1.5); line(6,40,42,40,1.5); line(24,8,24,38,0.6)
+                rect(10,14,10,20,0.8); circle(33,22,5,0.8)
+            case (.room, "counter"):
+                poly([(6,30),(42,30),(42,40),(6,40)],close:true,1.5); line(6,34,42,34,0.6)
+                rect(14,14,20,14,1.5); line(14,22,34,22,0.7)
+                fillRect(16,24,3,2); fillRect(21,24,3,2); fillRect(26,24,3,2)
+            case (.room, "outdoor"):
+                circle(34,12,3,1.5); line(14,40,14,24,1.5); circle(14,18,6,1.5); line(6,40,42,40,1.5)
+            case (.room, "living"):
+                rect(8,24,32,10,1.5); poly([(8,24),(8,18),(40,18),(40,24)],0.9)
+                line(24,24,24,34,0.6); line(12,34,12,40,1.5); line(36,34,36,40,1.5)
+            case (.room, "bedroom"):
+                poly([(8,20),(8,14),(40,14),(40,20)],0.9); rect(8,20,32,16,1.5)
+                rect(11,23,9,6,0.8); line(8,36,8,40,1.5); line(40,36,40,40,1.5)
+            case (.room, "kitchen"):
+                rect(6,18,36,8,1.5); rect(6,26,36,14,1.5); circle(13,22,2,0.8); circle(20,22,2,0.8)
+                line(6,32,42,32,0.6)
+            case (.room, "bathroom"):
+                rect(10,22,28,10,1.5); circle(13,17,2,1.5); line(13,19,13,22,0.8)
+                line(12,32,12,38,1.5); line(36,32,36,38,1.5)
+            case (.room, "dining"):
+                rect(15,20,18,8,1.5); for x in [12.0,21,30,39] { dot(x,16,1.4); dot(x,32,1.4) }
+            case (.room, "meeting"):
+                circle(24,24,9,1.5); for a in stride(from: 0.0, to: 360.0, by: 60.0) {
+                    let r = a * .pi/180; dot(24+cos(r)*13, 24+sin(r)*13, 1.6)
+                }
+            case (.room, "workspace"):
+                line(8,38,40,38,1.5); rect(18,14,14,11,1.5); line(25,25,25,30,1.5); line(19,30,31,30,1.5)
+            case (.room, "hall"):
+                rect(10,6,28,36,1.5); poly([(10,6),(20,16),(20,42)],0.7); poly([(38,6),(28,16),(28,42)],0.7)
+            case (.room, "storage"):
+                rect(8,8,32,34,1.5); line(8,19,40,19,1.5); line(8,30,40,30,1.5)
+                dot(24,13.5,1); dot(24,24.5,1); dot(24,36,1)
+            case (.room, "service"):
+                rect(14,8,20,34,1.5); line(24,8,24,42,0.8); dot(20,25,1); dot(28,25,1)
+
             default:
-                qmark()
+                if case .room = group {
+                    rect(8,10,32,30,1.5); rect(18,26,12,14,1.0)   // generic room
+                } else {
+                    qmark()
+                }
             }
         }
     }

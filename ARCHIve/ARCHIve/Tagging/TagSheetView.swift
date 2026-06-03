@@ -102,10 +102,7 @@ struct TagSheetView: View {
             typologySection
             if let typ = tags.typology, typ != "Landscape" {
                 let rooms = TagVocab.roomsFor(typ)
-                if !rooms.isEmpty {
-                    singleChipSection("Room", options: rooms.map { ($0.id, $0.label, $0.symbol) },
-                                      selectionID: $tags.room)
-                }
+                if !rooms.isEmpty { roomSection(rooms) }
             }
         }
         if enabled("concept") { conceptSection }
@@ -213,6 +210,21 @@ struct TagSheetView: View {
     }
 
     // MARK: Illustrated sections (Typology / Graphic kinds / Visual)
+
+    private func roomSection(_ rooms: [TagOption]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionLabel("Room")
+            LazyVGrid(columns: tileColumns, spacing: 8) {
+                ForEach(rooms) { r in
+                    IllustratedTile(label: r.label, selected: tags.room == r.id) {
+                        LineArtGlyph(group: .room, id: r.id, color: Palette.ink)
+                    } action: {
+                        tags.room = (tags.room == r.id) ? nil : r.id
+                    }
+                }
+            }
+        }
+    }
 
     private var conceptSection: some View {
         VStack(alignment: .leading, spacing: 8) {
