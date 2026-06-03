@@ -22,7 +22,7 @@ struct TagSheetView: View {
             guard let name = p.project, !name.isEmpty, !seen.contains(name) else { continue }
             seen.insert(name); out.append(name)
         }
-        return out.sorted()
+        return Set(out).union(Settings.customProjects).sorted()
     }
 
     var body: some View {
@@ -134,7 +134,7 @@ struct TagSheetView: View {
         VStack(alignment: .leading, spacing: 8) {
             sectionLabel("Materiality")
             LazyVGrid(columns: tileColumns, spacing: 8) {
-                ForEach(TagVocab.materials, id: \.self) { m in
+                ForEach(TagVocab.materials + Settings.customMaterials, id: \.self) { m in
                     IllustratedTile(label: m, selected: tags.materials.contains(m)) {
                         MaterialityPattern(id: m, ink: Palette.ink)
                     } action: {

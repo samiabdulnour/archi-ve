@@ -5,6 +5,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var photos: [Photo]
     @State private var showCamera = false
+    @AppStorage("appearance") private var appearance = "auto"
 
     var body: some View {
         NavigationStack {
@@ -41,6 +42,7 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $showCamera) {
             CameraView()
         }
+        .preferredColorScheme(Settings.colorScheme(for: appearance))
     }
 
     #if targetEnvironment(simulator)

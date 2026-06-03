@@ -68,7 +68,7 @@ struct CameraView: View {
     private var existingProjects: [String] {
         var seen = Set<String>(); var out: [String] = []
         for p in allPhotos { if let n = p.project, !n.isEmpty, seen.insert(n).inserted { out.append(n) } }
-        return out.sorted()
+        return Set(out).union(Settings.customProjects).sorted()
     }
 
     // MARK: Preview + overlays
@@ -343,28 +343,32 @@ struct CameraView: View {
 private struct CameraSettingsSheet: View {
     @Bindable var camera: CameraController
     @Environment(\.dismiss) private var dismiss
-    @State private var showHelp = false
+    @State private var showAppSettings = false
+    @State private var showHowTo = false
 
     private let cols = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
 
     var body: some View {
         VStack(spacing: 0) {
             Capsule().fill(.white.opacity(0.3)).frame(width: 38, height: 5).padding(.vertical, 12)
-            LazyVGrid(columns: cols, spacing: 24) {
+            LazyVGrid(columns: cols, spacing: 22) {
                 item("FLASH", flashIcon, active: camera.flashMode != .off) { cycleFlash() }
-                item("TIMER", timerSeconds == 0 ? "timer" : "timer", active: camera.timerSeconds != 0,
+                item("TIMER", "timer", active: camera.timerSeconds != 0,
                      badge: camera.timerSeconds == 0 ? nil : "\(camera.timerSeconds)") { cycleTimer() }
                 item("ASPECT", "aspectratio", active: camera.aspect != .fourThree, badge: camera.aspect.rawValue) { cycleAspect() }
                 item("GRID", "grid", active: camera.gridOn) { camera.gridOn.toggle() }
                 item("LEVEL", "level", active: camera.levelOn) { camera.levelOn.toggle() }
-                item("HOW TO USE", "questionmark", active: false) { showHelp = true }
+                item("SETTINGS", "gearshape", active: false) { showAppSettings = true }
+                item("HOW TO USE", "questionmark", active: false) { showHowTo = true }
             }
             .padding(.horizontal, 22)
             Spacer(minLength: 16)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .environment(\.colorScheme, .dark)
-        .presentationDetents([.height(300)])
+        .sheet(isPresented: $showAppSettings) { SettingsView() }
+        .sheet(isPresented: $showHowTo) { NavigationStack { HowToUseView() } }
+        .presentationDetents([.height(380)])
         // Liquid-glass: a forced-dark frosted material so the blurred feed
         // shows through, like the native Camera control sheet.
         .presentationBackground {
@@ -373,11 +377,6 @@ private struct CameraSettingsSheet: View {
                 Color.black.opacity(0.18)
             }
             .environment(\.colorScheme, .dark)
-        }
-        .alert("Capture flow", isPresented: $showHelp) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Pick a Kind (Building/Element/Graphic) and Reference or Project, then tap the shutter. The tag icon switches between tagging right after the shot (Full) and saving instantly to tag later (Lite).")
         }
     }
 
