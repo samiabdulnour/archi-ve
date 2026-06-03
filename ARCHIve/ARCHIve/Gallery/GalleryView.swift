@@ -21,7 +21,6 @@ struct GalleryView: View {
     @Query(sort: \Photo.createdAt, order: .reverse) private var photos: [Photo]
 
     @State private var lens: GalleryLens = .time
-    @State private var refType = "all"
     @State private var search = ""
 
     // Filters
@@ -130,15 +129,7 @@ struct GalleryView: View {
     // MARK: Lenses
 
     private var referenceLens: some View {
-        VStack(spacing: 0) {
-            Picker("Type", selection: $refType) {
-                Text("All").tag("all")
-                ForEach(TagVocab.types) { Text($0.label).tag($0.id) }
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 12).padding(.bottom, 8)
-            grid(refType == "all" ? filtered : filtered.filter { $0.humanTags.type == refType })
-        }
+        ReferenceLens(photos: filtered)
     }
 
     private var projectLens: some View {
