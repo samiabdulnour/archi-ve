@@ -199,8 +199,8 @@ struct CameraView: View {
         // by the Reference/Project toggle, not the shutter colour.
         Button(action: onShutter) {
             ZStack {
-                Circle().stroke(.white, lineWidth: 3).frame(width: 72, height: 72)
-                Circle().fill(.white).frame(width: 58, height: 58)
+                Circle().stroke(.white, lineWidth: 4).frame(width: 74, height: 74)
+                Circle().fill(.white).frame(width: 66, height: 66)
             }
         }
         .disabled(countdown != nil)
