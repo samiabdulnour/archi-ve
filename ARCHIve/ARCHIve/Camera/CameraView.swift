@@ -159,7 +159,7 @@ struct CameraView: View {
             pillButton("arrow.2.squarepath", active: reuseTags != nil) {
                 reuseTags = (reuseTags == nil) ? latest?.humanTags : nil
             }
-            pillButton("ellipsis", active: false) { showSettings = true }
+            pillButton("circle.grid.3x3.fill", active: false) { showSettings = true }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
@@ -238,17 +238,20 @@ struct CameraView: View {
     }
 
     private var zoomBar: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 4) {
             ForEach(zoomStops, id: \.self) { z in
+                let active = abs(camera.zoomFactor - z) < 0.1
                 Button { camera.setZoom(z); baseZoom = z } label: {
                     Text(z == 1 ? "1×" : String(format: "%.0f×", z))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(abs(camera.zoomFactor - z) < 0.1 ? Palette.lemon : .white)
-                        .frame(width: 40, height: 30)
-                        .background(.black.opacity(0.35), in: Capsule())
+                        .font(.system(size: active ? 14 : 12, weight: .semibold))
+                        .foregroundStyle(active ? Palette.lemon : .white)
+                        .frame(width: active ? 38 : 32, height: active ? 38 : 32)
+                        .background(active ? Circle().fill(.black.opacity(0.5)) : Circle().fill(.clear))
                 }
             }
         }
+        .padding(.horizontal, 7).padding(.vertical, 4)
+        .background(Capsule().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
     }
 
     private var zoomStops: [CGFloat] {
@@ -340,34 +343,85 @@ struct CameraView: View {
 private struct CameraSettingsSheet: View {
     @Bindable var camera: CameraController
     @Environment(\.dismiss) private var dismiss
+    @State private var showHelp = false
+
+    private let cols = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Overlays") {
-                    Toggle("Grid", isOn: $camera.gridOn)
-                    Toggle("Level", isOn: $camera.levelOn)
-                }
-                Section("Capture") {
-                    Picker("Flash", selection: $camera.flashMode) {
-                        Text("Off").tag(AVCaptureDevice.FlashMode.off)
-                        Text("Auto").tag(AVCaptureDevice.FlashMode.auto)
-                        Text("On").tag(AVCaptureDevice.FlashMode.on)
-                    }
-                    Picker("Aspect", selection: $camera.aspect) {
-                        ForEach(CaptureAspect.allCases) { Text($0.rawValue).tag($0) }
-                    }
-                    Picker("Timer", selection: $camera.timerSeconds) {
-                        Text("Off").tag(0); Text("3s").tag(3); Text("10s").tag(10)
-                    }
-                }
+        VStack(spacing: 0) {
+            Capsule().fill(.white.opacity(0.3)).frame(width: 38, height: 5).padding(.vertical, 12)
+            LazyVGrid(columns: cols, spacing: 24) {
+                item("FLASH", flashIcon, active: camera.flashMode != .off) { cycleFlash() }
+                item("TIMER", timerSeconds == 0 ? "timer" : "timer", active: camera.timerSeconds != 0,
+                     badge: camera.timerSeconds == 0 ? nil : "\(camera.timerSeconds)") { cycleTimer() }
+                item("ASPECT", "aspectratio", active: camera.aspect != .fourThree, badge: camera.aspect.rawValue) { cycleAspect() }
+                item("GRID", "grid", active: camera.gridOn) { camera.gridOn.toggle() }
+                item("LEVEL", "level", active: camera.levelOn) { camera.levelOn.toggle() }
+                item("HOW TO USE", "questionmark", active: false) { showHelp = true }
             }
-            .navigationTitle("Camera")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .padding(.horizontal, 22)
+            Spacer(minLength: 16)
         }
-        .presentationDetents([.medium])
-        .tint(Palette.coral)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .environment(\.colorScheme, .dark)
+        .presentationDetents([.height(300)])
+        .presentationBackground(.ultraThinMaterial)
+        .alert("Capture flow", isPresented: $showHelp) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Pick a Kind (Building/Element/Graphic) and Reference or Project, then tap the shutter. The tag icon switches between tagging right after the shot (Full) and saving instantly to tag later (Lite).")
+        }
+    }
+
+    private var timerSeconds: Int { camera.timerSeconds }
+    private var flashIcon: String {
+        switch camera.flashMode {
+        case .on: return "bolt.fill"
+        case .auto: return "bolt.badge.a.fill"
+        default: return "bolt.slash.fill"
+        }
+    }
+
+    private func cycleFlash() {
+        switch camera.flashMode {
+        case .off: camera.flashMode = .auto
+        case .auto: camera.flashMode = .on
+        default: camera.flashMode = .off
+        }
+    }
+    private func cycleTimer() {
+        camera.timerSeconds = camera.timerSeconds == 0 ? 3 : (camera.timerSeconds == 3 ? 10 : 0)
+    }
+    private func cycleAspect() {
+        let all = CaptureAspect.allCases
+        if let i = all.firstIndex(of: camera.aspect) { camera.aspect = all[(i + 1) % all.count] }
+    }
+
+    @ViewBuilder
+    private func item(_ label: String, _ symbol: String, active: Bool,
+                      badge: String? = nil, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(active ? Palette.lemon : Color.clear)
+                        .overlay(Circle().strokeBorder(active ? .clear : .white.opacity(0.4), lineWidth: 1.5))
+                        .frame(width: 60, height: 60)
+                    if let badge {
+                        Text(badge)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(active ? .black : .white)
+                    } else {
+                        Image(systemName: symbol)
+                            .font(.system(size: 22, weight: .regular))
+                            .foregroundStyle(active ? .black : .white)
+                    }
+                }
+                Text(label)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+        }
     }
 }
 
