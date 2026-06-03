@@ -108,7 +108,7 @@ struct CameraView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .safeAreaInset(edge: .top, spacing: 0) {
             HStack(alignment: .top) {
-                typeSegment
+                if camera.mode == .project { projectPill } else { typeSegment }
                 Spacer()
                 actionPill
             }
@@ -135,24 +135,26 @@ struct CameraView: View {
 
     // MARK: Top — Type segment + action pill
 
+    // Both top pills share the same height (36pt buttons + 4pt padding) and
+    // icon weight so left and right read as a matched pair, native-style.
     private var typeSegment: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 4) {
             ForEach(TagVocab.types) { t in
                 let active = camera.captureType == t.id
                 Button { camera.captureType = t.id } label: {
-                    KindGlyph(id: t.id, color: active ? .black : .white.opacity(0.75))
-                        .frame(width: 26, height: 26)
-                        .padding(5)
+                    KindGlyph(id: t.id, color: active ? .black : .white.opacity(0.85))
+                        .frame(width: 22, height: 22)
+                        .frame(width: 36, height: 36)
                         .background(active ? Circle().fill(.white) : Circle().fill(.clear))
                 }
             }
         }
-        .padding(5)
+        .padding(4)
         .background(Capsule().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
     }
 
     private var actionPill: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 4) {
             pillButton(tagMode == .full ? "tag.fill" : "tag", active: tagMode == .full) {
                 tagMode = tagMode == .full ? .lite : .full
             }
@@ -161,17 +163,32 @@ struct CameraView: View {
             }
             pillButton("circle.grid.3x3.fill", active: false) { showSettings = true }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
+        .padding(4)
         .background(Capsule().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
     }
 
     private func pillButton(_ symbol: String, active: Bool, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 19, weight: .medium))
                 .foregroundStyle(active ? Palette.coral : .white)
-                .frame(width: 26, height: 26)
+                .frame(width: 36, height: 36)
+        }
+    }
+
+    /// Project mode replaces the Type segment with a Pick-project pill
+    /// (matches the old app); tap to choose / change the project.
+    private var projectPill: some View {
+        Button { showProjectPicker = true } label: {
+            HStack(spacing: 8) {
+                Circle().fill(Palette.lemon).frame(width: 8, height: 8)
+                Text(camera.currentProject ?? "Pick project")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            .padding(.horizontal, 14)
+            .frame(height: 44)
+            .background(Capsule().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
         }
     }
 
@@ -182,8 +199,8 @@ struct CameraView: View {
         // by the Reference/Project toggle, not the shutter colour.
         Button(action: onShutter) {
             ZStack {
-                Circle().stroke(.white, lineWidth: 4).frame(width: 76, height: 76)
-                Circle().fill(.white).frame(width: 64, height: 64)
+                Circle().stroke(.white, lineWidth: 3).frame(width: 72, height: 72)
+                Circle().fill(.white).frame(width: 58, height: 58)
             }
         }
         .disabled(countdown != nil)
@@ -195,7 +212,7 @@ struct CameraView: View {
                 camera.mode = .reference
             }
             modeSegment("PROJECT", on: camera.mode == .project, tint: Palette.lemon) {
-                if camera.currentProject == nil { showProjectPicker = true } else { camera.mode = .project }
+                camera.mode = .project
             }
         }
     }

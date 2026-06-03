@@ -9,10 +9,8 @@ struct SettingsView: View {
 
     @AppStorage("appearance") private var appearance = "auto"
     @AppStorage("customProjects") private var customProjectsRaw = ""
-    @AppStorage("customMaterials") private var customMaterialsRaw = ""
 
     @State private var newProject = ""
-    @State private var newMaterial = ""
 
     private var derivedProjects: [String] {
         var seen = Set<String>(); var out: [String] = []
@@ -29,7 +27,6 @@ struct SettingsView: View {
                 Section { projectsBody } header: { header("Projects") }
                 Section { appearanceBody } header: { header("Appearance") }
                 Section { captureStepsBody } header: { header("Capture flow steps") }
-                Section { customMaterialsBody } header: { header("Custom materials") }
                 Section {
                     NavigationLink { HowToUseView() } label: { Text("How to use ARCHI-ve") }
                 }
@@ -87,26 +84,6 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: Custom materials
-    @ViewBuilder private var customMaterialsBody: some View {
-        let custom = Settings.list(customMaterialsRaw)
-        if custom.isEmpty {
-            Text("No custom items yet.").foregroundStyle(.secondary)
-        } else {
-            ForEach(custom, id: \.self) { Text($0) }
-                .onDelete { idx in
-                    var c = custom; c.remove(atOffsets: idx); customMaterialsRaw = Settings.join(c)
-                }
-        }
-        HStack {
-            TextField("Add new…", text: $newMaterial)
-            Button("Add") {
-                let n = newMaterial.trimmingCharacters(in: .whitespaces)
-                guard !n.isEmpty else { return }
-                var c = custom; c.append(n); customMaterialsRaw = Settings.join(c); newMaterial = ""
-            }.disabled(newMaterial.trimmingCharacters(in: .whitespaces).isEmpty)
-        }
-    }
 }
 
 /// Small helpers for the comma-separated @AppStorage lists, plus the resolved
