@@ -46,6 +46,7 @@ struct TagSheetView: View {
                 }
                 .padding(20)
             }
+            .background(Palette.paper.ignoresSafeArea())
             .navigationTitle("Tag photo")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -135,7 +136,7 @@ struct TagSheetView: View {
             LazyVGrid(columns: tileColumns, spacing: 8) {
                 ForEach(TagVocab.materials, id: \.self) { m in
                     IllustratedTile(label: m, selected: tags.materials.contains(m)) {
-                        MaterialityPattern(id: m, ink: .primary)
+                        MaterialityPattern(id: m, ink: Palette.ink)
                     } action: {
                         if let i = tags.materials.firstIndex(of: m) { tags.materials.remove(at: i) }
                         else { tags.materials.append(m) }
@@ -318,12 +319,12 @@ struct TagChip: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: symbol == nil ? 44 : 60)
-            .background(selected ? Color.accentColor.opacity(0.16) : Color(.secondarySystemBackground))
-            .foregroundStyle(selected ? Color.accentColor : Color.primary)
+            .background(selected ? Palette.coral.opacity(0.16) : Palette.tile)
+            .foregroundStyle(selected ? Palette.coral : Palette.ink)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(selected ? Color.accentColor : .clear, lineWidth: 1.5)
+                    .strokeBorder(selected ? Palette.coral : .clear, lineWidth: 1.5)
             )
         }
         .buttonStyle(.plain)

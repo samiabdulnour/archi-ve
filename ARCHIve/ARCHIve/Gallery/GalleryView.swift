@@ -36,6 +36,7 @@ struct GalleryView: View {
                 }
             }
         }
+        .background(Palette.paper.ignoresSafeArea())
     }
 
     // MARK: Lenses

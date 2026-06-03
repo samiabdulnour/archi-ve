@@ -4,6 +4,10 @@ import Observation
 
 /// Aspect ratios offered in the camera, expressed as the *portrait* ratio
 /// (width / height). Capture crops the full sensor frame to this.
+/// Reference = photos found out in the world; Project = a site-specific shoot
+/// where a project is chosen once and a sequence is shot into it.
+enum CaptureMode { case reference, project }
+
 enum CaptureAspect: String, CaseIterable, Identifiable {
     case fourThree = "4:3"      // the full sensor
     case square = "1:1"
@@ -41,6 +45,12 @@ final class CameraController: NSObject {
     var timerSeconds = 0           // 0 | 3 | 10
     var zoomFactor: CGFloat = 1.0
     var maxZoom: CGFloat = 1.0
+
+    // Capture context (mirrors the web app's camera modes).
+    var mode: CaptureMode = .reference
+    var currentProject: String?            // the project shots land in (Project mode)
+    var captureType: String = "building"   // Type segment: building | element | graphic
+    var position: AVCaptureDevice.Position = .back
 
     /// Set by CameraPreview (main thread) so we can convert taps to device points.
     @ObservationIgnored weak var previewLayer: AVCaptureVideoPreviewLayer?
@@ -131,6 +141,38 @@ final class CameraController: NSObject {
             guard let self, self.session.isRunning else { return }
             self.session.stopRunning()
             self.onMain { self.isRunning = false }
+        }
+    }
+
+    // MARK: Flip front/back
+
+    func flipCamera() {
+        let newPos: AVCaptureDevice.Position = (position == .back) ? .front : .back
+        sessionQueue.async { [weak self] in
+            guard let self else { return }
+            self.session.beginConfiguration()
+            for input in self.session.inputs {
+                if let di = input as? AVCaptureDeviceInput, di.device.hasMediaType(.video) {
+                    self.session.removeInput(di)
+                }
+            }
+            if let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: newPos),
+               let input = try? AVCaptureDeviceInput(device: device),
+               self.session.canAddInput(input) {
+                self.session.addInput(input)
+                self.videoDevice = device
+            }
+            if let conn = self.photoOutput.connection(with: .video),
+               conn.isVideoRotationAngleSupported(90) {
+                conn.videoRotationAngle = 90
+            }
+            self.session.commitConfiguration()
+            let maxZ = min(self.videoDevice?.activeFormat.videoMaxZoomFactor ?? 1, 8.0)
+            self.onMain {
+                self.position = newPos
+                self.maxZoom = maxZ
+                self.zoomFactor = 1
+            }
         }
     }
 

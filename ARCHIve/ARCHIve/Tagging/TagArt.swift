@@ -106,6 +106,47 @@ struct MaterialityPattern: View {
     }
 }
 
+// MARK: - Kind glyphs (Building / Element / Graphic)
+
+/// Line-art glyphs for the three Kinds, ported from the web app's camera
+/// type-segment SVGs (28-unit viewBox, 1.8 stroke).
+struct KindGlyph: View {
+    let id: String
+    var color: Color
+
+    var body: some View {
+        Canvas { ctx, size in
+            let s = min(size.width, size.height) / 28
+            func P(_ build: (inout Path) -> Void) -> Path {
+                var p = Path(); build(&p)
+                return p.applying(CGAffineTransform(scaleX: s, y: s))
+            }
+            func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x, y: y) }
+            var paths: [Path] = []
+            switch id {
+            case "element":
+                paths.append(P { p in p.move(to: pt(6,4)); p.addLine(to: pt(22,4)); p.addLine(to: pt(22,7)); p.addLine(to: pt(6,7)); p.closeSubpath() })
+                paths.append(P { p in p.move(to: pt(8,7)); p.addLine(to: pt(8,21)); p.addLine(to: pt(20,21)); p.addLine(to: pt(20,7)) })
+                paths.append(P { p in p.move(to: pt(12,8)); p.addLine(to: pt(12,21)) })
+                paths.append(P { p in p.move(to: pt(16,8)); p.addLine(to: pt(16,21)) })
+                paths.append(P { p in p.move(to: pt(5,21)); p.addLine(to: pt(23,21)); p.addLine(to: pt(23,24)); p.addLine(to: pt(5,24)); p.closeSubpath() })
+            case "graphic":
+                paths.append(P { p in p.move(to: pt(5,3)); p.addLine(to: pt(18,3)); p.addLine(to: pt(23,8)); p.addLine(to: pt(23,25)); p.addLine(to: pt(5,25)); p.closeSubpath() })
+                paths.append(P { p in p.move(to: pt(18,3)); p.addLine(to: pt(18,8)); p.addLine(to: pt(23,8)) })
+                paths.append(P { p in p.move(to: pt(9,14)); p.addLine(to: pt(19,14)) })
+                paths.append(P { p in p.move(to: pt(9,18)); p.addLine(to: pt(19,18)) })
+                paths.append(P { p in p.move(to: pt(9,22)); p.addLine(to: pt(15,22)) })
+            default: // building
+                paths.append(P { p in p.move(to: pt(3,13)); p.addLine(to: pt(14,4)); p.addLine(to: pt(25,13)) })
+                paths.append(P { p in p.move(to: pt(6,13)); p.addLine(to: pt(6,24)); p.addLine(to: pt(22,24)); p.addLine(to: pt(22,13)) })
+                paths.append(P { p in p.addRect(CGRect(x: 12, y: 16, width: 4, height: 8)) })
+            }
+            let style = StrokeStyle(lineWidth: 1.8 * s, lineCap: .round, lineJoin: .round)
+            for path in paths { ctx.stroke(path, with: .color(color), style: style) }
+        }
+    }
+}
+
 // MARK: - Reusable illustrated tile
 
 /// A selectable tile that shows artwork in a square panel with a label below
@@ -129,23 +170,23 @@ struct IllustratedTile<Art: View>: View {
             VStack(spacing: 6) {
                 ZStack(alignment: .topTrailing) {
                     RoundedRectangle(cornerRadius: 9)
-                        .fill(Color(.tertiarySystemBackground))
+                        .fill(Palette.tile)
                         .overlay(art.padding(6).clipShape(RoundedRectangle(cornerRadius: 9)))
                         .overlay(RoundedRectangle(cornerRadius: 9)
-                            .strokeBorder(selected ? Color.accentColor : Color.primary.opacity(0.08),
+                            .strokeBorder(selected ? Palette.coral : Palette.hairline,
                                           lineWidth: selected ? 2 : 0.5))
                         .aspectRatio(1, contentMode: .fit)
                     if selected {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 16))
-                            .foregroundStyle(Color.accentColor, Color(.systemBackground))
+                            .foregroundStyle(Palette.coral, Palette.paperElev)
                             .padding(5)
                     }
                 }
                 Text(label)
                     .font(.caption2)
                     .lineLimit(1).minimumScaleFactor(0.7)
-                    .foregroundStyle(selected ? Color.accentColor : .secondary)
+                    .foregroundStyle(selected ? Palette.coral : Palette.ink2)
             }
         }
         .buttonStyle(.plain)

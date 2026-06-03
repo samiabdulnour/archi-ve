@@ -35,6 +35,7 @@ struct PhotoDetailView: View {
                 .padding(.bottom, 24)
             }
         }
+        .background(Palette.paper.ignoresSafeArea())
         .navigationTitle(photo.createdAt.formatted(date: .abbreviated, time: .shortened))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
