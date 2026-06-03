@@ -33,6 +33,9 @@ final class Photo: Identifiable {
     /// Project association (editable later); nil = unfiled.
     var project: String?
 
+    /// Set when the photo was brought in via Import rather than the camera.
+    var importedAt: Date?
+
     init(
         id: String = UUID().uuidString,
         imageData: Data,
@@ -40,7 +43,8 @@ final class Photo: Identifiable {
         latitude: Double? = nil,
         longitude: Double? = nil,
         humanTags: HumanTags = HumanTags(),
-        project: String? = nil
+        project: String? = nil,
+        importedAt: Date? = nil
     ) {
         self.id = id
         self.imageData = imageData
@@ -50,12 +54,28 @@ final class Photo: Identifiable {
         self.humanTagsData = (try? JSONEncoder().encode(humanTags)) ?? Data()
         self.machineTagsData = Data()
         self.project = project
+        self.importedAt = importedAt
     }
 
     /// Decoded view of the human tags.
     var humanTags: HumanTags {
         get { (try? JSONDecoder().decode(HumanTags.self, from: humanTagsData)) ?? HumanTags() }
         set { humanTagsData = (try? JSONEncoder().encode(newValue)) ?? Data() }
+    }
+
+    /// True when the photo has no Kind and no project — shows the red dot.
+    var isUntagged: Bool { humanTags.type == nil && (project ?? "").isEmpty }
+
+    /// Denormalised lower-cased text of every tag value, for search (AND
+    /// word-match), mirroring the web app's `search_text`.
+    var searchText: String {
+        let t = humanTags
+        var parts: [String?] = [t.type, t.typology, t.room, t.element, t.graphicKind,
+                                t.authorYear, t.note, t.title, t.creator, t.year,
+                                t.source, t.brand, t.model, t.contactName, t.contactCompany,
+                                project]
+        parts += t.concepts + t.materials + t.colors + t.visual + t.keywords
+        return parts.compactMap { $0 }.joined(separator: " ").lowercased()
     }
 }
 
@@ -79,10 +99,20 @@ struct HumanTags: Codable, Equatable {
     // Graphic branch
     var graphicKind: String?       // artwork, book, drawing, ...
     var visual: [String] = []      // Colorful, Monochrome, ...
+    // Per-graphic-kind detail fields (match the web app)
+    var title: String?
+    var creator: String?
+    var year: String?
+    var source: String?
+    var brand: String?
+    var model: String?
+    var contactName: String?
+    var contactCompany: String?
 
     // Free-text extras (optional)
     var authorYear: String?        // "Aalto, 1939" etc.
     var note: String?              // personal note
+    var keywords: [String] = []    // free user keywords
 
     /// A draft is "tagged" once a type is chosen.
     var isEmpty: Bool {
