@@ -183,6 +183,11 @@ final class CameraController: NSObject {
 
         sessionQueue.async { [weak self] in
             guard let self else { return }
+            // No camera (e.g. the Simulator) → safe no-op instead of throwing.
+            guard self.session.isRunning, self.photoOutput.connection(with: .video) != nil else {
+                self.onMain { self.deliver(nil) }
+                return
+            }
             let settings: AVCapturePhotoSettings
             if self.photoOutput.availablePhotoCodecTypes.contains(.jpeg) {
                 settings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.jpeg])

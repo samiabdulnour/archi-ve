@@ -95,7 +95,11 @@ struct CameraView: View {
                 bottomBar
             }
             .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        // Fill the whole screen so the controls pin to the top/bottom edges,
+        // with the letterboxed preview centered behind them.
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: Top controls
