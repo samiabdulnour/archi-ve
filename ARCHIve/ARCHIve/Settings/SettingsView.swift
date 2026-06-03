@@ -80,7 +80,7 @@ struct SettingsView: View {
     // MARK: Capture flow steps
     private var captureStepsBody: some View {
         ForEach(TagVocab.types) { t in
-            NavigationLink { CaptureStepView(kind: t.id, title: t.label) } label: { Text(t.label) }
+            NavigationLink { FlowStepsView(flow: t.id, title: t.label) } label: { Text(t.label) }
         }
     }
 
@@ -103,37 +103,62 @@ enum Settings {
     static var customProjects: [String] {
         list(UserDefaults.standard.string(forKey: "customProjects") ?? "")
     }
+
+    // MARK: Capture flow steps
+
+    /// (key, label) per Kind — the sections the user can show/hide.
+    static func flowSteps(_ flow: String) -> [(String, String)] {
+        switch flow {
+        case "element": return [("element", "Element"), ("materiality", "Materiality"),
+                                ("authoryear", "Author & year"), ("note", "Note")]
+        case "graphic": return [("kind", "Kind"), ("details", "Details"), ("note", "Note")]
+        default:        return [("typology", "Typology"), ("concept", "Concept"),
+                                ("materiality", "Materiality"), ("authoryear", "Author & year"), ("note", "Note")]
+        }
+    }
+    /// Concept is off by default (matches the web app); everything else on.
+    static func flowDefault(_ step: String) -> Bool { step != "concept" }
+
+    static func flowEnabled(_ flow: String, _ step: String) -> Bool {
+        flowDict()["\(flow).\(step)"] ?? flowDefault(step)
+    }
+    static func flowDict() -> [String: Bool] {
+        let raw = UserDefaults.standard.string(forKey: "flowSteps") ?? ""
+        return (try? JSONDecoder().decode([String: Bool].self, from: Data(raw.utf8))) ?? [:]
+    }
 }
 
-/// Read-only view of a Kind's tag options (the "capture flow" for that Kind).
-private struct CaptureStepView: View {
-    let kind: String
+/// Toggle which tagging sections appear for a Kind (the capture flow).
+private struct FlowStepsView: View {
+    let flow: String
     let title: String
+    @AppStorage("flowSteps") private var raw = ""
 
     var body: some View {
         Form {
-            switch kind {
-            case "building":
-                listSection("Typology", TagVocab.typology)
-                listSection("Concepts", TagVocab.concepts.map(\.label))
-                listSection("Materials", TagVocab.materials + Settings.customMaterials)
-            case "element":
-                ForEach(TagVocab.elementGroups, id: \.group) { g in
-                    listSection(g.group, g.items)
+            Section {
+                ForEach(Settings.flowSteps(flow), id: \.0) { step in
+                    Toggle(step.1, isOn: binding(step.0))
                 }
-                listSection("Materials", TagVocab.materials + Settings.customMaterials)
-            default:
-                listSection("Kinds", TagVocab.graphicKinds.map(\.label))
-                listSection("Visual", TagVocab.visual)
+            } footer: {
+                Text("Hidden sections are skipped while tagging. Kind/Typology/Element stay available.")
             }
         }
         .scrollContentBackground(.hidden)
         .background(Palette.paper.ignoresSafeArea())
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .tint(Palette.coral)
     }
 
-    private func listSection(_ title: String, _ items: [String]) -> some View {
-        Section(title) { ForEach(items, id: \.self) { Text($0) } }
+    private func binding(_ step: String) -> Binding<Bool> {
+        Binding(
+            get: { Settings.flowEnabled(flow, step) },
+            set: { newVal in
+                var d = Settings.flowDict()
+                d["\(flow).\(step)"] = newVal
+                raw = String(data: (try? JSONEncoder().encode(d)) ?? Data(), encoding: .utf8) ?? ""
+            }
+        )
     }
 }

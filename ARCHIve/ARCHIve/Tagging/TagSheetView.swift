@@ -14,6 +14,10 @@ struct TagSheetView: View {
     @Query private var allPhotos: [Photo]
     @State private var tags = HumanTags()
     @State private var project = ""
+    @AppStorage("flowSteps") private var flowRaw = ""
+
+    private var flow: String { tags.type ?? "building" }
+    private func enabled(_ step: String) -> Bool { Settings.flowEnabled(flow, step) }
 
     /// Distinct project names already in use, for one-tap reuse.
     private var existingProjects: [String] {
@@ -94,37 +98,39 @@ struct TagSheetView: View {
     // MARK: Building
 
     @ViewBuilder private var buildingSections: some View {
-        typologySection
-        if let typ = tags.typology, typ != "Landscape" {
-            let rooms = TagVocab.roomsFor(typ)
-            if !rooms.isEmpty {
-                singleChipSection("Room", options: rooms.map { ($0.id, $0.label, $0.symbol) },
-                                  selectionID: $tags.room)
+        if enabled("typology") {
+            typologySection
+            if let typ = tags.typology, typ != "Landscape" {
+                let rooms = TagVocab.roomsFor(typ)
+                if !rooms.isEmpty {
+                    singleChipSection("Room", options: rooms.map { ($0.id, $0.label, $0.symbol) },
+                                      selectionID: $tags.room)
+                }
             }
         }
-        conceptSection
-        materialitySection
-        colorSection
+        if enabled("concept") { conceptSection }
+        if enabled("materiality") { materialitySection; colorSection }
     }
 
     // MARK: Element
 
     @ViewBuilder private var elementSections: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            sectionLabel("Element")
-            ForEach(TagVocab.elementGroups, id: \.group) { grp in
-                Text(grp.group.uppercased())
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                chipGrid(grp.items.map { ($0, $0, nil as String?) }) { id in
-                    tags.element == id
-                } toggle: { id in
-                    tags.element = (tags.element == id) ? nil : id
+        if enabled("element") {
+            VStack(alignment: .leading, spacing: 14) {
+                sectionLabel("Element")
+                ForEach(TagVocab.elementGroups, id: \.group) { grp in
+                    Text(grp.group.uppercased())
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    chipGrid(grp.items.map { ($0, $0, nil as String?) }) { id in
+                        tags.element == id
+                    } toggle: { id in
+                        tags.element = (tags.element == id) ? nil : id
+                    }
                 }
             }
         }
-        materialitySection
-        colorSection
+        if enabled("materiality") { materialitySection; colorSection }
     }
 
     // MARK: Materiality (hatch-pattern tiles, shared by Building + Element)
@@ -170,8 +176,8 @@ struct TagSheetView: View {
     // MARK: Graphic
 
     @ViewBuilder private var graphicSections: some View {
-        graphicKindSection
-        graphicDetailSection
+        if enabled("kind") { graphicKindSection }
+        if enabled("details") { graphicDetailSection }
         visualSection
     }
 
@@ -277,19 +283,21 @@ struct TagSheetView: View {
             Divider()
             // Graphic has its own per-kind Title/Creator/Year fields, so the
             // generic Author & year is only shown for Building / Element.
-            if tags.type != "graphic" {
+            if tags.type != "graphic" && enabled("authoryear") {
                 sectionLabel("Author & year")
                 TextField("e.g. Aalto, 1939", text: Binding(
                     get: { tags.authorYear ?? "" },
                     set: { tags.authorYear = $0.isEmpty ? nil : $0 }))
                     .textFieldStyle(.roundedBorder)
             }
-            sectionLabel("Note")
-            TextField("Personal note", text: Binding(
-                get: { tags.note ?? "" },
-                set: { tags.note = $0.isEmpty ? nil : $0 }), axis: .vertical)
-                .lineLimit(1...4)
-                .textFieldStyle(.roundedBorder)
+            if enabled("note") {
+                sectionLabel("Note")
+                TextField("Personal note", text: Binding(
+                    get: { tags.note ?? "" },
+                    set: { tags.note = $0.isEmpty ? nil : $0 }), axis: .vertical)
+                    .lineLimit(1...4)
+                    .textFieldStyle(.roundedBorder)
+            }
             sectionLabel("Keywords")
             TextField("comma, separated", text: Binding(
                 get: { tags.keywords.joined(separator: ", ") },
