@@ -6,6 +6,7 @@ struct ContentView: View {
     @Query private var photos: [Photo]
     @State private var showCamera = false
     @AppStorage("appearance") private var appearance = "auto"
+    @AppStorage("welcomed") private var welcomed = false
 
     var body: some View {
         NavigationStack {
@@ -41,6 +42,9 @@ struct ContentView: View {
         }
         .fullScreenCover(isPresented: $showCamera) {
             CameraView()
+        }
+        .fullScreenCover(isPresented: Binding(get: { !welcomed }, set: { welcomed = !$0 })) {
+            WelcomeView { welcomed = true }
         }
         .preferredColorScheme(Settings.colorScheme(for: appearance))
     }
