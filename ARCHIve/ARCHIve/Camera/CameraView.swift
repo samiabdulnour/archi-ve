@@ -190,25 +190,25 @@ struct CameraView: View {
     }
 
     private var modeToggle: some View {
-        HStack(spacing: 0) {
-            modeSegment("Reference", on: camera.mode == .reference, tint: Palette.mint) {
+        HStack(spacing: 18) {
+            modeSegment("REFERENCE", on: camera.mode == .reference, tint: Palette.mint) {
                 camera.mode = .reference
             }
-            modeSegment("Project", on: camera.mode == .project, tint: Palette.lemon) {
+            modeSegment("PROJECT", on: camera.mode == .project, tint: Palette.lemon) {
                 if camera.currentProject == nil { showProjectPicker = true } else { camera.mode = .project }
             }
         }
-        .padding(3)
-        .background(Capsule().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
     }
 
+    /// Native VIDEO/PHOTO-style label: uppercase, tracked, active highlighted.
     private func modeSegment(_ title: String, on: Bool, tint: Color, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(on ? .black : .white)
-                .padding(.horizontal, 14).padding(.vertical, 7)
-                .background(on ? Capsule().fill(tint) : Capsule().fill(.clear))
+                .tracking(0.8)
+                .foregroundStyle(on ? tint : .white.opacity(0.6))
+                .padding(.horizontal, 12).padding(.vertical, 6)
+                .background(on ? Capsule().fill(.white.opacity(0.14)) : Capsule().fill(.clear))
         }
     }
 
@@ -216,25 +216,24 @@ struct CameraView: View {
         Button { dismiss() } label: {
             Group {
                 if let latest {
-                    PhotoThumbnail(photo: latest)
-                        .frame(width: 42, height: 42)
-                        .clipShape(Circle())
+                    PhotoThumbnail(photo: latest).frame(width: 46, height: 46)
                 } else {
-                    Circle().fill(.black.opacity(0.3)).frame(width: 42, height: 42)
+                    Color.white.opacity(0.12).frame(width: 46, height: 46)
                         .overlay(Image(systemName: "photo").foregroundStyle(.white.opacity(0.7)))
                 }
             }
-            .overlay(Circle().stroke(.white, lineWidth: 2))
+            .clipShape(RoundedRectangle(cornerRadius: 9))
+            .overlay(RoundedRectangle(cornerRadius: 9).stroke(.white.opacity(0.5), lineWidth: 1))
         }
     }
 
     private var flipButton: some View {
         Button { camera.flipCamera() } label: {
             Image(systemName: "arrow.triangle.2.circlepath")
-                .font(.system(size: 18, weight: .semibold))
+                .font(.system(size: 20, weight: .medium))
                 .foregroundStyle(.white)
-                .frame(width: 42, height: 42)
-                .background(Circle().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
+                .frame(width: 46, height: 46)
+                .background(Circle().fill(.white.opacity(0.16)))
         }
     }
 
@@ -366,7 +365,7 @@ private struct CameraSettingsSheet: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .environment(\.colorScheme, .dark)
         .presentationDetents([.height(300)])
-        .presentationBackground(.ultraThinMaterial)
+        .presentationBackground(Color(red: 0.10, green: 0.095, blue: 0.085))
         .alert("Capture flow", isPresented: $showHelp) {
             Button("OK", role: .cancel) {}
         } message: {
