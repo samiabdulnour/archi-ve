@@ -59,7 +59,7 @@ struct CameraView: View {
         let frameH = min(size.height, frameW / ratio)
 
         ZStack {
-            // Framed preview + the overlays that must align to it.
+            // Letterboxed preview + the overlays that must align to it, centered.
             ZStack {
                 CameraPreview(controller: camera) { point in
                     handleFocusTap(point)
@@ -87,19 +87,21 @@ struct CameraView: View {
                     .foregroundStyle(.white)
                     .shadow(radius: 8)
             }
-
-            VStack {
-                topBar
-                Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // Pin the controls to the screen edges with safeAreaInset — reliable,
+        // unlike a Spacer in a ZStack (the fixed-size preview sibling starves
+        // the Spacer of height and the bar collapses to centre).
+        .safeAreaInset(edge: .top, spacing: 0) {
+            topBar.padding(.top, 8)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 10) {
                 if camera.maxZoom > 1.5 { zoomBar }
                 bottomBar
             }
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.bottom, 8)
         }
-        // Fill the whole screen so the controls pin to the top/bottom edges,
-        // with the letterboxed preview centered behind them.
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: Top controls
