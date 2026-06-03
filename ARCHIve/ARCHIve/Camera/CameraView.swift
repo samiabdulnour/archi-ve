@@ -365,7 +365,15 @@ private struct CameraSettingsSheet: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .environment(\.colorScheme, .dark)
         .presentationDetents([.height(300)])
-        .presentationBackground(Color(red: 0.10, green: 0.095, blue: 0.085))
+        // Liquid-glass: a forced-dark frosted material so the blurred feed
+        // shows through, like the native Camera control sheet.
+        .presentationBackground {
+            ZStack {
+                Rectangle().fill(.ultraThinMaterial)
+                Color.black.opacity(0.18)
+            }
+            .environment(\.colorScheme, .dark)
+        }
         .alert("Capture flow", isPresented: $showHelp) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -404,8 +412,8 @@ private struct CameraSettingsSheet: View {
             VStack(spacing: 8) {
                 ZStack {
                     Circle()
-                        .fill(active ? Palette.lemon : Color.clear)
-                        .overlay(Circle().strokeBorder(active ? .clear : .white.opacity(0.4), lineWidth: 1.5))
+                        .fill(active ? AnyShapeStyle(Palette.lemon) : AnyShapeStyle(.ultraThinMaterial))
+                        .overlay(Circle().strokeBorder(active ? .clear : .white.opacity(0.25), lineWidth: 1))
                         .frame(width: 60, height: 60)
                     if let badge {
                         Text(badge)
