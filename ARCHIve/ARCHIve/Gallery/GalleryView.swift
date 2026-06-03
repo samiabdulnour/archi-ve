@@ -18,7 +18,7 @@ enum GalleryLens: String, CaseIterable, Identifiable {
 struct GalleryView: View {
     @Query(sort: \Photo.createdAt, order: .reverse) private var photos: [Photo]
     @State private var lens: GalleryLens = .time
-    @State private var refType = "building"
+    @State private var refType = "all"
 
     private let cols = Array(repeating: GridItem(.flexible(), spacing: 2), count: 3)
 
@@ -47,12 +47,13 @@ struct GalleryView: View {
     private var referenceLens: some View {
         VStack(spacing: 0) {
             Picker("Type", selection: $refType) {
+                Text("All").tag("all")
                 ForEach(TagVocab.types) { Text($0.label).tag($0.id) }
             }
             .pickerStyle(.segmented)
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
-            grid(photos.filter { $0.humanTags.type == refType })
+            grid(refType == "all" ? photos : photos.filter { $0.humanTags.type == refType })
         }
     }
 

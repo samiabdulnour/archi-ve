@@ -51,19 +51,33 @@ struct CameraView: View {
 
     @ViewBuilder
     private func previewStack(in size: CGSize) -> some View {
+        // The preview is letterboxed to the chosen aspect ratio and the capture
+        // is cropped to the same ratio — so the framed region is exactly the
+        // saved photo (what you see is what you get).
+        let ratio = camera.aspect.portraitRatio
+        let frameW = size.width
+        let frameH = min(size.height, frameW / ratio)
+
         ZStack {
-            CameraPreview(controller: camera) { point in
-                handleFocusTap(point)
+            // Framed preview + the overlays that must align to it.
+            ZStack {
+                CameraPreview(controller: camera) { point in
+                    handleFocusTap(point)
+                }
+                if camera.gridOn { GridOverlay() }
+                if camera.levelOn && !motion.isFlat {
+                    LevelOverlay(angle: motion.angle, isLevel: motion.isLevel)
+                }
+                if let p = focusPoint, focusRingVisible { FocusRing().position(p) }
             }
-            .ignoresSafeArea()
-
-            // Aspect-ratio letterbox mask
-            aspectMask(in: size)
-
-            if camera.gridOn { GridOverlay() }
-            if camera.levelOn && !motion.isFlat { LevelOverlay(angle: motion.angle, isLevel: motion.isLevel) }
-
-            if let p = focusPoint, focusRingVisible { FocusRing().position(p) }
+            .frame(width: frameW, height: frameH)
+            .clipped()
+            .contentShape(Rectangle())
+            .gesture(
+                MagnifyGesture()
+                    .onChanged { value in camera.setZoom(baseZoom * value.magnification) }
+                    .onEnded { _ in baseZoom = camera.zoomFactor }
+            )
 
             if shutterFlash { Color.white.ignoresSafeArea().transition(.opacity) }
 
@@ -82,29 +96,6 @@ struct CameraView: View {
             }
             .padding(.vertical, 8)
         }
-        .gesture(
-            MagnificationGesture()
-                .onChanged { value in camera.setZoom(baseZoom * value) }
-                .onEnded { _ in baseZoom = camera.zoomFactor }
-        )
-    }
-
-    /// Letterbox bars that preview the chosen aspect-ratio crop. The preview
-    /// itself fills the screen (resizeAspectFill); these dim the parts that
-    /// will be cropped away on capture.
-    @ViewBuilder
-    private func aspectMask(in size: CGSize) -> some View {
-        if let ratio = camera.aspect.portraitRatio {
-            let targetH = min(size.height, size.width / ratio)
-            let bar = max(0, (size.height - targetH) / 2)
-            VStack(spacing: 0) {
-                Color.black.opacity(0.55).frame(height: bar)
-                Spacer(minLength: 0)
-                Color.black.opacity(0.55).frame(height: bar)
-            }
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-        }
     }
 
     // MARK: Top controls
@@ -118,7 +109,7 @@ struct CameraView: View {
                     Button(a.rawValue) { camera.aspect = a }
                 }
             } label: {
-                labelChip(camera.aspect.rawValue, active: camera.aspect != .full)
+                labelChip(camera.aspect.rawValue, active: camera.aspect != .fourThree)
             }
             iconButton(camera.gridOn ? "grid" : "grid", active: camera.gridOn) { camera.gridOn.toggle() }
             iconButton("level", active: camera.levelOn, system: false) { camera.levelOn.toggle() }

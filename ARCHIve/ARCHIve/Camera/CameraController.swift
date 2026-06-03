@@ -5,17 +5,16 @@ import Observation
 /// Aspect ratios offered in the camera, expressed as the *portrait* ratio
 /// (width / height). Capture crops the full sensor frame to this.
 enum CaptureAspect: String, CaseIterable, Identifiable {
-    case full = "Full"
+    case fourThree = "4:3"      // the full sensor
     case square = "1:1"
-    case fourThree = "4:3"
     case sixteenNine = "16:9"
 
     var id: String { rawValue }
 
-    /// width / height in portrait. nil = no crop (full sensor).
-    var portraitRatio: CGFloat? {
+    /// width / height in portrait. The preview is letterboxed to this and the
+    /// capture is cropped to the same ratio, so what you frame is what you get.
+    var portraitRatio: CGFloat {
         switch self {
-        case .full: return nil
         case .square: return 1
         case .fourThree: return 3.0 / 4.0
         case .sixteenNine: return 9.0 / 16.0
@@ -51,7 +50,7 @@ final class CameraController: NSObject {
     @ObservationIgnored private let sessionQueue = DispatchQueue(label: "archive.camera.session")
     @ObservationIgnored private var configured = false
     @ObservationIgnored private var captureHandler: ((Data?) -> Void)?
-    @ObservationIgnored private var pendingAspect: CaptureAspect = .full
+    @ObservationIgnored private var pendingAspect: CaptureAspect = .fourThree
 
     private func onMain(_ work: @escaping () -> Void) {
         if Thread.isMainThread { work() } else { DispatchQueue.main.async(execute: work) }
@@ -207,7 +206,8 @@ final class CameraController: NSObject {
 
     /// Center-crop a UIImage to the given portrait aspect ratio.
     static func crop(_ image: UIImage, to aspect: CaptureAspect) -> UIImage {
-        guard let ratio = aspect.portraitRatio, let cg = image.cgImage else { return image }
+        let ratio = aspect.portraitRatio
+        guard let cg = image.cgImage else { return image }
         let w = CGFloat(cg.width), h = CGFloat(cg.height)
         // Match orientation: if the pixel buffer is landscape, invert ratio.
         let targetRatio = (w > h) ? (1.0 / ratio) : ratio

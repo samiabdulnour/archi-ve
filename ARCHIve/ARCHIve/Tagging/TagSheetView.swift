@@ -104,6 +104,7 @@ struct TagSheetView: View {
         multiChipSection("Concept", options: TagVocab.concepts.map { ($0.id, $0.label, $0.symbol) },
                          selection: $tags.concepts)
         multiTextSection("Materiality", options: TagVocab.materials, selection: $tags.materials)
+        colorSection
     }
 
     // MARK: Element
@@ -123,6 +124,38 @@ struct TagSheetView: View {
             }
         }
         multiTextSection("Materiality", options: TagVocab.materials, selection: $tags.materials)
+        colorSection
+    }
+
+    // MARK: Colour (multi-select swatches, shared by Building + Element)
+
+    private var colorSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionLabel("Colour")
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
+                ForEach(TagVocab.colors, id: \.id) { c in
+                    let selected = tags.colors.contains(c.id)
+                    Button {
+                        if let i = tags.colors.firstIndex(of: c.id) { tags.colors.remove(at: i) }
+                        else { tags.colors.append(c.id) }
+                    } label: {
+                        VStack(spacing: 5) {
+                            Circle().fill(Color(hex: c.hex))
+                                .frame(width: 26, height: 26)
+                                .overlay(Circle().strokeBorder(.primary.opacity(0.15), lineWidth: 0.5))
+                            Text(c.label).font(.caption2).lineLimit(1).minimumScaleFactor(0.7)
+                        }
+                        .frame(maxWidth: .infinity).frame(height: 60)
+                        .background(selected ? Color.accentColor.opacity(0.16) : Color(.secondarySystemBackground))
+                        .foregroundStyle(selected ? Color.accentColor : Color.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(selected ? Color.accentColor : .clear, lineWidth: 1.5))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 
     // MARK: Graphic
