@@ -89,9 +89,15 @@ struct PhotoDetailView: View {
         addList("Materiality", t.materials)
         addList("Colour", t.colors.map { $0.capitalized })
         add("Graphic kind", t.graphicKind?.capitalized)
+        add("Title", t.title)
+        add("Creator", t.creator)
+        add("Year", t.year)
+        add("Source", t.source)
+        add("Contact", [t.contactName, t.contactCompany].compactMap { $0 }.joined(separator: " · "))
         addList("Visual", t.visual)
         add("Author & year", t.authorYear)
         add("Note", t.note)
+        addList("Keywords", t.keywords)
         add("Project", photo.project)
         if photo.latitude != nil { rows.append(Row(label: "Location", value: "Tagged")) }
         if rows.isEmpty { rows.append(Row(label: "Untagged", value: "Tap ⋯ to add tags")) }

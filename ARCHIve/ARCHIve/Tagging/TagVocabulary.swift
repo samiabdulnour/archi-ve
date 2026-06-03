@@ -109,6 +109,18 @@ enum TagVocab {
         "Colorful", "Monochrome", "Textured", "Minimal", "Patterned",
         "Ornate", "Dark", "Light",
     ]
+
+    /// Per-graphic-kind detail fields (key, placeholder) — matches the web
+    /// app's GRAPHIC_FIELDS. Empty for kinds with no details (plan/render/…).
+    static func graphicFields(for kind: String?) -> [(String, String)] {
+        switch kind {
+        case "artwork": return [("title", "Title"), ("creator", "Artist"), ("year", "Year"), ("source", "Source / where")]
+        case "book":    return [("title", "Title"), ("creator", "Author"), ("source", "Publisher / library")]
+        case "drawing": return [("title", "Title"), ("creator", "Creator"), ("year", "Year")]
+        case "contact": return [("name", "Name"), ("company", "Company")]
+        default:        return []
+        }
+    }
 }
 
 extension Color {

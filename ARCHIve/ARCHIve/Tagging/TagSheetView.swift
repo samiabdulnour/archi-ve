@@ -171,7 +171,39 @@ struct TagSheetView: View {
 
     @ViewBuilder private var graphicSections: some View {
         graphicKindSection
+        graphicDetailSection
         visualSection
+    }
+
+    /// Per-kind detail fields, matching the web app's GRAPHIC_FIELDS.
+    @ViewBuilder private var graphicDetailSection: some View {
+        let fields = TagVocab.graphicFields(for: tags.graphicKind)
+        if !fields.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                sectionLabel("Details")
+                ForEach(fields, id: \.0) { field in
+                    TextField(field.1, text: binding(for: field.0))
+                        .textFieldStyle(.roundedBorder)
+                }
+            }
+        }
+    }
+
+    /// Maps a graphic field key to the matching HumanTags property.
+    private func binding(for key: String) -> Binding<String> {
+        switch key {
+        case "title":   return strBinding(\.title)
+        case "creator": return strBinding(\.creator)
+        case "year":    return strBinding(\.year)
+        case "source":  return strBinding(\.source)
+        case "name":    return strBinding(\.contactName)
+        case "company": return strBinding(\.contactCompany)
+        default:        return strBinding(\.title)
+        }
+    }
+    private func strBinding(_ kp: WritableKeyPath<HumanTags, String?>) -> Binding<String> {
+        Binding(get: { tags[keyPath: kp] ?? "" },
+                set: { tags[keyPath: kp] = $0.isEmpty ? nil : $0 })
     }
 
     // MARK: Illustrated sections (Typology / Graphic kinds / Visual)
@@ -243,17 +275,27 @@ struct TagSheetView: View {
     private var extrasSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Divider()
-            sectionLabel("Author & year")
-            TextField("e.g. Aalto, 1939", text: Binding(
-                get: { tags.authorYear ?? "" },
-                set: { tags.authorYear = $0.isEmpty ? nil : $0 }))
-                .textFieldStyle(.roundedBorder)
+            // Graphic has its own per-kind Title/Creator/Year fields, so the
+            // generic Author & year is only shown for Building / Element.
+            if tags.type != "graphic" {
+                sectionLabel("Author & year")
+                TextField("e.g. Aalto, 1939", text: Binding(
+                    get: { tags.authorYear ?? "" },
+                    set: { tags.authorYear = $0.isEmpty ? nil : $0 }))
+                    .textFieldStyle(.roundedBorder)
+            }
             sectionLabel("Note")
             TextField("Personal note", text: Binding(
                 get: { tags.note ?? "" },
                 set: { tags.note = $0.isEmpty ? nil : $0 }), axis: .vertical)
                 .lineLimit(1...4)
                 .textFieldStyle(.roundedBorder)
+            sectionLabel("Keywords")
+            TextField("comma, separated", text: Binding(
+                get: { tags.keywords.joined(separator: ", ") },
+                set: { tags.keywords = $0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty } }))
+                .textFieldStyle(.roundedBorder)
+                .autocorrectionDisabled()
             projectSection
         }
     }
