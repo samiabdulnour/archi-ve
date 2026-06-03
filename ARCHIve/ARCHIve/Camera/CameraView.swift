@@ -138,7 +138,7 @@ struct CameraView: View {
     // Both top pills share the same height (36pt buttons + 4pt padding) and
     // icon weight so left and right read as a matched pair, native-style.
     private var typeSegment: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 8) {
             ForEach(TagVocab.types) { t in
                 let active = camera.captureType == t.id
                 Button { camera.captureType = t.id } label: {
@@ -149,12 +149,12 @@ struct CameraView: View {
                 }
             }
         }
-        .padding(3)
+        .padding(.horizontal, 8).padding(.vertical, 3)
         .background(Capsule().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
     }
 
     private var actionPill: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 8) {
             pillButton(tagMode == .full ? "tag.fill" : "tag", active: tagMode == .full) {
                 tagMode = tagMode == .full ? .lite : .full
             }
@@ -163,7 +163,7 @@ struct CameraView: View {
             }
             pillButton("circle.grid.3x3.fill", active: false) { showSettings = true }
         }
-        .padding(.horizontal, 6).padding(.vertical, 3)
+        .padding(.horizontal, 10).padding(.vertical, 3)
         .background(Capsule().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
     }
 
@@ -199,8 +199,8 @@ struct CameraView: View {
         // by the Reference/Project toggle, not the shutter colour.
         Button(action: onShutter) {
             ZStack {
-                Circle().stroke(.white, lineWidth: 2.5).frame(width: 72, height: 72)
-                Circle().fill(.white).frame(width: 64, height: 64)
+                Circle().stroke(.white, lineWidth: 2.5).frame(width: 74, height: 74)
+                Circle().fill(.white).frame(width: 58, height: 58)
             }
         }
         .disabled(countdown != nil)
