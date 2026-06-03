@@ -149,7 +149,7 @@ struct KindGlyph: View {
 
 // MARK: - Line-art glyphs (Typology / Graphic kinds / Visual)
 
-enum ArtGroup { case typology, graphic, visual }
+enum ArtGroup { case typology, graphic, visual, concept }
 
 /// Architectural line-art for the remaining tag groups, in a 48-unit space.
 /// Typology + Graphic are ported from the web app's SVGs where available;
@@ -190,6 +190,18 @@ struct LineArtGlyph: View {
                          with: .color(color))
             }
             func disc(_ cx: CGFloat, _ cy: CGFloat, _ r: CGFloat) { dot(cx, cy, r) }
+            func fillRect(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat) {
+                ctx.fill(Path(CGRect(x: x*s, y: y*s, width: w*s, height: h*s)), with: .color(color))
+            }
+            func quad(_ lw: CGFloat, _ pts: [(CGFloat, CGFloat)], controls: [(CGFloat, CGFloat)]) {
+                stroke(lw) { p in
+                    p.move(to: CGPoint(x: pts[0].0, y: pts[0].1))
+                    for i in 1..<pts.count {
+                        p.addQuadCurve(to: CGPoint(x: pts[i].0, y: pts[i].1),
+                                       control: CGPoint(x: controls[i-1].0, y: controls[i-1].1))
+                    }
+                }
+            }
             func qmark() {
                 let t = ctx.resolve(Text("?").font(.system(size: 20 * s, weight: .semibold))
                     .foregroundColor(color))
@@ -204,24 +216,34 @@ struct LineArtGlyph: View {
                 poly([(11,22),(11,41),(37,41),(37,22)])
                 rect(21,29,6,12); rect(14,26,5,5); rect(29,26,5,5); line(32,14,32,19)
             case (.typology, "Office"):
-                rect(14,7,20,34)
-                for fy in stride(from: 12.0, through: 38.0, by: 6.0) { line(14,fy,34,fy,0.7) }
-                line(20,7,20,41,0.7); line(27,7,27,41,0.7)
+                poly([(10,7),(38,7),(38,41),(10,41)], close: true)
+                for y in [11.0,17,23,29,35] {
+                    for x in [14.0,20,26,32] { fillRect(x, y-1, 2, 2) }
+                }
             case (.typology, "Public"):
                 poly([(5,18),(24,7),(43,18)], close: true)
                 line(5,40,43,40); line(6,36,42,36); line(6,20,42,20)
                 for vx in [12.0,20.0,28.0,36.0] { line(vx,20,vx,36) }
                 line(24,3,24,9); poly([(24,4),(30,6),(24,8)], 0.7)
             case (.typology, "Commercial"):
-                poly([(6,15),(24,9),(42,15)])
-                rect(8,15,32,25); rect(19,28,10,12); rect(11,18,7,6,0.7); rect(30,18,7,6,0.7)
+                rect(7,11,34,30)
+                poly([(7,17),(11,21),(37,21),(41,17)])
+                for x in [14.0,20,26,32] { line(x,17,x,21,0.8) }
+                rect(21,28,6,13); dot(25.5,34,0.6)
+                rect(10,25,9,13); rect(29,25,9,13)
+                line(14.5,25,14.5,38,0.6); line(33.5,25,33.5,38,0.6)
             case (.typology, "Hospitality"):
-                line(7,38,7,28); line(41,38,41,30)
-                rect(11,26,26,8); poly([(11,26),(11,20),(22,20),(22,26)], 0.9)
-                line(7,38,41,38)
+                rect(6,9,36,32); line(6,14,42,14,1)
+                for y in [16.0,22,28,34] {
+                    for x in [8.0,15,22,29,36] { rect(x,y,5,3,0.9) }
+                }
             case (.typology, "Heritage"):
-                rect(19,13,10,25); rect(16,9,16,4); rect(15,38,18,4)
-                line(22,13,22,38,0.7); line(26,13,26,38,0.7)
+                poly([(14,11),(34,11),(34,14),(14,14)], close: true)
+                poly([(16,14),(16,35),(32,35),(32,14)])
+                poly([(11,35),(37,35),(37,38),(11,38)], close: true)
+                poly([(9,38),(39,38),(39,41),(9,41)], close: true)
+                for x in [20.0,24,28] { line(x,15,x,34,0.7) }
+                dot(19,12.5,0.7); dot(29,12.5,0.7)
             case (.typology, "Landscape"):
                 circle(36,11,2.6)
                 stroke(1.8) { p in
@@ -286,6 +308,40 @@ struct LineArtGlyph: View {
                     let rad = a * .pi/180
                     line(24+11*cos(rad), 24+11*sin(rad), 24+16*cos(rad), 24+16*sin(rad), 1.2)
                 }
+
+            // MARK: Concept (ported exactly from the web _v2 glyphs)
+            case (.concept, "form"):
+                poly([(24,6),(40,14),(40,32),(24,40),(8,32),(8,14)], close: true)
+                line(24,6,24,24); line(24,24,8,14); line(24,24,40,14)
+            case (.concept, "space"):
+                rect(7,7,34,34); rect(14,14,20,20)
+                line(14,22,14,26,3); line(7,22,7,26,3)
+            case (.concept, "light"):
+                circle(24,24,6)
+                for a in stride(from: 0.0, to: 360.0, by: 45.0) {
+                    let r = a * .pi/180
+                    line(24+cos(r)*11, 24+sin(r)*11, 24+cos(r)*16, 24+sin(r)*16)
+                }
+            case (.concept, "materiality"):
+                rect(8,8,32,32); line(24,8,24,40); line(8,24,40,24)
+                for (x,y,r) in [(12.0,12.0,0.7),(16,14,0.6),(20,11,0.6),(14,18,0.6),(20,20,0.7),(11,22,0.6),(17,22,0.5)] { dot(x,y,r) }
+                for (x1,y1,x2,y2) in [(25.0,12.0,39.0,12.0),(25,16,39,16),(25,20,39,20),(29,9,29,12),(34,12,34,16),(29,16,29,20),(34,20,34,23)] { line(x1,y1,x2,y2,0.8) }
+                quad(0.8, [(9,28),(19,28),(23,28)], controls: [(14,27),(24,29)])
+                quad(0.8, [(9,32),(19,32),(23,32)], controls: [(14,33),(24,31)])
+                quad(0.8, [(9,36),(19,36),(23,36)], controls: [(14,35),(24,37)])
+                line(26,38,38,26,0.8); line(26,32,32,26,0.8); line(32,38,38,32,0.8)
+            case (.concept, "structure"):
+                line(5,16,43,16); line(5,30,43,30); line(5,16,5,30); line(43,16,43,30)
+                poly([(5,30),(12,16),(19,30),(26,16),(33,30),(40,16),(43,30)])
+                for x in [5.0,19,33] { dot(x,30,1.2) }
+                for x in [12.0,26,40] { dot(x,16,1.2) }
+            case (.concept, "context"):
+                rect(6,6,36,36,0.7); line(6,22,42,22,0.8); line(22,6,22,42,0.8)
+                fillRect(9,9,9,6); fillRect(11,26,8,11); fillRect(26,11,13,7); fillRect(29,28,6,6)
+            case (.concept, "circulation"):
+                quad(1.8, [(6,36),(18,30),(26,22),(36,14)], controls: [(14,36),(22,24),(32,20)])
+                poly([(33,13),(38,12),(37,17)])
+                dot(9,36,1.6); dot(38,11,1.6)
 
             default:
                 qmark()

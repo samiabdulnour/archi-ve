@@ -102,8 +102,7 @@ struct TagSheetView: View {
                                   selectionID: $tags.room)
             }
         }
-        multiChipSection("Concept", options: TagVocab.concepts.map { ($0.id, $0.label, $0.symbol) },
-                         selection: $tags.concepts)
+        conceptSection
         materialitySection
         colorSection
     }
@@ -176,6 +175,22 @@ struct TagSheetView: View {
     }
 
     // MARK: Illustrated sections (Typology / Graphic kinds / Visual)
+
+    private var conceptSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionLabel("Concept")
+            LazyVGrid(columns: tileColumns, spacing: 8) {
+                ForEach(TagVocab.concepts) { c in
+                    IllustratedTile(label: c.label, selected: tags.concepts.contains(c.id)) {
+                        LineArtGlyph(group: .concept, id: c.id, color: Palette.ink)
+                    } action: {
+                        if let i = tags.concepts.firstIndex(of: c.id) { tags.concepts.remove(at: i) }
+                        else { tags.concepts.append(c.id) }
+                    }
+                }
+            }
+        }
+    }
 
     private var typologySection: some View {
         VStack(alignment: .leading, spacing: 8) {
