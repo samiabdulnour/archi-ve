@@ -147,6 +147,153 @@ struct KindGlyph: View {
     }
 }
 
+// MARK: - Line-art glyphs (Typology / Graphic kinds / Visual)
+
+enum ArtGroup { case typology, graphic, visual }
+
+/// Architectural line-art for the remaining tag groups, in a 48-unit space.
+/// Typology + Graphic are ported from the web app's SVGs where available;
+/// Visual glyphs are designed to match the same hand.
+struct LineArtGlyph: View {
+    let group: ArtGroup
+    let id: String
+    var color: Color
+
+    var body: some View {
+        Canvas { ctx, size in
+            let s = min(size.width, size.height) / 48
+            let scale = CGAffineTransform(scaleX: s, y: s)
+            func stroke(_ lw: CGFloat, _ build: (inout Path) -> Void) {
+                var p = Path(); build(&p)
+                ctx.stroke(p.applying(scale), with: .color(color),
+                           style: StrokeStyle(lineWidth: lw * s, lineCap: .round, lineJoin: .round))
+            }
+            func line(_ x1: CGFloat, _ y1: CGFloat, _ x2: CGFloat, _ y2: CGFloat, _ lw: CGFloat = 1.8) {
+                stroke(lw) { $0.move(to: CGPoint(x: x1, y: y1)); $0.addLine(to: CGPoint(x: x2, y: y2)) }
+            }
+            func rect(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat, _ lw: CGFloat = 1.8) {
+                stroke(lw) { $0.addRect(CGRect(x: x, y: y, width: w, height: h)) }
+            }
+            func poly(_ pts: [(CGFloat, CGFloat)], close: Bool = false, _ lw: CGFloat = 1.8) {
+                stroke(lw) { p in
+                    guard let f = pts.first else { return }
+                    p.move(to: CGPoint(x: f.0, y: f.1))
+                    for q in pts.dropFirst() { p.addLine(to: CGPoint(x: q.0, y: q.1)) }
+                    if close { p.closeSubpath() }
+                }
+            }
+            func circle(_ cx: CGFloat, _ cy: CGFloat, _ r: CGFloat, _ lw: CGFloat = 1.8) {
+                stroke(lw) { $0.addEllipse(in: CGRect(x: cx - r, y: cy - r, width: 2*r, height: 2*r)) }
+            }
+            func dot(_ cx: CGFloat, _ cy: CGFloat, _ r: CGFloat) {
+                ctx.fill(Path(ellipseIn: CGRect(x: (cx-r)*s, y: (cy-r)*s, width: 2*r*s, height: 2*r*s)),
+                         with: .color(color))
+            }
+            func disc(_ cx: CGFloat, _ cy: CGFloat, _ r: CGFloat) { dot(cx, cy, r) }
+            func qmark() {
+                let t = ctx.resolve(Text("?").font(.system(size: 20 * s, weight: .semibold))
+                    .foregroundColor(color))
+                ctx.draw(t, at: CGPoint(x: 24 * s, y: 25 * s))
+            }
+
+            switch (group, id) {
+
+            // MARK: Typology
+            case (.typology, "Residential"):
+                poly([(7,24),(24,9),(41,24)])
+                poly([(11,22),(11,41),(37,41),(37,22)])
+                rect(21,29,6,12); rect(14,26,5,5); rect(29,26,5,5); line(32,14,32,19)
+            case (.typology, "Office"):
+                rect(14,7,20,34)
+                for fy in stride(from: 12.0, through: 38.0, by: 6.0) { line(14,fy,34,fy,0.7) }
+                line(20,7,20,41,0.7); line(27,7,27,41,0.7)
+            case (.typology, "Public"):
+                poly([(5,18),(24,7),(43,18)], close: true)
+                line(5,40,43,40); line(6,36,42,36); line(6,20,42,20)
+                for vx in [12.0,20.0,28.0,36.0] { line(vx,20,vx,36) }
+                line(24,3,24,9); poly([(24,4),(30,6),(24,8)], 0.7)
+            case (.typology, "Commercial"):
+                poly([(6,15),(24,9),(42,15)])
+                rect(8,15,32,25); rect(19,28,10,12); rect(11,18,7,6,0.7); rect(30,18,7,6,0.7)
+            case (.typology, "Hospitality"):
+                line(7,38,7,28); line(41,38,41,30)
+                rect(11,26,26,8); poly([(11,26),(11,20),(22,20),(22,26)], 0.9)
+                line(7,38,41,38)
+            case (.typology, "Heritage"):
+                rect(19,13,10,25); rect(16,9,16,4); rect(15,38,18,4)
+                line(22,13,22,38,0.7); line(26,13,26,38,0.7)
+            case (.typology, "Landscape"):
+                circle(36,11,2.6)
+                stroke(1.8) { p in
+                    p.move(to: CGPoint(x: 4, y: 36))
+                    p.addQuadCurve(to: CGPoint(x: 22, y: 30), control: CGPoint(x: 12, y: 26))
+                    p.addQuadCurve(to: CGPoint(x: 44, y: 24), control: CGPoint(x: 32, y: 34))
+                }
+                line(4,42,44,42); line(12,36,12,26); circle(12,21,5)
+
+            // MARK: Graphic kinds
+            case (.graphic, "Artwork"):
+                rect(6,9,36,30); rect(10,13,28,22,0.7); circle(32,19,2.2)
+                poly([(10,30),(17,23),(22,28),(28,22),(34,27),(38,24),(38,35),(10,35)], close: true)
+            case (.graphic, "Book"):
+                line(24,12,24,40)
+                stroke(1.8) { p in p.move(to: CGPoint(x:24,y:12)); p.addQuadCurve(to: CGPoint(x:7,y:13), control: CGPoint(x:15,y:9)); p.addLine(to: CGPoint(x:7,y:37)); p.addQuadCurve(to: CGPoint(x:24,y:36), control: CGPoint(x:15,y:33)) }
+                stroke(1.8) { p in p.move(to: CGPoint(x:24,y:12)); p.addQuadCurve(to: CGPoint(x:41,y:13), control: CGPoint(x:33,y:9)); p.addLine(to: CGPoint(x:41,y:37)); p.addQuadCurve(to: CGPoint(x:24,y:36), control: CGPoint(x:33,y:33)) }
+            case (.graphic, "Drawing"):
+                poly([(8,6),(32,6),(40,14),(40,42),(8,42)], close: true)
+                poly([(32,6),(32,14),(40,14)])
+                poly([(12,22),(20,16),(26,22),(34,18)], 1.0)
+                line(12,30,34,30,0.7); line(12,34,34,34,0.7); line(12,38,28,38,0.7)
+            case (.graphic, "Plan"):
+                rect(6,6,36,36); line(6,22,42,22); line(22,22,22,42)
+                rect(10,11,8,6,0.7); rect(32,32,6,6,0.7)
+            case (.graphic, "Render"):
+                poly([(10,16),(24,10),(38,16),(38,34),(24,40),(10,34)], close: true)
+                poly([(10,16),(24,22),(38,16)]); line(24,22,24,40)
+                circle(38,9,2.4); line(35,6,33,8,0.6); line(41,6,43,8,0.6); line(38,3,38,5,0.6)
+            case (.graphic, "Diagram"):
+                line(8,40,42,40); line(8,8,8,40)
+                rect(13,28,5,12,0.9); rect(21,22,5,18,0.9); rect(29,14,5,26,0.9); rect(37,24,5,16,0.9)
+            case (.graphic, "Contact"):
+                rect(6,11,36,26); circle(15,20,3)
+                stroke(1.8) { p in p.move(to: CGPoint(x:9,y:32)); p.addQuadCurve(to: CGPoint(x:21,y:32), control: CGPoint(x:15,y:24)) }
+                line(26,18,38,18,1.0); line(26,23,38,23,1.0); line(26,28,35,28,1.0)
+
+            // MARK: Visual
+            case (.visual, "Colorful"):
+                circle(18,20,9); circle(30,20,9); circle(24,30,9)
+            case (.visual, "Monochrome"):
+                circle(24,24,14)
+                ctx.fill(Path { p in p.addArc(center: CGPoint(x:24*s,y:24*s), radius: 14*s, startAngle: .degrees(-90), endAngle: .degrees(90), clockwise: false) }, with: .color(color))
+            case (.visual, "Textured"):
+                rect(9,9,30,30)
+                for d in stride(from: -24.0, through: 30.0, by: 6.0) { line(max(9,9+d),max(9,9-d), min(39,39+d),min(39,39-d),0.8) }
+            case (.visual, "Minimal"):
+                rect(10,10,28,28,0.8); dot(24,24,2)
+            case (.visual, "Patterned"):
+                for cx in [15.0,24.0,33.0] { for cy in [15.0,24.0,33.0] { dot(cx,cy,1.8) } }
+            case (.visual, "Ornate"):
+                circle(24,24,12,0.9); circle(24,24,7,0.9); dot(24,24,2)
+                for a in stride(from: 0.0, to: 360.0, by: 45.0) {
+                    let r1 = 12.0, r2 = 16.0, rad = a * .pi/180
+                    line(24+r1*cos(rad), 24+r1*sin(rad), 24+r2*cos(rad), 24+r2*sin(rad), 0.8)
+                }
+            case (.visual, "Dark"):
+                disc(24,24,13)
+            case (.visual, "Light"):
+                circle(24,24,7)
+                for a in stride(from: 0.0, to: 360.0, by: 45.0) {
+                    let rad = a * .pi/180
+                    line(24+11*cos(rad), 24+11*sin(rad), 24+16*cos(rad), 24+16*sin(rad), 1.2)
+                }
+
+            default:
+                qmark()
+            }
+        }
+    }
+}
+
 // MARK: - Reusable illustrated tile
 
 /// A selectable tile that shows artwork in a square panel with a label below

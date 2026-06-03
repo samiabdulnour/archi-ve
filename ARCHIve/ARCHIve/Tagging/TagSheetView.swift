@@ -94,7 +94,7 @@ struct TagSheetView: View {
     // MARK: Building
 
     @ViewBuilder private var buildingSections: some View {
-        pickerSection("Typology", options: TagVocab.typology, selection: $tags.typology)
+        typologySection
         if let typ = tags.typology, typ != "Landscape" {
             let rooms = TagVocab.roomsFor(typ)
             if !rooms.isEmpty {
@@ -171,9 +171,56 @@ struct TagSheetView: View {
     // MARK: Graphic
 
     @ViewBuilder private var graphicSections: some View {
-        singleChipSection("Kind", options: TagVocab.graphicKinds.map { ($0.id, $0.label, $0.symbol) },
-                          selectionID: $tags.graphicKind)
-        multiTextSection("Visual", options: TagVocab.visual, selection: $tags.visual)
+        graphicKindSection
+        visualSection
+    }
+
+    // MARK: Illustrated sections (Typology / Graphic kinds / Visual)
+
+    private var typologySection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionLabel("Typology")
+            LazyVGrid(columns: tileColumns, spacing: 8) {
+                ForEach(TagVocab.typology, id: \.self) { ty in
+                    IllustratedTile(label: ty, selected: tags.typology == ty) {
+                        LineArtGlyph(group: .typology, id: ty, color: Palette.ink)
+                    } action: {
+                        tags.typology = (tags.typology == ty) ? nil : ty
+                    }
+                }
+            }
+        }
+    }
+
+    private var graphicKindSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionLabel("Kind")
+            LazyVGrid(columns: tileColumns, spacing: 8) {
+                ForEach(TagVocab.graphicKinds) { k in
+                    IllustratedTile(label: k.label, selected: tags.graphicKind == k.id) {
+                        LineArtGlyph(group: .graphic, id: k.label, color: Palette.ink)
+                    } action: {
+                        tags.graphicKind = (tags.graphicKind == k.id) ? nil : k.id
+                    }
+                }
+            }
+        }
+    }
+
+    private var visualSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionLabel("Visual")
+            LazyVGrid(columns: tileColumns, spacing: 8) {
+                ForEach(TagVocab.visual, id: \.self) { v in
+                    IllustratedTile(label: v, selected: tags.visual.contains(v)) {
+                        LineArtGlyph(group: .visual, id: v, color: Palette.ink)
+                    } action: {
+                        if let i = tags.visual.firstIndex(of: v) { tags.visual.remove(at: i) }
+                        else { tags.visual.append(v) }
+                    }
+                }
+            }
+        }
     }
 
     // MARK: Extras

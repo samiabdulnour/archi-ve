@@ -178,11 +178,12 @@ struct CameraView: View {
     // MARK: Bottom — shutter, mode toggle, thumbnail, flip
 
     private var shutterButton: some View {
+        // Native iOS Camera shutter: white ring + white centre. Mode is shown
+        // by the Reference/Project toggle, not the shutter colour.
         Button(action: onShutter) {
             ZStack {
-                Circle().stroke(.white, lineWidth: 4).frame(width: 74, height: 74)
-                Circle().fill(camera.mode == .project ? Palette.lemon : Palette.mint)
-                    .frame(width: 60, height: 60)
+                Circle().stroke(.white, lineWidth: 4).frame(width: 76, height: 76)
+                Circle().fill(.white).frame(width: 64, height: 64)
             }
         }
         .disabled(countdown != nil)
