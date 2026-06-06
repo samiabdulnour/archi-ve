@@ -75,42 +75,29 @@ struct CameraView: View {
 
     @ViewBuilder
     private func previewStack(in size: CGSize) -> some View {
-        let ratio = camera.aspect.portraitRatio
-        let frameW = size.width
-        let frameH = min(size.height, frameW / ratio)
-
-        let preview = ZStack {
+        // Full-bleed live feed; controls float over it (native behaviour).
+        ZStack {
             CameraPreview(controller: camera) { point in handleFocusTap(point) }
-            if camera.gridOn { GridOverlay() }
+                .ignoresSafeArea()
+            if camera.gridOn { GridOverlay().ignoresSafeArea() }
             if camera.levelOn && !motion.isFlat {
                 LevelOverlay(angle: motion.angle, isLevel: motion.isLevel)
             }
             if let p = focusPoint, focusRingVisible { FocusRing().position(p) }
+            if shutterFlash { Color.white.ignoresSafeArea() }
+            if let c = countdown {
+                Text("\(c)").font(.system(size: 120, weight: .thin, design: .rounded))
+                    .foregroundStyle(.white).shadow(radius: 8)
+            }
         }
-        .frame(width: frameW, height: frameH)
-        .clipped()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea()
         .contentShape(Rectangle())
         .gesture(
             MagnifyGesture()
                 .onChanged { value in camera.setZoom(baseZoom * value.magnification) }
                 .onEnded { _ in baseZoom = camera.zoomFactor }
         )
-        // Zoom sits over the bottom of the live window, native-style.
-        .overlay(alignment: .bottom) {
-            if camera.maxZoom > 1.5 { zoomBar.padding(.bottom, 16) }
-        }
-        .overlay {
-            if let c = countdown {
-                Text("\(c)").font(.system(size: 120, weight: .thin, design: .rounded))
-                    .foregroundStyle(.white).shadow(radius: 8)
-            }
-        }
-
-        ZStack(alignment: .top) {
-            preview.padding(.top, 16)          // a gap below the top pills
-            if shutterFlash { Color.white.ignoresSafeArea() }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .safeAreaInset(edge: .top, spacing: 0) {
             HStack(alignment: .top) {
                 if camera.mode == .project { projectPill } else { typeSegment }
@@ -121,7 +108,8 @@ struct CameraView: View {
             .padding(.top, 6)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 18) {
+            VStack(spacing: 16) {
+                if camera.maxZoom > 1.5 { zoomBar }
                 shutterButton
                 ZStack {
                     HStack {
@@ -133,7 +121,15 @@ struct CameraView: View {
                 }
             }
             .padding(.horizontal, 22)
+            .padding(.top, 14)
             .padding(.bottom, 6)
+            // Scrim so the floating controls stay legible over a bright feed.
+            .background(
+                LinearGradient(colors: [.clear, .black.opacity(0.5)],
+                               startPoint: .top, endPoint: .bottom)
+                    .ignoresSafeArea(edges: .bottom)
+                    .allowsHitTesting(false)
+            )
         }
     }
 
