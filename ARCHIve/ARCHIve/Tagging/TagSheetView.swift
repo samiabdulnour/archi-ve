@@ -137,7 +137,7 @@ struct TagSheetView: View {
             sectionLabel("Materiality")
             LazyVGrid(columns: tileColumns, spacing: 8) {
                 ForEach(TagVocab.materials + Settings.customMaterials, id: \.self) { m in
-                    IllustratedTile(label: m, selected: tags.materials.contains(m)) {
+                    IllustratedTile(label: m, selected: tags.materials.contains(m), fullBleed: true) {
                         MaterialityPattern(id: m, ink: Palette.ink)
                     } action: {
                         if let i = tags.materials.firstIndex(of: m) { tags.materials.remove(at: i) }
@@ -155,7 +155,7 @@ struct TagSheetView: View {
             sectionLabel("Colour")
             LazyVGrid(columns: tileColumns, spacing: 8) {
                 ForEach(TagVocab.colors, id: \.id) { c in
-                    IllustratedTile(label: c.label, selected: tags.colors.contains(c.id)) {
+                    IllustratedTile(label: c.label, selected: tags.colors.contains(c.id), fullBleed: true) {
                         Rectangle().fill(Color(hex: c.hex))
                     } action: {
                         if let i = tags.colors.firstIndex(of: c.id) { tags.colors.remove(at: i) }

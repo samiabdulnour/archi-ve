@@ -445,12 +445,17 @@ struct LineArtGlyph: View {
 struct IllustratedTile<Art: View>: View {
     let label: String
     let selected: Bool
+    /// Line-art glyphs are inset (~62% like the web swatches); patterns and
+    /// colour swatches fill the tile edge-to-edge.
+    var fullBleed: Bool = false
     let art: Art
     let action: () -> Void
 
-    init(label: String, selected: Bool, @ViewBuilder art: () -> Art, action: @escaping () -> Void) {
+    init(label: String, selected: Bool, fullBleed: Bool = false,
+         @ViewBuilder art: () -> Art, action: @escaping () -> Void) {
         self.label = label
         self.selected = selected
+        self.fullBleed = fullBleed
         self.art = art()
         self.action = action
     }
@@ -461,7 +466,7 @@ struct IllustratedTile<Art: View>: View {
                 ZStack(alignment: .topTrailing) {
                     RoundedRectangle(cornerRadius: 9)
                         .fill(Palette.tile)
-                        .overlay(art.padding(6).clipShape(RoundedRectangle(cornerRadius: 9)))
+                        .overlay(art.padding(fullBleed ? 3 : 15).clipShape(RoundedRectangle(cornerRadius: 9)))
                         .overlay(RoundedRectangle(cornerRadius: 9)
                             .strokeBorder(selected ? Palette.coral : Palette.hairline,
                                           lineWidth: selected ? 2 : 0.5))
