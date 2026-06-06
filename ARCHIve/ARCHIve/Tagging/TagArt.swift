@@ -158,3 +158,40 @@ struct IllustratedTile<Art: View>: View {
         .buttonStyle(.plain)
     }
 }
+
+// MARK: - Compact tile (label inside the button)
+
+/// A small selectable tile with the artwork on top and the name *inside* the
+/// button — denser than IllustratedTile, for fitting more options per screen.
+struct CompactTile<Art: View>: View {
+    let label: String
+    let selected: Bool
+    let art: Art
+    let action: () -> Void
+
+    init(label: String, selected: Bool, @ViewBuilder art: () -> Art, action: @escaping () -> Void) {
+        self.label = label
+        self.selected = selected
+        self.art = art()
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 3) {
+                art.frame(width: 26, height: 26)
+                Text(label)
+                    .font(.system(size: 9, weight: .medium))
+                    .lineLimit(2).multilineTextAlignment(.center).minimumScaleFactor(0.85)
+                    .frame(height: 21, alignment: .top)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 7)
+            .background(RoundedRectangle(cornerRadius: 9).fill(selected ? Palette.coral.opacity(0.14) : Palette.tile))
+            .overlay(RoundedRectangle(cornerRadius: 9)
+                .strokeBorder(selected ? Palette.coral : Palette.hairline, lineWidth: selected ? 1.5 : 0.5))
+            .foregroundStyle(selected ? Palette.coral : Palette.ink)
+        }
+        .buttonStyle(.plain)
+    }
+}

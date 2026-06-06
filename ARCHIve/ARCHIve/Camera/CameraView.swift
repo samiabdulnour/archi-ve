@@ -51,7 +51,7 @@ struct CameraView: View {
             motion.stop()
             LocationProvider.shared.stop()
         }
-        .sheet(item: $tagTarget, onDismiss: { camera.start() }) { photo in
+        .fullScreenCover(item: $tagTarget, onDismiss: { camera.start() }) { photo in
             TagSheetView(photo: photo) { tagTarget = nil }
         }
         .sheet(isPresented: $showSettings) {

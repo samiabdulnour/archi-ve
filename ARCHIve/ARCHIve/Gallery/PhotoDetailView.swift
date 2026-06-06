@@ -53,7 +53,7 @@ struct PhotoDetailView: View {
         .fullScreenCover(isPresented: $introspecting) {
             IntrospectionView(image: image) { introspecting = false }
         }
-        .sheet(isPresented: $editing) {
+        .fullScreenCover(isPresented: $editing) {
             TagSheetView(photo: photo) { editing = false }
         }
         .alert("Delete this photo?", isPresented: $confirmDelete) {

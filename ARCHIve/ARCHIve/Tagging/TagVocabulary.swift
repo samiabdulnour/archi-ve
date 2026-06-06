@@ -24,8 +24,8 @@ enum TagVocab {
 
     // Building → Typology (8)
     static let typology: [String] = [
-        "Residential", "Office", "Public", "Commercial",
-        "Hospitality", "Heritage", "Landscape", "Other",
+        "Residential", "Office", "Public", "Commercial", "Cultural",
+        "Hospitality", "Heritage", "Industrial", "Landscape", "Other",
     ]
 
     // Building → Concept (8, multi)
@@ -65,6 +65,8 @@ enum TagVocab {
         "Hospitality": ["outdoor", "lobby", "bedroom", "dining", "kitchen", "spa", "bathroom", "other"],
         "Other":       ["outdoor", "lobby", "hall", "workspace", "kitchen", "bathroom", "service", "other"],
         "Heritage":    ["outdoor", "hall", "living", "bedroom", "library", "chapel", "kitchen", "other"],
+        "Cultural":    ["outdoor", "lobby", "hall", "auditorium", "library", "showroom", "stairs", "other"],
+        "Industrial":  ["outdoor", "workspace", "service", "storage", "mechanical", "stairs", "other"],
         // Landscape intentionally omitted — outdoor by definition.
     ]
     static func roomsFor(_ typology: String) -> [TagOption] {
@@ -118,7 +120,8 @@ enum TagVocab {
         switch group {
         case "typology":
             raw = ["Residential": "house", "Office": "building", "Public": "building.columns",
-                   "Commercial": "storefront", "Hospitality": "bed.double", "Heritage": "building.columns.fill",
+                   "Commercial": "storefront", "Cultural": "theatermasks", "Hospitality": "bed.double",
+                   "Heritage": "building.columns.fill", "Industrial": "gearshape.2",
                    "Landscape": "tree", "Other": "ellipsis"][id] ?? "building.2"
         case "concept":
             raw = ["form": "cube", "space": "square.dashed", "light": "sun.max", "materiality": "square.grid.3x3",

@@ -32,23 +32,21 @@ struct TagSheetView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 12) {
                     thumbnail
                     typePicker
-                    Divider()
                     switch tags.type {
                     case "building": buildingSections
                     case "element":  elementSections
                     case "graphic":  graphicSections
                     default:
-                        Text("Choose what this photo is of.")
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 12)
+                        Text("Pick a category above.")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity).padding(.top, 8)
                     }
                     if tags.type != nil { extrasSection }
                 }
-                .padding(20)
+                .padding(.horizontal, 16).padding(.vertical, 12)
             }
             .background(Palette.paper.ignoresSafeArea())
             .navigationTitle("Tag photo")
@@ -75,24 +73,21 @@ struct TagSheetView: View {
             if let img = UIImage(data: photo.imageData) {
                 Image(uiImage: img)
                     .resizable().scaledToFill()
-                    .frame(height: 160)
+                    .frame(height: 96)
                     .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
             }
         }
     }
 
+    /// Building / Element / Graphic as a single segmented toggle.
     private var typePicker: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionLabel("What is this?")
-            HStack(spacing: 10) {
-                ForEach(TagVocab.types) { t in
-                    TagChip(label: t.label, symbol: t.symbol, selected: tags.type == t.id) {
-                        if tags.type != t.id { tags.type = t.id }
-                    }
-                }
-            }
+        Picker("Category", selection: Binding(
+            get: { tags.type ?? "" },
+            set: { tags.type = $0.isEmpty ? nil : $0 })) {
+            ForEach(TagVocab.types) { Text($0.label).tag($0.id) }
         }
+        .pickerStyle(.segmented)
     }
 
     // MARK: Building
@@ -133,34 +128,31 @@ struct TagSheetView: View {
     // MARK: Materiality (hatch-pattern tiles, shared by Building + Element)
 
     private var materialitySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionLabel("Materiality")
-            LazyVGrid(columns: tileColumns, spacing: 8) {
-                ForEach(TagVocab.materials + Settings.customMaterials, id: \.self) { m in
-                    IllustratedTile(label: m, selected: tags.materials.contains(m), fullBleed: true) {
-                        MaterialityPattern(id: m, ink: Palette.ink)
-                    } action: {
-                        if let i = tags.materials.firstIndex(of: m) { tags.materials.remove(at: i) }
-                        else { tags.materials.append(m) }
-                    }
+        tileSection("Materiality") {
+            ForEach(TagVocab.materials + Settings.customMaterials, id: \.self) { m in
+                CompactTile(label: m, selected: tags.materials.contains(m)) {
+                    MaterialityPattern(id: m, ink: Palette.ink)
+                        .clipShape(RoundedRectangle(cornerRadius: 5))
+                        .overlay(RoundedRectangle(cornerRadius: 5).stroke(Palette.hairline, lineWidth: 0.5))
+                } action: {
+                    if let i = tags.materials.firstIndex(of: m) { tags.materials.remove(at: i) }
+                    else { tags.materials.append(m) }
                 }
             }
         }
     }
 
-    // MARK: Colour (square swatch tiles, shared by Building + Element)
+    // MARK: Colour (small swatch + label, shared by Building + Element)
 
     private var colorSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionLabel("Colour")
-            LazyVGrid(columns: tileColumns, spacing: 8) {
-                ForEach(TagVocab.colors, id: \.id) { c in
-                    IllustratedTile(label: c.label, selected: tags.colors.contains(c.id), fullBleed: true) {
-                        Rectangle().fill(Color(hex: c.hex))
-                    } action: {
-                        if let i = tags.colors.firstIndex(of: c.id) { tags.colors.remove(at: i) }
-                        else { tags.colors.append(c.id) }
-                    }
+        tileSection("Colour") {
+            ForEach(TagVocab.colors, id: \.id) { c in
+                CompactTile(label: c.label, selected: tags.colors.contains(c.id)) {
+                    RoundedRectangle(cornerRadius: 5).fill(Color(hex: c.hex))
+                        .overlay(RoundedRectangle(cornerRadius: 5).stroke(Palette.hairline, lineWidth: 0.5))
+                } action: {
+                    if let i = tags.colors.firstIndex(of: c.id) { tags.colors.remove(at: i) }
+                    else { tags.colors.append(c.id) }
                 }
             }
         }
@@ -211,86 +203,70 @@ struct TagSheetView: View {
 
     // MARK: Illustrated sections (Typology / Graphic kinds / Visual)
 
-    /// SF Symbol artwork for a tile.
+    /// SF Symbol artwork for a tile (colour inherited from the tile state).
     private func symbolArt(_ group: String, _ id: String) -> some View {
         Image(systemName: TagVocab.symbol(group, id))
-            .font(.system(size: 24, weight: .regular))
-            .foregroundStyle(Palette.ink)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .font(.system(size: 20, weight: .regular))
+    }
+
+    private func tileSection<Content: View>(_ title: String, @ViewBuilder _ content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            sectionLabel(title)
+            LazyVGrid(columns: tileColumns, spacing: 6, content: content)
+        }
     }
 
     private func roomSection(_ rooms: [TagOption]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionLabel("Room")
-            LazyVGrid(columns: tileColumns, spacing: 8) {
-                ForEach(rooms) { r in
-                    IllustratedTile(label: r.label, selected: tags.room == r.id) {
-                        symbolArt("room", r.id)
-                    } action: {
-                        tags.room = (tags.room == r.id) ? nil : r.id
-                    }
-                }
+        tileSection("Room") {
+            ForEach(rooms) { r in
+                CompactTile(label: r.label, selected: tags.room == r.id) {
+                    symbolArt("room", r.id)
+                } action: { tags.room = (tags.room == r.id) ? nil : r.id }
             }
         }
     }
 
     private var conceptSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionLabel("Concept")
-            LazyVGrid(columns: tileColumns, spacing: 8) {
-                ForEach(TagVocab.concepts) { c in
-                    IllustratedTile(label: c.label, selected: tags.concepts.contains(c.id)) {
-                        symbolArt("concept", c.id)
-                    } action: {
-                        if let i = tags.concepts.firstIndex(of: c.id) { tags.concepts.remove(at: i) }
-                        else { tags.concepts.append(c.id) }
-                    }
+        tileSection("Concept") {
+            ForEach(TagVocab.concepts) { c in
+                CompactTile(label: c.label, selected: tags.concepts.contains(c.id)) {
+                    symbolArt("concept", c.id)
+                } action: {
+                    if let i = tags.concepts.firstIndex(of: c.id) { tags.concepts.remove(at: i) }
+                    else { tags.concepts.append(c.id) }
                 }
             }
         }
     }
 
     private var typologySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionLabel("Typology")
-            LazyVGrid(columns: tileColumns, spacing: 8) {
-                ForEach(TagVocab.typology, id: \.self) { ty in
-                    IllustratedTile(label: ty, selected: tags.typology == ty) {
-                        symbolArt("typology", ty)
-                    } action: {
-                        tags.typology = (tags.typology == ty) ? nil : ty
-                    }
-                }
+        tileSection("Typology") {
+            ForEach(TagVocab.typology, id: \.self) { ty in
+                CompactTile(label: ty, selected: tags.typology == ty) {
+                    symbolArt("typology", ty)
+                } action: { tags.typology = (tags.typology == ty) ? nil : ty }
             }
         }
     }
 
     private var graphicKindSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionLabel("Kind")
-            LazyVGrid(columns: tileColumns, spacing: 8) {
-                ForEach(TagVocab.graphicKinds) { k in
-                    IllustratedTile(label: k.label, selected: tags.graphicKind == k.id) {
-                        symbolArt("graphic", k.id)
-                    } action: {
-                        tags.graphicKind = (tags.graphicKind == k.id) ? nil : k.id
-                    }
-                }
+        tileSection("Kind") {
+            ForEach(TagVocab.graphicKinds) { k in
+                CompactTile(label: k.label, selected: tags.graphicKind == k.id) {
+                    symbolArt("graphic", k.id)
+                } action: { tags.graphicKind = (tags.graphicKind == k.id) ? nil : k.id }
             }
         }
     }
 
     private var visualSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionLabel("Visual")
-            LazyVGrid(columns: tileColumns, spacing: 8) {
-                ForEach(TagVocab.visual, id: \.self) { v in
-                    IllustratedTile(label: v, selected: tags.visual.contains(v)) {
-                        symbolArt("visual", v)
-                    } action: {
-                        if let i = tags.visual.firstIndex(of: v) { tags.visual.remove(at: i) }
-                        else { tags.visual.append(v) }
-                    }
+        tileSection("Visual") {
+            ForEach(TagVocab.visual, id: \.self) { v in
+                CompactTile(label: v, selected: tags.visual.contains(v)) {
+                    symbolArt("visual", v)
+                } action: {
+                    if let i = tags.visual.firstIndex(of: v) { tags.visual.remove(at: i) }
+                    else { tags.visual.append(v) }
                 }
             }
         }
