@@ -149,7 +149,9 @@ struct IllustratedTile<Art: View>: View {
                 }
                 Text(label)
                     .font(.caption2)
-                    .lineLimit(1).minimumScaleFactor(0.7)
+                    .lineLimit(2).minimumScaleFactor(0.8)
+                    .multilineTextAlignment(.center)
+                    .frame(height: 26, alignment: .top)
                     .foregroundStyle(selected ? Palette.coral : Palette.ink2)
             }
         }
