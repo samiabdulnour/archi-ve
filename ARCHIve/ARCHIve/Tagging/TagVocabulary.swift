@@ -22,22 +22,24 @@ enum TagVocab {
         TagOption("graphic",  "Graphic",  "Flat: artwork, book, drawing…", symbol: "doc.richtext"),
     ]
 
-    // Building → Typology (8)
+    // Building → Typology (10)
     static let typology: [String] = [
-        "Residential", "Office", "Public", "Commercial", "Cultural",
+        "Residential", "Office", "Public", "Commercial", "Civic",
         "Hospitality", "Heritage", "Industrial", "Landscape", "Other",
     ]
 
-    // Building → Concept (8, multi)
+    // Building → Concept (10, multi)
     static let concepts: [TagOption] = [
-        TagOption("form",        "Form",        "massing, geometry", symbol: "cube"),
-        TagOption("space",       "Space",       "enclosure, sequence", symbol: "square.dashed"),
-        TagOption("light",       "Light",       "daylight, shadow", symbol: "sun.max"),
-        TagOption("materiality", "Materiality", "surface, texture", symbol: "square.grid.3x3"),
-        TagOption("structure",   "Structure",   "tectonics, load", symbol: "square.stack.3d.up"),
-        TagOption("context",     "Context",     "site, urban", symbol: "map"),
-        TagOption("circulation", "Circulation", "movement, route", symbol: "arrow.triangle.turn.up.right.diamond"),
-        TagOption("other",       "Other",       "something else", symbol: "ellipsis.circle"),
+        TagOption("form",        "Form",        "massing, geometry"),
+        TagOption("space",       "Space",       "enclosure, sequence"),
+        TagOption("light",       "Light",       "daylight, shadow"),
+        TagOption("materiality", "Materiality", "surface, texture"),
+        TagOption("structure",   "Structure",   "tectonics, load"),
+        TagOption("context",     "Context",     "site, urban"),
+        TagOption("circulation", "Circulation", "movement, route"),
+        TagOption("scale",       "Scale",       "proportion, size"),
+        TagOption("threshold",   "Threshold",   "edge, entry"),
+        TagOption("other",       "Other",       "something else"),
     ]
 
     // Rooms — single-select, filtered by typology
@@ -57,60 +59,62 @@ enum TagVocab {
         TagOption("window", "Window"), TagOption("counter", "Counter"),
         TagOption("other", "Other"),
     ]
+    // Exactly 10 rooms per typology (9 + Other) so they fill two rows of five.
     static let roomsByTypology: [String: [String]] = [
-        "Residential": ["outdoor", "living", "bedroom", "kitchen", "bathroom", "hall", "stairs", "other"],
-        "Office":      ["outdoor", "lobby", "workspace", "meeting", "atrium", "lounge", "stairs", "other"],
-        "Public":      ["outdoor", "lobby", "hall", "atrium", "auditorium", "library", "stairs", "other"],
-        "Commercial":  ["outdoor", "lobby", "shop", "showroom", "workspace", "window", "counter", "other"],
-        "Hospitality": ["outdoor", "lobby", "bedroom", "dining", "kitchen", "spa", "bathroom", "other"],
-        "Other":       ["outdoor", "lobby", "hall", "workspace", "kitchen", "bathroom", "service", "other"],
-        "Heritage":    ["outdoor", "hall", "living", "bedroom", "library", "chapel", "kitchen", "other"],
-        "Cultural":    ["outdoor", "lobby", "hall", "auditorium", "library", "showroom", "stairs", "other"],
-        "Industrial":  ["outdoor", "workspace", "service", "storage", "mechanical", "stairs", "other"],
+        "Residential": ["outdoor", "living", "bedroom", "kitchen", "bathroom", "dining", "hall", "stairs", "storage", "other"],
+        "Office":      ["outdoor", "lobby", "workspace", "meeting", "atrium", "lounge", "kitchen", "bathroom", "stairs", "other"],
+        "Public":      ["outdoor", "lobby", "hall", "atrium", "auditorium", "library", "showroom", "bathroom", "stairs", "other"],
+        "Commercial":  ["outdoor", "lobby", "shop", "showroom", "workspace", "counter", "window", "storage", "stairs", "other"],
+        "Civic":       ["outdoor", "lobby", "hall", "meeting", "auditorium", "library", "workspace", "bathroom", "stairs", "other"],
+        "Hospitality": ["outdoor", "lobby", "bedroom", "dining", "kitchen", "bar", "spa", "bathroom", "stairs", "other"],
+        "Heritage":    ["outdoor", "hall", "living", "bedroom", "library", "chapel", "kitchen", "atrium", "stairs", "other"],
+        "Industrial":  ["outdoor", "workspace", "service", "storage", "mechanical", "lab", "counter", "bathroom", "stairs", "other"],
+        "Other":       ["outdoor", "lobby", "hall", "workspace", "kitchen", "bathroom", "service", "storage", "stairs", "other"],
         // Landscape intentionally omitted — outdoor by definition.
     ]
     static func roomsFor(_ typology: String) -> [TagOption] {
         (roomsByTypology[typology] ?? []).compactMap { id in rooms.first { $0.id == id } }
     }
 
-    // Element → grouped sub-elements (single select)
-    static let elementGroups: [(group: String, items: [String])] = [
-        ("Structural",  ["Column", "Beam", "Wall", "Arch", "Vault", "Dome", "Truss"]),
-        ("Circulation", ["Door", "Window", "Stair", "Ramp", "Corridor", "Threshold", "Balcony"]),
-        ("Enclosure",   ["Roof", "Ceiling", "Floor", "Facade"]),
-        ("Ornament",    ["Cornice", "Railing", "Joint", "Pavement"]),
+    // Element → flat list (10, single-select)
+    static let elements: [String] = [
+        "Column", "Beam", "Wall", "Arch", "Door",
+        "Window", "Stair", "Roof", "Facade", "Other",
     ]
 
-    // Materials (8, multi)
+    // Materials (10, multi)
     static let materials: [String] = [
-        "Concrete", "Brick", "Stone", "Timber",
-        "Metal", "Glass", "Plaster", "Other",
+        "Concrete", "Brick", "Stone", "Timber", "Metal",
+        "Glass", "Plaster", "Tile", "Earth", "Other",
     ]
 
-    // Colors (8) — shown for Paint elements; hex for swatches
+    // Colors (10) — optional; hex for swatches
     static let colors: [(id: String, label: String, hex: String)] = [
         ("white",  "White",  "F0EFEA"), ("grey",   "Grey",   "9A9A95"),
         ("black",  "Black",  "1A1A18"), ("red",    "Red",    "C44536"),
-        ("yellow", "Yellow", "D9B566"), ("green",  "Green",  "5C8060"),
-        ("blue",   "Blue",   "4B6F9E"), ("earth",  "Earth",  "A87454"),
+        ("orange", "Orange", "D9803A"), ("yellow", "Yellow", "D9B566"),
+        ("green",  "Green",  "5C8060"), ("blue",   "Blue",   "4B6F9E"),
+        ("brown",  "Brown",  "6B4F3A"), ("earth",  "Earth",  "A87454"),
     ]
 
-    // Graphic → Kind (8)
+    // Graphic → Kind (10)
     static let graphicKinds: [TagOption] = [
-        TagOption("artwork", "Artwork", "painting, sculpture", symbol: "paintpalette"),
-        TagOption("book",    "Book",    "page, article", symbol: "book"),
-        TagOption("drawing", "Drawing", "sketch, hand drawing", symbol: "pencil.and.outline"),
-        TagOption("plan",    "Plan",    "floor plan, layout", symbol: "ruler"),
-        TagOption("render",  "Render",  "visualisation, 3D", symbol: "cube.transparent"),
-        TagOption("diagram", "Diagram", "schema, section", symbol: "chart.bar.doc.horizontal"),
-        TagOption("contact", "Contact", "business card", symbol: "person.crop.rectangle"),
-        TagOption("other",   "Other",   "note, sign, receipt", symbol: "ellipsis.rectangle"),
+        TagOption("artwork", "Artwork", "painting, sculpture"),
+        TagOption("book",    "Book",    "page, article"),
+        TagOption("drawing", "Drawing", "sketch, hand drawing"),
+        TagOption("plan",    "Plan",    "floor plan, layout"),
+        TagOption("render",  "Render",  "visualisation, 3D"),
+        TagOption("diagram", "Diagram", "schema, section"),
+        TagOption("photo",   "Photo",   "photograph"),
+        TagOption("sign",    "Sign",    "signage, lettering"),
+        TagOption("contact", "Contact", "business card"),
+        TagOption("other",   "Other",   "note, receipt"),
     ]
 
-    // Graphic → Visual (multi)
+    // Graphic → Visual (10, multi)
     static let visual: [String] = [
         "Colorful", "Monochrome", "Textured", "Minimal", "Patterned",
-        "Ornate", "Dark", "Light",
+        "Ornate", "Geometric", "Organic", "Dark", "Light",
     ]
 
     /// SF Symbol for a tag option, replacing the old line-art glyphs.
@@ -120,21 +124,26 @@ enum TagVocab {
         switch group {
         case "typology":
             raw = ["Residential": "house", "Office": "building", "Public": "building.columns",
-                   "Commercial": "storefront", "Cultural": "theatermasks", "Hospitality": "bed.double",
+                   "Commercial": "storefront", "Civic": "flag", "Hospitality": "bed.double",
                    "Heritage": "building.columns.fill", "Industrial": "gearshape.2",
                    "Landscape": "tree", "Other": "ellipsis"][id] ?? "building.2"
         case "concept":
             raw = ["form": "cube", "space": "square.dashed", "light": "sun.max", "materiality": "square.grid.3x3",
                    "structure": "square.stack.3d.up", "context": "map", "circulation": "figure.walk",
-                   "other": "ellipsis"][id] ?? "circle"
+                   "scale": "ruler", "threshold": "door.left.hand.open", "other": "ellipsis"][id] ?? "circle"
+        case "element":
+            raw = ["Column": "building.columns", "Beam": "rectangle", "Wall": "rectangle.portrait",
+                   "Arch": "door.garage.closed", "Door": "door.left.hand.closed", "Window": "rectangle.split.2x2",
+                   "Stair": "stairs", "Roof": "triangle", "Facade": "rectangle.grid.3x2",
+                   "Other": "ellipsis"][id] ?? "square"
         case "graphic":
             raw = ["artwork": "photo.artframe", "book": "book", "drawing": "pencil.and.outline", "plan": "ruler",
-                   "render": "cube.transparent", "diagram": "chart.bar", "contact": "person.crop.rectangle",
-                   "other": "ellipsis"][id] ?? "doc"
+                   "render": "cube.transparent", "diagram": "chart.bar", "photo": "photo", "sign": "signpost.right",
+                   "contact": "person.crop.rectangle", "other": "ellipsis"][id] ?? "doc"
         case "visual":
             raw = ["Colorful": "paintpalette", "Monochrome": "circle.lefthalf.filled", "Textured": "square.grid.3x3",
-                   "Minimal": "square", "Patterned": "circle.grid.2x2", "Ornate": "seal", "Dark": "moon",
-                   "Light": "sun.max"][id] ?? "square"
+                   "Minimal": "square", "Patterned": "circle.grid.2x2", "Ornate": "seal", "Geometric": "triangle",
+                   "Organic": "leaf", "Dark": "moon", "Light": "sun.max"][id] ?? "square"
         case "room":
             raw = roomSymbols[id] ?? "square.dashed"
         default:

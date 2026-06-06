@@ -101,28 +101,24 @@ struct TagSheetView: View {
             }
         }
         if enabled("concept") { conceptSection }
-        if enabled("materiality") { materialitySection; colorSection }
+        if enabled("materiality") { materialitySection }
+        if enabled("colour") { colorSection }
     }
 
     // MARK: Element
 
     @ViewBuilder private var elementSections: some View {
         if enabled("element") {
-            VStack(alignment: .leading, spacing: 14) {
-                sectionLabel("Element")
-                ForEach(TagVocab.elementGroups, id: \.group) { grp in
-                    Text(grp.group.uppercased())
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    chipGrid(grp.items.map { ($0, $0, nil as String?) }) { id in
-                        tags.element == id
-                    } toggle: { id in
-                        tags.element = (tags.element == id) ? nil : id
-                    }
+            tileSection("Element") {
+                ForEach(TagVocab.elements, id: \.self) { e in
+                    CompactTile(label: e, selected: tags.element == e) {
+                        symbolArt("element", e)
+                    } action: { tags.element = (tags.element == e) ? nil : e }
                 }
             }
         }
-        if enabled("materiality") { materialitySection; colorSection }
+        if enabled("materiality") { materialitySection }
+        if enabled("colour") { colorSection }
     }
 
     // MARK: Materiality (hatch-pattern tiles, shared by Building + Element)

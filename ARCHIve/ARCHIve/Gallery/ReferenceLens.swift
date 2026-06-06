@@ -9,7 +9,7 @@ struct ReferenceLens: View {
 
     @State private var outer = "all"
     @State private var buildingDim = "typology"
-    @State private var elementDim = "category"
+    @State private var elementDim = "element"
 
     private let cols = Array(repeating: GridItem(.flexible(), spacing: 2), count: 3)
 
@@ -28,8 +28,8 @@ struct ReferenceLens: View {
                             order: ["typology", "room", "concept", "material"])
                 rowIndex(buildingGroups)
             case "element":
-                innerPicker($elementDim, ["category": "Category", "element": "Element", "material": "Material"],
-                            order: ["category", "element", "material"])
+                innerPicker($elementDim, ["element": "Element", "material": "Material"],
+                            order: ["element", "material"])
                 rowIndex(elementGroups)
             case "graphic":
                 rowIndex(graphicGroups)
@@ -62,9 +62,8 @@ struct ReferenceLens: View {
     private var elementGroups: [(String, [Photo])] {
         let e = photos.filter { $0.humanTags.type == "element" }
         switch elementDim {
-        case "element":  return grouped(e) { $0.humanTags.element.map { [$0] } ?? [] }
         case "material": return grouped(e) { $0.humanTags.materials }
-        default:         return grouped(e) { p in p.humanTags.element.flatMap { Self.groupFor($0) }.map { [$0] } ?? [] }
+        default:         return grouped(e) { $0.humanTags.element.map { [$0] } ?? [] }
         }
     }
     private var graphicGroups: [(String, [Photo])] {
@@ -79,9 +78,6 @@ struct ReferenceLens: View {
         return map.sorted { $0.value.count != $1.value.count ? $0.value.count > $1.value.count : $0.key < $1.key }
     }
 
-    static func groupFor(_ element: String) -> String? {
-        TagVocab.elementGroups.first { $0.items.contains(element) }?.group
-    }
 
     // MARK: Row index + hero
 

@@ -109,15 +109,15 @@ enum Settings {
     /// (key, label) per Kind — the sections the user can show/hide.
     static func flowSteps(_ flow: String) -> [(String, String)] {
         switch flow {
-        case "element": return [("element", "Element"), ("materiality", "Materiality"),
+        case "element": return [("element", "Element"), ("materiality", "Materiality"), ("colour", "Colour"),
                                 ("authoryear", "Author & year"), ("note", "Note")]
         case "graphic": return [("kind", "Kind"), ("details", "Details"), ("note", "Note")]
-        default:        return [("typology", "Typology"), ("concept", "Concept"),
-                                ("materiality", "Materiality"), ("authoryear", "Author & year"), ("note", "Note")]
+        default:        return [("typology", "Typology"), ("concept", "Concept"), ("materiality", "Materiality"),
+                                ("colour", "Colour"), ("authoryear", "Author & year"), ("note", "Note")]
         }
     }
-    /// Concept is off by default (matches the web app); everything else on.
-    static func flowDefault(_ step: String) -> Bool { step != "concept" }
+    /// Concept and Colour are off by default; everything else on.
+    static func flowDefault(_ step: String) -> Bool { step != "concept" && step != "colour" }
 
     static func flowEnabled(_ flow: String, _ step: String) -> Bool {
         flowDict()["\(flow).\(step)"] ?? flowDefault(step)

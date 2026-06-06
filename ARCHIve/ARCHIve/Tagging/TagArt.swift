@@ -19,13 +19,24 @@ struct MaterialityPattern: View {
             case "Concrete": dots(ctx, size, cell: 6, [(1.5, 1.5, 0.8), (4.5, 3.5, 0.7), (2.2, 4.8, 0.55)])
             case "Stone":    dots(ctx, size, cell: 18, [(3,4,0.6),(10,3,0.55),(14,9,0.65),(6,12,0.6),(12,15,0.55),(2,16,0.6)])
             case "Plaster":  dots(ctx, size, cell: 14, [(3,3,0.7),(9,6,0.6),(5,10,0.6),(11,11,0.7)])
+            case "Earth":    dots(ctx, size, cell: 5, [(1,1,0.5),(3,2,0.45),(2,4,0.5),(4,3.5,0.4)])
             case "Brick":    brick(ctx, size)
             case "Timber":   timber(ctx, size)
             case "Metal":    metal(ctx, size)
             case "Glass":    glass(ctx, size)
+            case "Tile":     gridPattern(ctx, size)
             default:         questionMark(ctx, size)   // "Other"
             }
         }
+    }
+
+    private func gridPattern(_ ctx: GraphicsContext, _ size: CGSize) {
+        var p = Path()
+        var x: CGFloat = 0
+        while x <= size.width { p.move(to: CGPoint(x: x, y: 0)); p.addLine(to: CGPoint(x: x, y: size.height)); x += 8 }
+        var y: CGFloat = 0
+        while y <= size.height { p.move(to: CGPoint(x: 0, y: y)); p.addLine(to: CGPoint(x: size.width, y: y)); y += 8 }
+        ctx.stroke(p, with: .color(ink), lineWidth: 0.9)
     }
 
     /// Tile a filled-dot cell across the whole area.
