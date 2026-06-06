@@ -273,7 +273,7 @@ struct GalleryView: View {
             ForEach(GalleryLens.allCases) { l in Label(l.rawValue, systemImage: l.symbol).tag(l) }
         }
         .pickerStyle(.segmented)
-        .padding(12)
+        .padding(.horizontal, 12).padding(.top, 12).padding(.bottom, 8)
         .disabled(selecting)
     }
 

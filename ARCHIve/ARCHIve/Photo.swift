@@ -70,7 +70,7 @@ final class Photo: Identifiable {
     /// word-match), mirroring the web app's `search_text`.
     var searchText: String {
         let t = humanTags
-        var parts: [String?] = [t.type, t.typology, t.room, t.element, t.graphicKind,
+        var parts: [String?] = [t.type, t.typology, t.room, t.elementCategory, t.element, t.graphicKind,
                                 t.authorYear, t.note, t.title, t.creator, t.year,
                                 t.source, t.brand, t.model, t.contactName, t.contactCompany,
                                 project]
@@ -92,7 +92,8 @@ struct HumanTags: Codable, Equatable {
     var concepts: [String] = []    // form, space, light, ...
 
     // Element branch
-    var element: String?           // Column, Stair, ...
+    var elementCategory: String?   // Structure, Vertical, Opening, ...
+    var element: String?           // Wall, Column, Stair, ...
     var materials: [String] = []   // Concrete, Brick, ...
     var colors: [String] = []      // white, grey, ... (when sub-element is Paint)
 

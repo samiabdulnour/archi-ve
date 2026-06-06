@@ -76,11 +76,20 @@ enum TagVocab {
         (roomsByTypology[typology] ?? []).compactMap { id in rooms.first { $0.id == id } }
     }
 
-    // Element → flat list (10, single-select)
-    static let elements: [String] = [
-        "Column", "Beam", "Wall", "Arch", "Door",
-        "Window", "Stair", "Roof", "Facade", "Other",
+    // Element → Category → sub-element (single-select each), like the web app.
+    static let elementCategories: [(category: String, items: [String])] = [
+        ("Structure", ["Wall", "Column", "Beam", "Slab"]),
+        ("Vertical",  ["Stair", "Ramp", "Railing", "Elevator"]),
+        ("Opening",   ["Door", "Window", "Curtain wall", "Skylight"]),
+        ("Envelope",  ["Roof", "Facade", "Ceiling", "Floor"]),
+        ("Finish",    ["Tile", "Cladding", "Paint", "Render"]),
+        ("Detail",    ["Joint", "Section", "Profile", "Pattern"]),
+        ("Service",   ["HVAC", "Plumbing", "Electrical", "Fire"]),
+        ("Product",   ["Furniture", "Lighting", "Appliance", "Decor"]),
     ]
+    static func elementItems(for category: String) -> [String] {
+        elementCategories.first { $0.category == category }?.items ?? []
+    }
 
     // Materials (10, multi)
     static let materials: [String] = [
@@ -131,11 +140,12 @@ enum TagVocab {
             raw = ["form": "cube", "space": "square.dashed", "light": "sun.max", "materiality": "square.grid.3x3",
                    "structure": "square.stack.3d.up", "context": "map", "circulation": "figure.walk",
                    "scale": "ruler", "threshold": "door.left.hand.open", "other": "ellipsis"][id] ?? "circle"
-        case "element":
-            raw = ["Column": "building.columns", "Beam": "rectangle", "Wall": "rectangle.portrait",
-                   "Arch": "door.garage.closed", "Door": "door.left.hand.closed", "Window": "rectangle.split.2x2",
-                   "Stair": "stairs", "Roof": "triangle", "Facade": "rectangle.grid.3x2",
-                   "Other": "ellipsis"][id] ?? "square"
+        case "elementcat":
+            raw = ["Structure": "square.stack.3d.up", "Vertical": "stairs", "Opening": "door.left.hand.closed",
+                   "Envelope": "house", "Finish": "paintbrush", "Detail": "ruler",
+                   "Service": "wrench.and.screwdriver", "Product": "sofa"][id] ?? "square"
+        case "elementsub":
+            raw = elementSubSymbols[id] ?? "square"
         case "graphic":
             raw = ["artwork": "photo.artframe", "book": "book", "drawing": "pencil.and.outline", "plan": "ruler",
                    "render": "cube.transparent", "diagram": "chart.bar", "photo": "photo", "sign": "signpost.right",
@@ -160,6 +170,18 @@ enum TagVocab {
         "mechanical": "gearshape.2", "chapel": "cross", "storage": "archivebox", "service": "wrench.and.screwdriver",
         "stairs": "stairs", "atrium": "building.columns", "lounge": "sofa", "window": "rectangle.split.2x2",
         "counter": "rectangle.split.3x1", "other": "ellipsis",
+    ]
+
+    static let elementSubSymbols: [String: String] = [
+        "Wall": "rectangle.portrait", "Column": "building.columns", "Beam": "rectangle", "Slab": "square",
+        "Stair": "stairs", "Ramp": "line.diagonal", "Railing": "rectangle.split.3x1", "Elevator": "arrow.up.arrow.down",
+        "Door": "door.left.hand.closed", "Window": "rectangle.split.2x2", "Curtain wall": "rectangle.split.3x3",
+        "Skylight": "sun.max", "Roof": "triangle", "Facade": "rectangle.grid.3x2",
+        "Ceiling": "rectangle.tophalf.inset.filled", "Floor": "rectangle.bottomhalf.inset.filled",
+        "Tile": "square.grid.3x3", "Cladding": "square.grid.2x2", "Paint": "paintbrush.pointed", "Render": "cube.transparent",
+        "Joint": "link", "Section": "square.dashed.inset.filled", "Profile": "squareshape", "Pattern": "circle.grid.2x2",
+        "HVAC": "wind", "Plumbing": "drop", "Electrical": "bolt", "Fire": "flame",
+        "Furniture": "sofa", "Lighting": "lightbulb", "Appliance": "refrigerator", "Decor": "leaf",
     ]
 
     /// Returns `name` if the SF Symbol exists, else a neutral fallback.

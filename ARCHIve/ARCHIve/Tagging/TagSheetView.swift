@@ -110,15 +110,32 @@ struct TagSheetView: View {
     @ViewBuilder private var elementSections: some View {
         if enabled("element") {
             tileSection("Element") {
-                ForEach(TagVocab.elements, id: \.self) { e in
-                    CompactTile(label: e, selected: tags.element == e) {
-                        symbolArt("element", e)
-                    } action: { tags.element = (tags.element == e) ? nil : e }
+                ForEach(TagVocab.elementCategories, id: \.category) { cat in
+                    CompactTile(label: cat.category, selected: tags.elementCategory == cat.category) {
+                        symbolArt("elementcat", cat.category)
+                    } action: {
+                        if tags.elementCategory == cat.category { tags.elementCategory = nil; tags.element = nil }
+                        else { tags.elementCategory = cat.category; tags.element = nil }
+                    }
+                }
+            }
+            if let cat = tags.elementCategory {
+                tileSection(cat) {
+                    ForEach(TagVocab.elementItems(for: cat), id: \.self) { sub in
+                        CompactTile(label: sub, selected: tags.element == sub) {
+                            symbolArt("elementsub", sub)
+                        } action: { tags.element = (tags.element == sub) ? nil : sub }
+                    }
                 }
             }
         }
-        if enabled("materiality") { materialitySection }
-        if enabled("colour") { colorSection }
+        // Finish → Paint swaps Materiality for Colour (web behaviour).
+        if tags.element == "Paint" {
+            colorSection
+        } else {
+            if enabled("materiality") { materialitySection }
+            if enabled("colour") { colorSection }
+        }
     }
 
     // MARK: Materiality (hatch-pattern tiles, shared by Building + Element)

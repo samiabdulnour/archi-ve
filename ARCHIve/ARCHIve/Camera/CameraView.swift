@@ -79,6 +79,7 @@ struct CameraView: View {
         ZStack {
             CameraPreview(controller: camera) { point in handleFocusTap(point) }
                 .ignoresSafeArea()
+            AspectGuide(ratio: camera.aspect.portraitRatio).ignoresSafeArea()
             if camera.gridOn { GridOverlay().ignoresSafeArea() }
             if camera.levelOn && !motion.isFlat {
                 LevelOverlay(angle: motion.angle, isLevel: motion.isLevel)
@@ -501,6 +502,27 @@ private struct ProjectPickerSheet: View {
 }
 
 // MARK: - Overlays
+
+/// Crop guide on the full-bleed feed: the chosen aspect ratio shown as a clear
+/// centred frame with the area outside dimmed — so you can see what 1:1 / 4:3 /
+/// 16:9 will capture.
+private struct AspectGuide: View {
+    let ratio: CGFloat   // width / height, portrait
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let h = min(geo.size.height, w / ratio)
+            let bar = max(0, (geo.size.height - h) / 2)
+            VStack(spacing: 0) {
+                Color.black.opacity(0.4).frame(height: bar)
+                Rectangle().fill(.clear).frame(height: h)
+                    .overlay(Rectangle().stroke(.white.opacity(0.5), lineWidth: 1))
+                Color.black.opacity(0.4).frame(height: bar)
+            }
+        }
+        .allowsHitTesting(false)
+    }
+}
 
 /// Springy press-shrink for the shutter, like the native Camera.
 private struct ShutterButtonStyle: ButtonStyle {

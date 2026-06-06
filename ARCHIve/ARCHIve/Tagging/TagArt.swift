@@ -190,14 +190,16 @@ struct CompactTile<Art: View>: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: 3) {
-                art.frame(width: 26, height: 26)
+                art.frame(width: 24, height: 24)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)   // centre in the space above the label
                 Text(label)
                     .font(.system(size: 9, weight: .medium))
                     .lineLimit(2).multilineTextAlignment(.center).minimumScaleFactor(0.85)
-                    .frame(height: 21, alignment: .top)
+                    .frame(height: 22, alignment: .top)
             }
+            .padding(.top, 8).padding(.bottom, 6).padding(.horizontal, 2)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 7)
+            .frame(height: 66)
             .background(RoundedRectangle(cornerRadius: 9).fill(selected ? Palette.coral.opacity(0.14) : Palette.tile))
             .overlay(RoundedRectangle(cornerRadius: 9)
                 .strokeBorder(selected ? Palette.coral : Palette.hairline, lineWidth: selected ? 1.5 : 0.5))

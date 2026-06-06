@@ -85,6 +85,7 @@ struct PhotoDetailView: View {
         add("Typology", t.typology)
         add("Room", t.room?.capitalized)
         addList("Concept", t.concepts.map { $0.capitalized })
+        add("Category", t.elementCategory)
         add("Element", t.element)
         addList("Materiality", t.materials)
         addList("Colour", t.colors.map { $0.capitalized })
