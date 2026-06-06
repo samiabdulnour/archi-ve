@@ -654,6 +654,23 @@
       display: inline-flex; align-items: center; justify-content: center;
     }
 
+    /* Icon spin — iOS-Camera idiom. The app is portrait-locked, so the layout
+       (pills, shutter, bands) never moves. When the phone is physically turned,
+       only the icon GLYPHS rotate in place to stay upright. The angle is set on
+       #view-camera as --cam-icon-rot from the accelerometer (see setupLevel).
+       The zoom NUMBERS spin in place too (like the iOS Camera), but their pill
+       stays put — so we rotate the inner .cam-zoom-num span, not the button.
+       The Reference/Project pill and the shutter deliberately stay fixed. */
+    .cam-type-seg button svg,
+    .cam-top-right button svg,
+    .cam-flip svg,
+    .cam-zoom-num,
+    .cam-thumb-wrap {
+      transform: rotate(var(--cam-icon-rot, 0deg));
+      transition: transform 0.35s cubic-bezier(0.34, 0.07, 0.2, 1);
+    }
+    .cam-zoom-num { display: inline-block; }
+
     /* ---- Settings / More panel (iOS Camera More-sheet idiom) ---- */
     .cam-set-backdrop {
       position: absolute; inset: 0; z-index: 40;
@@ -706,6 +723,42 @@
       background: var(--paper); color: var(--ink); font-size: 10px; font-weight: 700;
       display: inline-flex; align-items: center; justify-content: center;
       border: 2px solid var(--ink); font-variant-numeric: tabular-nums;
+    }
+
+    /* Aspect-ratio letterbox. The bars sit inside the viewfinder area (between
+       the top and bottom chrome bands) and their heights are set from JS to
+       crop the preview to 1:1 / 4:3 / 16:9. Semi-opaque so you still sense the
+       full frame but clearly see the kept region. */
+    .cam-aspect-mask {
+      position: absolute;
+      top: calc(var(--cam-top-band) + env(safe-area-inset-top, 0px));
+      left: 0; right: 0;
+      bottom: calc(var(--cam-bottom-band) + env(safe-area-inset-bottom, 0px));
+      pointer-events: none; z-index: 7;
+    }
+    .cam-aspect-bar {
+      position: absolute; left: 0; right: 0; height: 0;
+      background: rgba(0,0,0,0.62);
+      transition: height .18s ease;
+    }
+    .cam-aspect-bar.top { top: 0; }
+    .cam-aspect-bar.bottom { bottom: 0; }
+
+    /* Self-timer countdown number. */
+    .cam-countdown {
+      position: absolute; inset: 0; z-index: 31;
+      display: flex; align-items: center; justify-content: center;
+      font-family: Gruezi, sans-serif; font-weight: 700;
+      font-size: 7rem; color: #fff;
+      text-shadow: 0 2px 24px rgba(0,0,0,0.6);
+      background: rgba(0,0,0,0.18);
+    }
+    .cam-countdown[hidden] { display: none; }
+    .cam-countdown .tick { animation: camTick 1s ease-out; }
+    @keyframes camTick {
+      0%   { transform: scale(1.5); opacity: 0; }
+      25%  { transform: scale(1);   opacity: 1; }
+      100% { transform: scale(0.85); opacity: 0.55; }
     }
 
     .cam-flash {
@@ -2207,6 +2260,44 @@
     .detail-slide-out-right { transform: translateX( 100%); opacity: 0; }
     .detail-slide-in-prep-left  { transform: translateX(-100%); opacity: 0; transition: none; }
     .detail-slide-in-prep-right { transform: translateX( 100%); opacity: 0; transition: none; }
+    /* The photo invites a tap into the fullscreen introspection viewer. */
+    #detail-img { cursor: zoom-in; }
+
+    /* ---- Introspection: fullscreen photo with pinch / double-tap zoom ---- */
+    .introspect {
+      position: fixed; inset: 0; z-index: 100;
+      background: #000;
+      overflow: hidden;
+      /* We own every gesture here (pinch, pan, double-tap) and compute the
+         transform by hand, so tell the browser not to also pan/zoom the page. */
+      touch-action: none;
+      -webkit-user-select: none; user-select: none;
+      animation: introspect-fade 160ms ease;
+    }
+    .introspect[hidden] { display: none; }
+    @keyframes introspect-fade { from { opacity: 0; } to { opacity: 1; } }
+    #introspect-img {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      object-fit: contain;
+      /* Transform is driven entirely from JS (translate + scale). Origin at the
+         top-left keeps the pinch-focal math simple and exact. */
+      transform-origin: 0 0;
+      will-change: transform;
+      -webkit-user-drag: none; user-select: none;
+    }
+    .introspect-close {
+      position: absolute;
+      top: calc(env(safe-area-inset-top, 0px) + 14px);
+      right: 16px;
+      width: 38px; height: 38px;
+      border: none; border-radius: 50%;
+      background: rgba(0,0,0,0.45);
+      color: #fff; font-size: 1.1rem; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    }
 
     .section {
       background: var(--bg-elev);
@@ -2708,8 +2799,8 @@
     <div class="cam-level" id="cam-level"><span class="ref"></span><span class="bar"></span><span class="ref"></span></div>
     <div class="cam-zoom" id="cam-zoom">
       <div class="cam-pill cam-zoom-inner">
-        <button data-cam-zoom="1×" class="active">1×</button>
-        <button data-cam-zoom="2">2×</button>
+        <button data-cam-zoom="1×" class="active"><span class="cam-zoom-num">1×</span></button>
+        <button data-cam-zoom="2"><span class="cam-zoom-num">2×</span></button>
       </div>
     </div>
 
@@ -2732,8 +2823,17 @@
       </div>
     </div>
 
+    <!-- Aspect-ratio mask: two opaque bars that letterbox the live preview to
+         the chosen ratio, so the framing you see is the framing you get. The
+         captured frame is centre-cropped to the same ratio in captureFrame(). -->
+    <div class="cam-aspect-mask" id="cam-aspect-mask" aria-hidden="true">
+      <span class="cam-aspect-bar top"></span>
+      <span class="cam-aspect-bar bottom"></span>
+    </div>
     <div class="cam-flash" id="cam-flash" aria-hidden="true"></div>
     <div class="cam-focus" id="cam-focus" aria-hidden="true"></div>
+    <!-- Self-timer countdown: big centred number, tap to cancel. -->
+    <div class="cam-countdown" id="cam-countdown" hidden aria-hidden="true"></div>
     <div class="cam-error" id="cam-error" hidden></div>
 
     <!-- Settings / More panel (floating glass sheet, iOS Camera idiom) -->
@@ -3027,6 +3127,16 @@
 
   <!-- Hidden file input (only used by detail view to attach a label photo to artworks) -->
   <input id="label-input" class="hidden-file" type="file" accept="image/*" capture="environment">
+
+  <!-- ============ INTROSPECTION (fullscreen photo + zoom) ============ -->
+  <!-- Tapping the photo in the detail view drops it onto this fullscreen
+       black overlay so you can study it closely: pinch / double-tap to zoom,
+       drag to pan. It is NOT a separate "view" (showView) — it floats above
+       everything so dismissing it returns you exactly to the detail page. -->
+  <div id="introspect" class="introspect" hidden aria-hidden="true">
+    <img id="introspect-img" alt="" draggable="false">
+    <button id="introspect-close" class="introspect-close" aria-label="Close">&#10005;</button>
+  </div>
 
   <div id="toast"></div>
 
@@ -3469,25 +3579,9 @@
     // ============================================================
     // VIEW SWITCHING
     // ============================================================
-    // Orientation lock — Capacitor plugin (@capacitor/screen-orientation).
-    // On the web build the plugin is absent, so both calls are silent no-ops.
-    // On iOS, locking forces the WebView to stay portrait while the camera
-    // is shown — preserves the portrait-anchored camera layout.
-    function _screenOrientationPlugin() {
-      return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ScreenOrientation) || null;
-    }
-    async function lockOrientationPortrait() {
-      const p = _screenOrientationPlugin();
-      if (!p) return;
-      try { await p.lock({ orientation: 'portrait' }); }
-      catch (e) { console.warn('ScreenOrientation.lock failed', e); }
-    }
-    async function unlockOrientation() {
-      const p = _screenOrientationPlugin();
-      if (!p) return;
-      try { await p.unlock(); }
-      catch (e) { console.warn('ScreenOrientation.unlock failed', e); }
-    }
+    // The app is portrait-only at the native level (Info.plist) — no runtime
+    // orientation locking needed. The camera instead spins only its icon
+    // glyphs with the device (see setupLevel below), iOS-Camera style.
 
     function showView(name) {
       // 'home' is now the camera
@@ -3506,14 +3600,12 @@
         hideCameraError();
         startCameraStream();
         refreshCameraThumb();
-        // Lock to portrait while the camera is shown (Capacitor only — the
-        // plugin is a no-op in the web build). Camera layout is designed
-        // for portrait; landscape reflows the bands into a thin strip.
-        lockOrientationPortrait();
+        // The aspect mask sizes itself from the viewfinder's pixel dimensions,
+        // which are only real once the camera view is on screen and laid out.
+        requestAnimationFrame(applyAspectMask);
       } else {
         stopCameraStream();
         closeProjectPopup();
-        unlockOrientation();
       }
       // The fixed-position scrubber would otherwise float over other views.
       if (name !== 'gallery' && typeof teardownTimeScrubber === 'function') {
@@ -3708,7 +3800,28 @@
       const level = document.getElementById('cam-level');
       if (grid)  grid.hidden  = !camPrefs.gridOn;
       if (level) level.hidden = !camPrefs.levelOn;
+      applyAspectMask();
     }
+    // Letterbox the live preview to the chosen aspect so the framing matches
+    // the centre-crop captureFrame() will apply. Bars keep the full width and
+    // trim the top/bottom; a ratio taller than the viewfinder simply shows no
+    // bars (the saved photo is still cropped correctly).
+    function applyAspectMask() {
+      const mask = document.getElementById('cam-aspect-mask');
+      if (!mask) return;
+      const top = mask.querySelector('.cam-aspect-bar.top');
+      const bot = mask.querySelector('.cam-aspect-bar.bottom');
+      const W = mask.clientWidth, H = mask.clientHeight;
+      if (!W || !H) { mask.hidden = true; return; }
+      const portrait = { '1:1': 1, '4:3': 3 / 4, '16:9': 9 / 16 };
+      const ar = portrait[camPrefs.aspect] || 1;   // width / height
+      const keptH = W / ar;                         // full-width kept region
+      const bar = keptH < H ? Math.round((H - keptH) / 2) : 0;
+      top.style.height = bar + 'px';
+      bot.style.height = bar + 'px';
+      mask.hidden = bar === 0;
+    }
+    window.addEventListener('resize', applyAspectMask);
     applyCamOverlays();
 
     function buildSetCircle({ iconHtml, label, on = false, badge = null, onClick }) {
@@ -3745,7 +3858,7 @@
         }}),
         buildSetCircle({ iconHtml: SI.aspect(camPrefs.aspect), label: 'Aspect', onClick: () => {
           camPrefs.aspect = camPrefs.aspect === '4:3' ? '16:9' : camPrefs.aspect === '16:9' ? '1:1' : '4:3';
-          saveCamPrefs(camPrefs); openCamSettings();
+          saveCamPrefs(camPrefs); applyCamOverlays(); openCamSettings();
         }})
       ));
 
@@ -4019,38 +4132,118 @@
       toast('Reusing: ' + summariseReuseTags(last));
     });
 
-    // ----- Level overlay — rotate the centre hairline with device tilt -----
+    // ----- Level hairline + icon-spin, both driven by gravity -----
     (function setupLevel() {
       const level = document.getElementById('cam-level');
       if (!level) return;
       const bar = level.querySelector('.bar');
-      function onTilt(e) {
-        // gamma = left/right tilt in degrees. Clamp for display.
-        let g = e.gamma || 0;
-        g = Math.max(-30, Math.min(30, g));
-        bar.style.transform = `rotate(${g}deg)`;
-        level.classList.toggle('level', Math.abs(g) < 0.6);
+      const camRoot = document.getElementById('view-camera');
+
+      // We work from the GRAVITY vector, not the deviceorientation beta/gamma
+      // Euler angles. Why: when the phone is held vertically to shoot — the
+      // normal pose — the Euler angles hit gimbal lock, so `gamma` becomes
+      // jittery and saturates, which made the hairline twitchy and dead at 90°.
+      // Gravity has no such degeneracy and gives one clean "how is the screen
+      // rolled vs. the true horizon" angle that works in every orientation.
+      //
+      // angle = atan2(gx, -gy): 0° = upright & level, +90° = rolled clockwise
+      // into landscape, etc. From it we derive two things:
+      //   • icon glyph rotation — snap to the nearest 90° and counter-rotate so
+      //     glyphs stay upright (the layout itself is portrait-locked).
+      //   • level hairline — the small deviation from that snapped orientation,
+      //     so it still reads tilt while you hold the phone in landscape.
+      //
+      // The angle math only uses the ratio gx:gy, so it is independent of the
+      // vector's scale — the native CoreMotion feed (unit g) and the web
+      // devicemotion feed (m/s²) both flow through onGravity() unchanged.
+
+      let smoothAngle = null;   // exponential moving average, kills jitter
+      let iconRot = 0;
+
+      function onGravity(gx, gy, gz) {
+        gx = gx || 0; gy = gy || 0; gz = gz || 0;
+        // Roll is only meaningful when gravity has a sideways component; when the
+        // phone lies flat (gravity almost all on Z) hold the last angle instead
+        // of letting it spin wildly. Scale-independent: compare planar vs total.
+        const total = Math.hypot(gx, gy, gz) || 1;
+        if (Math.hypot(gx, gy) / total < 0.17) return;   // within ~10° of flat
+
+        let angle = Math.atan2(gx, -gy) * 180 / Math.PI;
+        if (smoothAngle == null) {
+          smoothAngle = angle;
+        } else {
+          let d = angle - smoothAngle;          // shortest path across ±180 wrap
+          while (d > 180) d -= 360;
+          while (d < -180) d += 360;
+          smoothAngle += d * 0.18;              // smoothing factor (lower = calmer)
+        }
+        const a = smoothAngle;
+
+        // Icon glyphs: snap to nearest 90°, counter-rotate to stay upright.
+        const bucket = Math.round(a / 90) * 90;
+        let rot = -bucket;
+        rot = ((rot + 180) % 360 + 360) % 360 - 180;   // wrap to (-180, 180]
+        if (rot !== iconRot) {
+          iconRot = rot;
+          camRoot.style.setProperty('--cam-icon-rot', rot + 'deg');
+        }
+
+        // Level hairline: a true artificial horizon. It rotates to stay aligned
+        // with the real-world horizon, so physically turning the phone visibly
+        // turns the line (at 90° it stands vertical) — the old version only
+        // showed the tiny deviation from the nearest 90°, so at/near a cardinal
+        // it sat dead-flat and looked frozen even as the phone rotated (the
+        // icons, which snap to buckets, flipped while the hairline didn't —
+        // exactly the "level doesn't rotate 90°" report). The side ref ticks
+        // stay fixed; only the centre bar swings, iOS-Camera style.
+        //
+        // Green = the phone is square to the world, i.e. its roll is within ~1°
+        // of a cardinal (0/90/180/270°), so you get level feedback whether you
+        // shoot upright or sideways. Direction tweak if it leans the wrong way
+        // on device: flip the sign of the rotate() below.
+        let dev = a - bucket;                 // deviation from nearest cardinal
+        bar.style.transform = `rotate(${-a}deg)`;
+        level.classList.toggle('level', Math.abs(dev) < 1.0);
       }
-      function attachListener() {
-        window.addEventListener('deviceorientation', onTilt, { passive: true });
+
+      // --- Sensor source ---
+      // PREFERRED: the native NativeMotion plugin (ios/App/App/NativeMotion.swift)
+      // streams CoreMotion gravity with NO permission prompt and NO user gesture,
+      // so the level is live the instant the camera opens. This is the whole
+      // reason the native plugin exists — see that file's header.
+      const Native = window.Capacitor && window.Capacitor.Plugins
+        && window.Capacitor.Plugins.NativeMotion;
+      if (Native) {
+        Native.addListener('gravity', g => onGravity(g.x, g.y, g.z));
+        Native.start();
+        return;
       }
-      if (!window.DeviceOrientationEvent) return;
-      // iOS 13+ requires DeviceOrientationEvent.requestPermission() called
-      // from a user gesture. Older iOS / Android attach freely. We hook the
-      // FIRST tap on the camera view to ask for permission, then forget the
-      // listener — one ask per session is plenty.
-      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+
+      // FALLBACK (web / dev in a browser): the DeviceMotion API. iOS Safari
+      // gates this behind requestPermission() from a user gesture; plain
+      // browsers attach freely.
+      if (!window.DeviceMotionEvent) return;
+      const onMotion = e => {
+        const g = e.accelerationIncludingGravity;
+        if (g) onGravity(g.x, g.y, g.z);
+      };
+      let attached = false;
+      function attach() {
+        if (attached) return;
+        attached = true;
+        window.addEventListener('devicemotion', onMotion, { passive: true });
+      }
+      if (typeof DeviceMotionEvent.requestPermission === 'function') {
         const ask = async () => {
           try {
-            const result = await DeviceOrientationEvent.requestPermission();
-            if (result === 'granted') attachListener();
-          } catch { /* user denied or browser quirk — silent */ }
+            const r = await DeviceMotionEvent.requestPermission();
+            if (r === 'granted') attach();
+          } catch { /* denied — silent */ }
         };
-        const camView = document.getElementById('view-camera');
-        camView.addEventListener('touchstart', ask, { once: true, passive: true });
-        camView.addEventListener('click',       ask, { once: true });
+        window.addEventListener('touchend', ask, { once: true, passive: true });
+        window.addEventListener('click',    ask, { once: true });
       } else {
-        attachListener();
+        attach();
       }
     })();
 
@@ -4155,10 +4348,40 @@
       await renderGallery();
     });
 
+    // Self-timer: count down full-screen, resolve true to fire or false if the
+    // user tapped to cancel. Pure JS — no camera API needed.
+    let countdownActive = false;
+    function runCountdown(seconds) {
+      return new Promise(resolve => {
+        const el = document.getElementById('cam-countdown');
+        if (!el) { resolve(true); return; }
+        let n = seconds, timer = null;
+        countdownActive = true;
+        const cleanup = () => {
+          countdownActive = false;
+          el.hidden = true; el.onclick = null;
+          if (timer) clearInterval(timer);
+        };
+        const paint = () => { el.innerHTML = `<span class="tick">${n}</span>`; };
+        el.hidden = false; paint();
+        el.onclick = () => { cleanup(); resolve(false); };   // tap to cancel
+        timer = setInterval(() => {
+          n -= 1;
+          if (n <= 0) { cleanup(); resolve(true); }
+          else paint();
+        }, 1000);
+      });
+    }
+
     async function shutterPressed() {
+      if (countdownActive) return;            // ignore taps mid-countdown
       if (captureMode === 'project' && !activeProject) {
         toast('Pick or add a project first');
         return;
+      }
+      if (camPrefs.timer > 0) {
+        const fire = await runCountdown(camPrefs.timer);
+        if (!fire) return;                    // cancelled
       }
       flashShutter();
       const blob = await captureFrame();
@@ -4263,11 +4486,32 @@
         toast('Camera not ready, try again');
         return null;
       }
+      const vw = video.videoWidth, vh = video.videoHeight;
+      const { sx, sy, cw, ch } = aspectCropDims(vw, vh, camPrefs.aspect);
       const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.width = cw;
+      canvas.height = ch;
+      // Centre-crop the live frame to the chosen aspect (source rect → full
+      // canvas). Defensive: aspectCropDims always returns a region inside the
+      // frame, so this can never produce a zero-sized (broken) blob.
+      canvas.getContext('2d').drawImage(video, sx, sy, cw, ch, 0, 0, cw, ch);
       return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+    }
+
+    // Centre-crop geometry for a target aspect ratio. The ratio is expressed
+    // portrait (width:height) and inverted automatically for landscape frames,
+    // so the crop always sits inside the frame regardless of how iOS hands us
+    // the stream dimensions. '1:1' → square, '4:3' → 3:4 portrait, etc.
+    function aspectCropDims(vw, vh, pref) {
+      if (!vw || !vh) return { sx: 0, sy: 0, cw: vw || 1, ch: vh || 1 };
+      const portrait = { '1:1': 1, '4:3': 3 / 4, '16:9': 9 / 16 };
+      let ar = portrait[pref] || 1;          // width / height, portrait
+      if (vw > vh) ar = 1 / ar;              // landscape frame → flip
+      let cw = vw, ch = Math.round(vw / ar);
+      if (ch > vh) { ch = vh; cw = Math.round(vh * ar); }
+      cw = Math.max(1, Math.min(vw, cw));
+      ch = Math.max(1, Math.min(vh, ch));
+      return { sx: Math.round((vw - cw) / 2), sy: Math.round((vh - ch) / 2), cw, ch };
     }
 
     function startReferenceTagging(blob) {
@@ -6734,12 +6978,23 @@
       return tile;
     }
 
+    let galleryRenderGen = 0;
     async function renderGallery() {
-      // free old object urls
-      objectUrls.forEach(URL.revokeObjectURL);
-      objectUrls = [];
-
+      // Concurrency guard. renderGallery is async (it awaits dbGetAll), and
+      // several handlers fire it back-to-back (open gallery, filter change,
+      // tab switch). Two overlapping runs used to corrupt thumbnails: the old
+      // code revoked the *previous* run's blob URLs at the very top — i.e.
+      // while those tiles were still on screen and possibly mid-decode — so any
+      // image that hadn't finished loading died to a broken-image glyph. Fix:
+      // (1) a generation token so a superseded run bails before touching the
+      // DOM, and (2) revoke the old URLs only AFTER the new tiles are built and
+      // have replaced them, never during the async gap.
+      const gen = ++galleryRenderGen;
       const all = await dbGetAll();
+      if (gen !== galleryRenderGen) return;   // a newer render superseded us
+
+      const oldUrls = objectUrls;
+      objectUrls = [];                        // lens builders push new URLs here
       renderActiveFilters();
 
       const filtered = applyGalleryFilters(all).sort((a, b) => b.created_at - a.created_at);
@@ -6782,6 +7037,11 @@
       }
 
       document.getElementById('empty').hidden = all.length !== 0;
+
+      // New tiles are now on screen with their own fresh URLs; the previous
+      // render's URLs are safe to release. (A later render that superseded us
+      // would have bumped the gen and we'd have bailed long before here.)
+      oldUrls.forEach(URL.revokeObjectURL);
     }
 
     // ---------- Lens: TIME ----------
@@ -7724,6 +7984,126 @@
       showView('detail');
     }
 
+    // ----- Introspection: fullscreen photo viewer with pinch/double-tap zoom -----
+    // Tapping the detail photo opens it here. The transform model is a single
+    // scale `s` (>=1) plus a pixel translate (tx, ty), applied with
+    // transform-origin at the image's top-left. Pinch keeps the point between
+    // the two fingers anchored; one-finger drag pans while zoomed; double-tap
+    // toggles between fit and 3×; a clean tap (no zoom, no drag) closes.
+    (function setupIntrospect() {
+      const overlay = document.getElementById('introspect');
+      const img     = document.getElementById('introspect-img');
+      const closeBtn = document.getElementById('introspect-close');
+      if (!overlay || !img) return;
+
+      const MIN = 1, MAX = 6;
+      let s = 1, tx = 0, ty = 0;
+      let url = null;
+
+      function apply() {
+        // Keep the image from being dragged off-screen: at scale s the content
+        // is (w*s) wide, so tx may range from w*(1-s)..0 (and likewise ty).
+        const w = overlay.clientWidth, h = overlay.clientHeight;
+        const minTx = Math.min(0, w * (1 - s)), minTy = Math.min(0, h * (1 - s));
+        tx = Math.max(minTx, Math.min(0, tx));
+        ty = Math.max(minTy, Math.min(0, ty));
+        img.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+      }
+      function reset() { s = 1; tx = 0; ty = 0; apply(); }
+
+      function open(blob) {
+        if (url) URL.revokeObjectURL(url);
+        url = URL.createObjectURL(blob);
+        img.src = url;
+        overlay.hidden = false;
+        overlay.setAttribute('aria-hidden', 'false');
+        reset();
+      }
+      function close() {
+        overlay.hidden = true;
+        overlay.setAttribute('aria-hidden', 'true');
+        if (url) { URL.revokeObjectURL(url); url = null; }
+        img.removeAttribute('src');
+      }
+      // Expose to the detail-photo tap handler.
+      window.__openIntrospect = open;
+
+      closeBtn.addEventListener('click', close);
+
+      // --- Gesture state ---
+      let pinch = null;   // { d0, s0, tx0, ty0, cx, cy }  (cx,cy = content pt under midpoint)
+      let pan   = null;   // { x0, y0, tx0, ty0 }
+      let moved = false;
+      let lastTap = 0;
+
+      const dist = (t1, t2) => Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+
+      overlay.addEventListener('touchstart', (e) => {
+        if (e.target === closeBtn) return;
+        if (e.touches.length === 2) {
+          const [a, b] = e.touches;
+          const mx = (a.clientX + b.clientX) / 2;
+          const my = (a.clientY + b.clientY) / 2;
+          pinch = { d0: dist(a, b), s0: s,
+                    cx: (mx - tx) / s, cy: (my - ty) / s };
+          pan = null;
+        } else if (e.touches.length === 1) {
+          const t = e.touches[0];
+          pan = { x0: t.clientX, y0: t.clientY, tx0: tx, ty0: ty };
+          moved = false;
+        }
+      }, { passive: true });
+
+      overlay.addEventListener('touchmove', (e) => {
+        if (pinch && e.touches.length === 2) {
+          e.preventDefault();
+          const [a, b] = e.touches;
+          const mx = (a.clientX + b.clientX) / 2;
+          const my = (a.clientY + b.clientY) / 2;
+          s = Math.max(MIN, Math.min(MAX, pinch.s0 * (dist(a, b) / pinch.d0)));
+          // Anchor the content point that was under the midpoint at start.
+          tx = mx - pinch.cx * s;
+          ty = my - pinch.cy * s;
+          moved = true;
+          apply();
+        } else if (pan && e.touches.length === 1 && s > 1.001) {
+          e.preventDefault();
+          const t = e.touches[0];
+          tx = pan.tx0 + (t.clientX - pan.x0);
+          ty = pan.ty0 + (t.clientY - pan.y0);
+          if (Math.abs(t.clientX - pan.x0) + Math.abs(t.clientY - pan.y0) > 6) moved = true;
+          apply();
+        } else if (pan && e.touches.length === 1) {
+          const t = e.touches[0];
+          if (Math.abs(t.clientX - pan.x0) + Math.abs(t.clientY - pan.y0) > 6) moved = true;
+        }
+      }, { passive: false });
+
+      overlay.addEventListener('touchend', (e) => {
+        if (e.touches.length === 0) {
+          if (pinch) { pinch = null; if (s < 1.02) reset(); }
+          // A clean single tap (no pinch, no drag) is either a double-tap-zoom
+          // or a request to close.
+          if (pan && !moved) {
+            const now = Date.now();
+            if (now - lastTap < 300) {           // double tap → toggle zoom
+              lastTap = 0;
+              if (s > 1.02) { reset(); }
+              else {
+                const x = pan.x0, y = pan.y0, target = 3;
+                s = target; tx = x - x * s; ty = y - y * s; apply();
+              }
+            } else {
+              lastTap = now;
+              // Single tap closes only when not zoomed in.
+              if (s <= 1.02) { setTimeout(() => { if (s <= 1.02) close(); }, 280); }
+            }
+          }
+          pan = null;
+        }
+      }, { passive: true });
+    })();
+
     function renderDetail() {
       const rec = currentDetailRecord;
       if (!rec) return;
@@ -7732,6 +8112,16 @@
       const url = URL.createObjectURL(rec.blob);
       objectUrls.push(url);
       img.src = url;
+      // Tap the photo to study it fullscreen (introspection viewer, with zoom).
+      // Bind once — renderDetail runs on every tag edit, so guard with a flag.
+      if (!img.dataset.introspectBound) {
+        img.dataset.introspectBound = '1';
+        img.addEventListener('click', () => {
+          if (currentDetailRecord && currentDetailRecord.blob && window.__openIntrospect) {
+            window.__openIntrospect(currentDetailRecord.blob);
+          }
+        });
+      }
 
       const dateEl = document.getElementById('detail-date');
       dateEl.innerHTML = '';

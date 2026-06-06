@@ -142,11 +142,13 @@ struct CameraView: View {
             ForEach(TagVocab.types) { t in
                 let active = camera.captureType == t.id
                 Button { camera.captureType = t.id } label: {
-                    KindGlyph(id: t.id, color: active ? .black : .white.opacity(0.85))
-                        .frame(width: 17, height: 17)
+                    Image(systemName: t.symbol)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(active ? .black : .white.opacity(0.85))
                         .frame(width: 29, height: 29)
                         .background(active ? Circle().fill(.white) : Circle().fill(.clear))
                 }
+                .accessibilityLabel(t.label)
             }
         }
         .padding(.horizontal, 8).padding(.vertical, 3)
