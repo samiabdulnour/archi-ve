@@ -79,33 +79,38 @@ struct CameraView: View {
         let frameW = size.width
         let frameH = min(size.height, frameW / ratio)
 
-        ZStack {
-            ZStack {
-                CameraPreview(controller: camera) { point in handleFocusTap(point) }
-                if camera.gridOn { GridOverlay() }
-                if camera.levelOn && !motion.isFlat {
-                    LevelOverlay(angle: motion.angle, isLevel: motion.isLevel)
-                }
-                if let p = focusPoint, focusRingVisible { FocusRing().position(p) }
+        let preview = ZStack {
+            CameraPreview(controller: camera) { point in handleFocusTap(point) }
+            if camera.gridOn { GridOverlay() }
+            if camera.levelOn && !motion.isFlat {
+                LevelOverlay(angle: motion.angle, isLevel: motion.isLevel)
             }
-            .frame(width: frameW, height: frameH)
-            .clipped()
-            .contentShape(Rectangle())
-            .gesture(
-                MagnifyGesture()
-                    .onChanged { value in camera.setZoom(baseZoom * value.magnification) }
-                    .onEnded { _ in baseZoom = camera.zoomFactor }
-            )
-
-            if shutterFlash { Color.white.ignoresSafeArea() }
-
+            if let p = focusPoint, focusRingVisible { FocusRing().position(p) }
+        }
+        .frame(width: frameW, height: frameH)
+        .clipped()
+        .contentShape(Rectangle())
+        .gesture(
+            MagnifyGesture()
+                .onChanged { value in camera.setZoom(baseZoom * value.magnification) }
+                .onEnded { _ in baseZoom = camera.zoomFactor }
+        )
+        // Zoom sits over the bottom of the live window, native-style.
+        .overlay(alignment: .bottom) {
+            if camera.maxZoom > 1.5 { zoomBar.padding(.bottom, 16) }
+        }
+        .overlay {
             if let c = countdown {
-                Text("\(c)")
-                    .font(.system(size: 120, weight: .thin, design: .rounded))
+                Text("\(c)").font(.system(size: 120, weight: .thin, design: .rounded))
                     .foregroundStyle(.white).shadow(radius: 8)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+        ZStack(alignment: .top) {
+            preview.padding(.top, 16)          // a gap below the top pills
+            if shutterFlash { Color.white.ignoresSafeArea() }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .safeAreaInset(edge: .top, spacing: 0) {
             HStack(alignment: .top) {
                 if camera.mode == .project { projectPill } else { typeSegment }
@@ -116,8 +121,7 @@ struct CameraView: View {
             .padding(.top, 6)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 16) {
-                if camera.maxZoom > 1.5 { zoomBar }
+            VStack(spacing: 18) {
                 shutterButton
                 ZStack {
                     HStack {
@@ -143,9 +147,9 @@ struct CameraView: View {
                 let active = camera.captureType == t.id
                 Button { camera.captureType = t.id } label: {
                     Image(systemName: t.symbol)
-                        .font(.system(size: 16, weight: .medium))
+                        .font(.system(size: 17, weight: .medium))
                         .foregroundStyle(active ? .black : .white.opacity(0.85))
-                        .frame(width: 29, height: 29)
+                        .frame(width: 32, height: 32)
                         .background(active ? Circle().fill(.white) : Circle().fill(.clear))
                 }
                 .accessibilityLabel(t.label)
@@ -172,9 +176,9 @@ struct CameraView: View {
     private func pillButton(_ symbol: String, active: Bool, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 15, weight: .medium))
+                .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(active ? Palette.coral : .white)
-                .frame(width: 29, height: 29)
+                .frame(width: 32, height: 32)
         }
     }
 
@@ -197,14 +201,15 @@ struct CameraView: View {
     // MARK: Bottom — shutter, mode toggle, thumbnail, flip
 
     private var shutterButton: some View {
-        // Native iOS Camera shutter: white ring + white centre. Mode is shown
-        // by the Reference/Project toggle, not the shutter colour.
+        // Native iOS Camera shutter: white ring + a gap + white centre, with a
+        // springy press-shrink for tactility.
         Button(action: onShutter) {
             ZStack {
-                Circle().stroke(.white, lineWidth: 2.5).frame(width: 74, height: 74)
-                Circle().fill(.white).frame(width: 58, height: 58)
+                Circle().stroke(.white, lineWidth: 3).frame(width: 74, height: 74)
+                Circle().fill(.white).frame(width: 59, height: 59)
             }
         }
+        .buttonStyle(ShutterButtonStyle())
         .disabled(countdown != nil)
     }
 
@@ -257,19 +262,19 @@ struct CameraView: View {
     }
 
     private var zoomBar: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 6) {
             ForEach(zoomStops, id: \.self) { z in
                 let active = abs(camera.zoomFactor - z) < 0.1
                 Button { camera.setZoom(z); baseZoom = z } label: {
                     Text(z == 1 ? "1×" : String(format: "%.0f×", z))
-                        .font(.system(size: active ? 14 : 12, weight: .semibold))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(active ? Palette.lemon : .white)
-                        .frame(width: active ? 38 : 32, height: active ? 38 : 32)
-                        .background(active ? Circle().fill(.black.opacity(0.5)) : Circle().fill(.clear))
+                        .frame(width: 34, height: 34)
+                        .background(active ? Circle().fill(.black.opacity(0.45)) : Circle().fill(.clear))
                 }
             }
         }
-        .padding(.horizontal, 7).padding(.vertical, 4)
+        .padding(4)
         .background(Capsule().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
     }
 
@@ -498,6 +503,15 @@ private struct ProjectPickerSheet: View {
 }
 
 // MARK: - Overlays
+
+/// Springy press-shrink for the shutter, like the native Camera.
+private struct ShutterButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.88 : 1)
+            .animation(.spring(response: 0.22, dampingFraction: 0.55), value: configuration.isPressed)
+    }
+}
 
 private struct GridOverlay: View {
     var body: some View {
