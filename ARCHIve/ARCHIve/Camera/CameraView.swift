@@ -261,8 +261,10 @@ struct CameraView: View {
         HStack(spacing: 6) {
             ForEach(zoomStops, id: \.self) { z in
                 let active = abs(camera.zoomFactor - z) < 0.1
+                let num = z == 1 ? "1" : String(format: "%.0f", z)
                 Button { camera.setZoom(z); baseZoom = z } label: {
-                    Text(z == 1 ? "1×" : String(format: "%.0f×", z))
+                    // Native: the "×" only shows on the active factor.
+                    Text(active ? "\(num)×" : num)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(active ? Palette.lemon : .white)
                         .frame(width: 34, height: 34)
