@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// The v3 tag vocabulary, ported verbatim from the web app. IDs stay lowercase
 /// to match the existing data shape. SF Symbols stand in for the web glyphs.
@@ -109,6 +110,50 @@ enum TagVocab {
         "Colorful", "Monochrome", "Textured", "Minimal", "Patterned",
         "Ornate", "Dark", "Light",
     ]
+
+    /// SF Symbol for a tag option, replacing the old line-art glyphs.
+    /// Guarded by `safe()` so an unavailable symbol never renders blank.
+    static func symbol(_ group: String, _ id: String) -> String {
+        let raw: String
+        switch group {
+        case "typology":
+            raw = ["Residential": "house", "Office": "building", "Public": "building.columns",
+                   "Commercial": "storefront", "Hospitality": "bed.double", "Heritage": "building.columns.fill",
+                   "Landscape": "tree", "Other": "ellipsis"][id] ?? "building.2"
+        case "concept":
+            raw = ["form": "cube", "space": "square.dashed", "light": "sun.max", "materiality": "square.grid.3x3",
+                   "structure": "square.stack.3d.up", "context": "map", "circulation": "figure.walk",
+                   "other": "ellipsis"][id] ?? "circle"
+        case "graphic":
+            raw = ["artwork": "photo.artframe", "book": "book", "drawing": "pencil.and.outline", "plan": "ruler",
+                   "render": "cube.transparent", "diagram": "chart.bar", "contact": "person.crop.rectangle",
+                   "other": "ellipsis"][id] ?? "doc"
+        case "visual":
+            raw = ["Colorful": "paintpalette", "Monochrome": "circle.lefthalf.filled", "Textured": "square.grid.3x3",
+                   "Minimal": "square", "Patterned": "circle.grid.2x2", "Ornate": "seal", "Dark": "moon",
+                   "Light": "sun.max"][id] ?? "square"
+        case "room":
+            raw = roomSymbols[id] ?? "square.dashed"
+        default:
+            raw = "square"
+        }
+        return safe(raw)
+    }
+
+    static let roomSymbols: [String: String] = [
+        "outdoor": "leaf", "lobby": "door.left.hand.open", "hall": "rectangle.portrait", "living": "sofa",
+        "bedroom": "bed.double", "workspace": "laptopcomputer", "kitchen": "fork.knife", "bathroom": "shower",
+        "dining": "fork.knife", "meeting": "person.3", "auditorium": "theatermasks", "library": "books.vertical",
+        "shop": "cart", "showroom": "bag", "bar": "wineglass", "spa": "drop", "lab": "testtube.2",
+        "mechanical": "gearshape.2", "chapel": "cross", "storage": "archivebox", "service": "wrench.and.screwdriver",
+        "stairs": "stairs", "atrium": "building.columns", "lounge": "sofa", "window": "rectangle.split.2x2",
+        "counter": "rectangle.split.3x1", "other": "ellipsis",
+    ]
+
+    /// Returns `name` if the SF Symbol exists, else a neutral fallback.
+    static func safe(_ name: String) -> String {
+        UIImage(systemName: name) != nil ? name : "square.dashed"
+    }
 
     /// Per-graphic-kind detail fields (key, placeholder) — matches the web
     /// app's GRAPHIC_FIELDS. Empty for kinds with no details (plan/render/…).

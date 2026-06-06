@@ -167,7 +167,7 @@ struct TagSheetView: View {
     }
 
     private var tileColumns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
+        Array(repeating: GridItem(.flexible(), spacing: 6), count: 5)
     }
 
     // MARK: Graphic
@@ -211,13 +211,21 @@ struct TagSheetView: View {
 
     // MARK: Illustrated sections (Typology / Graphic kinds / Visual)
 
+    /// SF Symbol artwork for a tile.
+    private func symbolArt(_ group: String, _ id: String) -> some View {
+        Image(systemName: TagVocab.symbol(group, id))
+            .font(.system(size: 24, weight: .regular))
+            .foregroundStyle(Palette.ink)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     private func roomSection(_ rooms: [TagOption]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             sectionLabel("Room")
             LazyVGrid(columns: tileColumns, spacing: 8) {
                 ForEach(rooms) { r in
                     IllustratedTile(label: r.label, selected: tags.room == r.id) {
-                        LineArtGlyph(group: .room, id: r.id, color: Palette.ink)
+                        symbolArt("room", r.id)
                     } action: {
                         tags.room = (tags.room == r.id) ? nil : r.id
                     }
@@ -232,7 +240,7 @@ struct TagSheetView: View {
             LazyVGrid(columns: tileColumns, spacing: 8) {
                 ForEach(TagVocab.concepts) { c in
                     IllustratedTile(label: c.label, selected: tags.concepts.contains(c.id)) {
-                        LineArtGlyph(group: .concept, id: c.id, color: Palette.ink)
+                        symbolArt("concept", c.id)
                     } action: {
                         if let i = tags.concepts.firstIndex(of: c.id) { tags.concepts.remove(at: i) }
                         else { tags.concepts.append(c.id) }
@@ -248,7 +256,7 @@ struct TagSheetView: View {
             LazyVGrid(columns: tileColumns, spacing: 8) {
                 ForEach(TagVocab.typology, id: \.self) { ty in
                     IllustratedTile(label: ty, selected: tags.typology == ty) {
-                        LineArtGlyph(group: .typology, id: ty, color: Palette.ink)
+                        symbolArt("typology", ty)
                     } action: {
                         tags.typology = (tags.typology == ty) ? nil : ty
                     }
@@ -263,7 +271,7 @@ struct TagSheetView: View {
             LazyVGrid(columns: tileColumns, spacing: 8) {
                 ForEach(TagVocab.graphicKinds) { k in
                     IllustratedTile(label: k.label, selected: tags.graphicKind == k.id) {
-                        LineArtGlyph(group: .graphic, id: k.label, color: Palette.ink)
+                        symbolArt("graphic", k.id)
                     } action: {
                         tags.graphicKind = (tags.graphicKind == k.id) ? nil : k.id
                     }
@@ -278,7 +286,7 @@ struct TagSheetView: View {
             LazyVGrid(columns: tileColumns, spacing: 8) {
                 ForEach(TagVocab.visual, id: \.self) { v in
                     IllustratedTile(label: v, selected: tags.visual.contains(v)) {
-                        LineArtGlyph(group: .visual, id: v, color: Palette.ink)
+                        symbolArt("visual", v)
                     } action: {
                         if let i = tags.visual.firstIndex(of: v) { tags.visual.remove(at: i) }
                         else { tags.visual.append(v) }
