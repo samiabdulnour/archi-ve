@@ -182,8 +182,8 @@ struct GalleryView: View {
                 .onChanged { value in
                     if pinchBaseCols == nil { pinchBaseCols = gridCols }
                     let base = pinchBaseCols ?? gridCols
-                    let steps = Int((value.magnification - 1) * 4)
-                    gridCols = min(5, max(1, base - steps))
+                    let steps = Int((value.magnification - 1) * 5)
+                    gridCols = min(8, max(1, base - steps))
                 }
                 .onEnded { _ in pinchBaseCols = nil }
         )

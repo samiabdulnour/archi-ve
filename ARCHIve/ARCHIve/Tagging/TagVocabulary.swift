@@ -154,6 +154,11 @@ enum TagVocab {
             raw = ["artwork": "photo.artframe", "book": "book", "drawing": "pencil.and.outline", "plan": "ruler",
                    "render": "cube.transparent", "diagram": "chart.bar", "web": "globe", "model": "cube.fill",
                    "contact": "person.crop.rectangle", "other": "ellipsis"][id] ?? "doc"
+        case "material":
+            raw = ["Concrete": "square.grid.3x3.fill", "Brick": "rectangle.split.3x1.fill",
+                   "Stone": "mountain.2.fill", "Timber": "tree.fill", "Metal": "circle.hexagongrid.fill",
+                   "Glass": "cube.transparent", "Plaster": "paintbrush.fill", "Tile": "checkerboard.rectangle",
+                   "Earth": "square.3.layers.3d", "Other": "ellipsis"][id] ?? "square.dashed"
         case "visual":
             raw = ["Colorful": "paintpalette", "Monochrome": "circle.lefthalf.filled", "Textured": "square.grid.3x3",
                    "Minimal": "square", "Patterned": "circle.grid.2x2", "Ornate": "seal", "Geometric": "triangle",

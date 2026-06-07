@@ -171,9 +171,7 @@ struct TagSheetView: View {
         tileSection("Materiality") {
             ForEach(TagVocab.materials + Settings.customMaterials, id: \.self) { m in
                 CompactTile(label: m, selected: tags.materials.contains(m)) {
-                    MaterialityPattern(id: m, ink: Palette.ink)
-                        .clipShape(RoundedRectangle(cornerRadius: 5))
-                        .overlay(RoundedRectangle(cornerRadius: 5).stroke(Palette.hairline, lineWidth: 0.5))
+                    symbolArt("material", m)
                 } action: {
                     if let i = tags.materials.firstIndex(of: m) { tags.materials.remove(at: i) }
                     else { tags.materials.append(m) }
