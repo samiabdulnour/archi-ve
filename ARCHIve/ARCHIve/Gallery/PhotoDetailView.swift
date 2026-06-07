@@ -28,12 +28,25 @@ struct PhotoDetailView: View {
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
         .background(Palette.paper.ignoresSafeArea())
+        .safeAreaInset(edge: .bottom) {
+            if let current {
+                Button { editing = true } label: {
+                    Label(current.isUntagged ? "Add tags" : "Edit tags", systemImage: "tag")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Palette.coral)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 8)
+            }
+        }
         .navigationTitle(current.map { $0.createdAt.formatted(date: .abbreviated, time: .shortened) } ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button { editing = true } label: { Label("Edit tags", systemImage: "tag") }
                     Button { showShare = true } label: { Label("Share", systemImage: "square.and.arrow.up") }
                     Button(role: .destructive) { confirmDelete = true } label: {
                         Label("Delete", systemImage: "trash")
