@@ -199,6 +199,20 @@ final class CameraController: NSObject {
         }
     }
 
+    /// Manual exposure compensation in EV (e.g. dragging the sun up/down after a
+    /// tap-to-focus), clamped to the device's supported range.
+    func setExposureBias(_ ev: Float) {
+        sessionQueue.async { [weak self] in
+            guard let self, let device = self.videoDevice else { return }
+            do {
+                try device.lockForConfiguration()
+                let v = max(device.minExposureTargetBias, min(device.maxExposureTargetBias, ev))
+                device.setExposureTargetBias(v, completionHandler: nil)
+                device.unlockForConfiguration()
+            } catch { }
+        }
+    }
+
     // MARK: Zoom
 
     func setZoom(_ factor: CGFloat) {

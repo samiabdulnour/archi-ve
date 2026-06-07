@@ -10,8 +10,6 @@ struct CameraView: View {
     @State private var camera = CameraController()
     @State private var motion = MotionLevel()
 
-    @State private var focusPoint: CGPoint?
-    @State private var focusRingVisible = false
     @State private var countdown: Int?
     @State private var shutterFlash = false
     @State private var baseZoom: CGFloat = 1.0
@@ -142,7 +140,9 @@ struct CameraView: View {
                 }
             }
 
-            if let p = focusPoint, focusRingVisible { FocusRing().position(p) }
+            // Tap-to-focus + drag-to-expose, in its own full-screen space so the
+            // reticle lands exactly under the finger. Hosts the pinch-zoom too.
+            FocusExposureView(camera: camera, baseZoom: $baseZoom)
 
             if shutterFlash { Color.white.ignoresSafeArea() }
             if let c = countdown {
@@ -153,20 +153,6 @@ struct CameraView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
-        .contentShape(Rectangle())
-        .gesture(
-            MagnifyGesture()
-                .onChanged { value in camera.setZoom(baseZoom * value.magnification) }
-                .onEnded { _ in baseZoom = camera.zoomFactor }
-        )
-        // Tap-to-focus: a SwiftUI spatial tap so it coexists with the magnify
-        // gesture. Report the location in the same named space the focus ring is
-        // positioned in, so the ring lands exactly under the finger (the default
-        // .local space was offset by the top safe-area inset).
-        .simultaneousGesture(
-            SpatialTapGesture(coordinateSpace: .named("cam"))
-                .onEnded { value in handleFocusTap(value.location) }
-        )
         .safeAreaInset(edge: .top, spacing: 0) {
             HStack(alignment: .top) {
                 if camera.mode == .project { projectPill } else { typeSegment }
@@ -202,9 +188,6 @@ struct CameraView: View {
                     .allowsHitTesting(false)
             )
         }
-        // Full-screen space shared by the tap gesture and the focus ring's
-        // .position, so the focus square appears exactly where you tap.
-        .coordinateSpace(.named("cam"))
     }
 
     // MARK: Top — Type segment + action pill
@@ -398,16 +381,6 @@ struct CameraView: View {
     }
 
     // MARK: Actions
-
-    private func handleFocusTap(_ point: CGPoint) {
-        camera.focusAndExpose(atLayerPoint: point)
-        focusPoint = point
-        withAnimation(.easeOut(duration: 0.15)) { focusRingVisible = true }
-        Task {
-            try? await Task.sleep(nanoseconds: 900_000_000)
-            withAnimation(.easeOut(duration: 0.3)) { focusRingVisible = false }
-        }
-    }
 
     private func onShutter() {
         let secs = camera.timerSeconds
@@ -658,11 +631,98 @@ private struct LevelOverlay: View {
     }
 }
 
-private struct FocusRing: View {
+/// Tap-to-focus + drag-to-expose, native-Camera style. Lives in its own
+/// full-screen GeometryReader so the tap location and the reticle's `.position`
+/// share one coordinate space (the reticle lands exactly under the finger), and
+/// that space matches the full-bleed preview layer (so focus is accurate too).
+/// Also hosts the pinch-to-zoom so all camera-feed gestures live together.
+private struct FocusExposureView: View {
+    let camera: CameraController
+    @Binding var baseZoom: CGFloat
+
+    @State private var point: CGPoint?
+    @State private var bias: Float = 0
+    @State private var visible = false
+    @State private var gestureStarted = false
+    @State private var hideItem: DispatchWorkItem?
+
     var body: some View {
-        RoundedRectangle(cornerRadius: 4)
-            .stroke(Palette.lemon, lineWidth: 1.5)
-            .frame(width: 78, height: 78)
-            .allowsHitTesting(false)
+        ZStack {
+            Color.clear.contentShape(Rectangle())
+            if visible, let point {
+                FocusReticle(bias: bias)
+                    .position(point)
+                    .transition(.opacity)
+            }
+        }
+        .ignoresSafeArea()
+        .gesture(focusDrag)
+        .simultaneousGesture(zoomMagnify)
+    }
+
+    private var focusDrag: some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                if !gestureStarted {
+                    // First touch of this gesture = tap-to-focus at that point.
+                    gestureStarted = true
+                    point = value.startLocation
+                    bias = 0
+                    camera.focusAndExpose(atLayerPoint: value.startLocation)
+                    camera.setExposureBias(0)
+                    reveal()
+                }
+                // Drag up = brighter, down = darker (≈90pt per EV).
+                let dy = value.location.y - value.startLocation.y
+                bias = Float(max(-2, min(2, Double(-dy) / 90)))
+                camera.setExposureBias(bias)
+                reveal()
+            }
+            .onEnded { _ in
+                gestureStarted = false
+                scheduleHide()
+            }
+    }
+
+    private var zoomMagnify: some Gesture {
+        MagnifyGesture()
+            .onChanged { value in camera.setZoom(baseZoom * value.magnification) }
+            .onEnded { _ in baseZoom = camera.zoomFactor }
+    }
+
+    private func reveal() {
+        hideItem?.cancel()
+        if !visible { withAnimation(.easeOut(duration: 0.15)) { visible = true } }
+    }
+
+    private func scheduleHide() {
+        hideItem?.cancel()
+        let item = DispatchWorkItem {
+            withAnimation(.easeOut(duration: 0.4)) { visible = false }
+        }
+        hideItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3, execute: item)
+    }
+}
+
+/// The yellow focus square with a sun that slides up/down as exposure changes —
+/// the native tap-to-focus reticle.
+private struct FocusReticle: View {
+    let bias: Float
+    private let box: CGFloat = 76
+
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .stroke(Palette.lemon, lineWidth: 1)
+                .frame(width: box, height: box)
+            // Exposure sun on the right edge, sliding with the bias.
+            Image(systemName: "sun.max.fill")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Palette.lemon)
+                .shadow(color: .black.opacity(0.4), radius: 1)
+                .offset(x: box / 2 + 16, y: CGFloat(-bias) * 22)
+        }
+        .allowsHitTesting(false)
     }
 }
