@@ -160,9 +160,11 @@ struct CameraView: View {
                 .onEnded { _ in baseZoom = camera.zoomFactor }
         )
         // Tap-to-focus: a SwiftUI spatial tap so it coexists with the magnify
-        // gesture. Location is in the full-screen preview space.
+        // gesture. Report the location in the same named space the focus ring is
+        // positioned in, so the ring lands exactly under the finger (the default
+        // .local space was offset by the top safe-area inset).
         .simultaneousGesture(
-            SpatialTapGesture()
+            SpatialTapGesture(coordinateSpace: .named("cam"))
                 .onEnded { value in handleFocusTap(value.location) }
         )
         .safeAreaInset(edge: .top, spacing: 0) {
@@ -200,6 +202,9 @@ struct CameraView: View {
                     .allowsHitTesting(false)
             )
         }
+        // Full-screen space shared by the tap gesture and the focus ring's
+        // .position, so the focus square appears exactly where you tap.
+        .coordinateSpace(.named("cam"))
     }
 
     // MARK: Top — Type segment + action pill
@@ -348,11 +353,17 @@ struct CameraView: View {
                         Circle().fill(.black.opacity(0.5))
                             .frame(width: 40, height: 40)
                             .opacity(active ? 1 : 0)
-                        Text(active ? "\(num)×" : num)
-                            .font(.system(size: 15, weight: .semibold))
-                            .monospacedDigit()
-                            .foregroundStyle(active ? Palette.lemon : .white)
-                            .shadow(color: .black.opacity(active ? 0 : 0.45), radius: 2)
+                        // Number stays put; the "×" just fades in for the active
+                        // factor (its width is always reserved), so nothing
+                        // jumps mid-animation.
+                        HStack(spacing: 0) {
+                            Text(num)
+                            Text("×").opacity(active ? 1 : 0).frame(width: 9)
+                        }
+                        .font(.system(size: 15, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(active ? Palette.lemon : .white)
+                        .shadow(color: .black.opacity(active ? 0 : 0.45), radius: 2)
                     }
                     .rotatingIcon(motion.iconAngle)
                     .frame(width: 44, height: 44)
@@ -363,7 +374,7 @@ struct CameraView: View {
             }
         }
         .frame(height: 48)
-        .animation(.easeInOut(duration: 0.24), value: activeIndex)
+        .animation(.smooth(duration: 0.3), value: activeIndex)
     }
 
     private var zoomStops: [CGFloat] {

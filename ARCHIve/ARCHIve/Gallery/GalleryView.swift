@@ -45,6 +45,10 @@ struct GalleryView: View {
 
     private let cols = Array(repeating: GridItem(.flexible(), spacing: 2), count: 3)
 
+    // Time-grid zoom: pinch to change how many photos per row (1...5).
+    @State private var gridCols = 3
+    @State private var pinchBaseCols: Int?
+
     // MARK: Derived
 
     private var filtersActive: Bool { filterType != nil || filterProject != nil }
@@ -165,11 +169,24 @@ struct GalleryView: View {
     }
 
     private func grid(_ items: [Photo]) -> some View {
-        ScrollView {
-            LazyVGrid(columns: cols, spacing: 2) {
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: gridCols)
+        return ScrollView {
+            LazyVGrid(columns: columns, spacing: 2) {
                 ForEach(items) { cell($0) }
             }
+            .animation(.easeInOut(duration: 0.2), value: gridCols)
         }
+        // Pinch to change photos-per-row: spread = bigger/fewer, pinch = smaller/more.
+        .simultaneousGesture(
+            MagnifyGesture()
+                .onChanged { value in
+                    if pinchBaseCols == nil { pinchBaseCols = gridCols }
+                    let base = pinchBaseCols ?? gridCols
+                    let steps = Int((value.magnification - 1) * 4)
+                    gridCols = min(5, max(1, base - steps))
+                }
+                .onEnded { _ in pinchBaseCols = nil }
+        )
     }
 
     // MARK: Cell + badges
