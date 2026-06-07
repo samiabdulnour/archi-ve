@@ -13,6 +13,7 @@ struct SettingsView: View {
     @AppStorage("customProjects") private var customProjectsRaw = ""
 
     @State private var newProject = ""
+    @State private var sync = SyncMonitor()
 
     // Backup
     @State private var exportURL: URL?
@@ -36,6 +37,9 @@ struct SettingsView: View {
                 Section { projectsBody } header: { header("Projects") }
                 Section { appearanceBody } header: { header("Appearance") }
                 Section { captureStepsBody } header: { header("Capture flow steps") }
+                Section { iCloudBody } header: { header("iCloud sync") } footer: {
+                    Text("Your archive syncs to your private iCloud and appears on your other devices signed in with the same Apple ID.")
+                }
                 Section { backupBody } header: { header("Backup") } footer: {
                     Text("Saves all photos + tags to a folder you can keep in Files or iCloud Drive. Restore adds back any photos not already here.")
                 }
@@ -48,6 +52,7 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .onAppear { sync.refreshAccount() }
         }
         .tint(Palette.coral)
         .sheet(isPresented: $showExportShare) {
@@ -59,6 +64,45 @@ struct SettingsView: View {
         .alert("Backup", isPresented: $showBackupResult) {
             Button("OK") { }
         } message: { Text(backupMessage) }
+    }
+
+    // MARK: iCloud sync
+    @ViewBuilder private var iCloudBody: some View {
+        HStack {
+            Label("iCloud account", systemImage: "person.icloud")
+            Spacer()
+            Text(accountText).foregroundStyle(.secondary)
+        }
+        HStack {
+            Label("Status", systemImage: "arrow.triangle.2.circlepath")
+            Spacer()
+            if sync.isSyncing {
+                HStack(spacing: 6) {
+                    ProgressView().controlSize(.small)
+                    Text("Syncing…").foregroundStyle(.secondary)
+                }
+            } else if sync.lastError != nil {
+                Text("Error").foregroundStyle(.red)
+            } else if let d = sync.lastSync {
+                Text("Synced \(d.formatted(.relative(presentation: .named)))")
+                    .foregroundStyle(.secondary)
+            } else {
+                Text("Idle").foregroundStyle(.secondary)
+            }
+        }
+        if let err = sync.lastError {
+            Text(err).font(.caption).foregroundStyle(.red)
+        }
+    }
+
+    private var accountText: String {
+        switch sync.account {
+        case .checking:  return "Checking…"
+        case .available: return "Available"
+        case .noAccount: return "Not signed in"
+        case .restricted: return "Restricted"
+        case .error:     return "Unavailable"
+        }
     }
 
     // MARK: Backup
