@@ -321,22 +321,31 @@ struct CameraView: View {
     }
 
     private var zoomBar: some View {
-        // Native style: separate round buttons (no connecting pill). The active
-        // factor is a larger filled circle showing "1×"; the rest are plain
-        // numbers in a smaller dark circle.
-        HStack(spacing: 10) {
-            ForEach(zoomStops, id: \.self) { z in
-                let active = abs(camera.zoomFactor - z) < 0.1
+        // Native style: the active factor is always centred with a small filled
+        // circle around it; the other factors are plain numbers flanking it
+        // (no circle). Tapping one slides it to the centre.
+        let stops = zoomStops
+        let activeIndex = stops.firstIndex { abs(camera.zoomFactor - $0) < 0.1 } ?? 0
+        let slot: CGFloat = 46
+        return ZStack {
+            ForEach(Array(stops.enumerated()), id: \.element) { i, z in
+                let active = i == activeIndex
                 let num = z == 1 ? "1" : String(format: "%.0f", z)
                 Button { camera.setZoom(z); baseZoom = z } label: {
                     Text(active ? "\(num)×" : num)
-                        .font(.system(size: active ? 15 : 13, weight: .semibold))
+                        .font(.system(size: active ? 16 : 14, weight: .semibold))
                         .foregroundStyle(active ? Palette.lemon : .white)
-                        .frame(width: active ? 44 : 36, height: active ? 44 : 36)
-                        .background(Circle().fill(.black.opacity(active ? 0.5 : 0.3)))
+                        .frame(width: active ? 40 : 30, height: active ? 40 : 30)
+                        .background {
+                            if active { Circle().fill(.black.opacity(0.5)) }
+                        }
+                        .shadow(color: .black.opacity(active ? 0 : 0.5), radius: 2)
                 }
+                .offset(x: CGFloat(i - activeIndex) * slot)
             }
         }
+        .frame(height: 48)
+        .animation(.spring(response: 0.25, dampingFraction: 0.85), value: activeIndex)
     }
 
     private var zoomStops: [CGFloat] {
