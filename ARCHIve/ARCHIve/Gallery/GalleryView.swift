@@ -38,6 +38,9 @@ struct GalleryView: View {
     // Import
     @State private var importItems: [PhotosPickerItem] = []
 
+    // Settings
+    @State private var showSettings = false
+
     private let cols = Array(repeating: GridItem(.flexible(), spacing: 2), count: 3)
 
     // MARK: Derived
@@ -94,6 +97,7 @@ struct GalleryView: View {
             Button("Cancel", role: .cancel) {}
         } message: { Text("This can't be undone.") }
         .sheet(isPresented: $showShare) { ActivityView(items: shareItems) }
+        .sheet(isPresented: $showSettings) { SettingsView() }
         .onChange(of: importItems) { _, items in Task { await importPhotos(items) } }
     }
 
@@ -116,6 +120,8 @@ struct GalleryView: View {
                         Label("Import", systemImage: "square.and.arrow.down")
                     }
                     Button { selecting = true } label: { Label("Select", systemImage: "checkmark.circle") }
+                    Divider()
+                    Button { showSettings = true } label: { Label("Settings", systemImage: "gearshape") }
                 } label: { Image(systemName: "ellipsis.circle") }
             }
         }

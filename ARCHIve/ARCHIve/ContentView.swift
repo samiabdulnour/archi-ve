@@ -14,7 +14,7 @@ struct ContentView: View {
                 .navigationTitle("ARCHI-ve")
                 .navigationBarTitleDisplayMode(.inline)
                 .navigationDestination(for: Photo.self) { photo in
-                    PhotoDetailView(photo: photo)
+                    PhotoDetailView(photoID: photo.id)
                 }
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {

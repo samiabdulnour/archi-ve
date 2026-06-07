@@ -14,6 +14,7 @@ struct TagSheetView: View {
     @Query private var allPhotos: [Photo]
     @State private var tags = HumanTags()
     @State private var project = ""
+    @State private var showFullscreen = false
     @AppStorage("flowSteps") private var flowRaw = ""
 
     private var flow: String { tags.type ?? "building" }
@@ -64,20 +65,36 @@ struct TagSheetView: View {
             .onAppear { tags = photo.humanTags; project = photo.project ?? "" }
         }
         .interactiveDismissDisabled(false)
+        .fullScreenCover(isPresented: $showFullscreen) {
+            IntrospectionView(image: UIImage(data: photo.imageData)) { showFullscreen = false }
+        }
     }
 
     // MARK: Header
 
+    /// Tap the thumbnail to inspect the shot fullscreen (pinch-zoom) before
+    /// committing tags.
     private var thumbnail: some View {
-        Group {
-            if let img = UIImage(data: photo.imageData) {
-                Image(uiImage: img)
-                    .resizable().scaledToFill()
-                    .frame(height: 96)
-                    .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+        Button { showFullscreen = true } label: {
+            Group {
+                if let img = UIImage(data: photo.imageData) {
+                    Image(uiImage: img)
+                        .resizable().scaledToFill()
+                        .frame(height: 96)
+                        .frame(maxWidth: .infinity)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(alignment: .bottomTrailing) {
+                            Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(5)
+                                .background(Circle().fill(.black.opacity(0.45)))
+                                .padding(6)
+                        }
+                }
             }
         }
+        .buttonStyle(.plain)
     }
 
     /// Building / Element / Graphic as a single segmented toggle.

@@ -1,16 +1,78 @@
 import SwiftUI
 import SwiftData
 
-/// Shows one photo, the categories it was tagged with, and opens the
-/// fullscreen pinch-zoom introspection when the image is tapped.
+/// Swipeable detail: pages horizontally through the archive (newest first),
+/// starting at the tapped photo. Each page shows the image (tap to pinch-zoom
+/// fullscreen) and the tags it was captured with.
 struct PhotoDetailView: View {
-    @Bindable var photo: Photo
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Query(sort: \Photo.createdAt, order: .reverse) private var photos: [Photo]
 
+    @State private var selection: String
     @State private var introspecting = false
     @State private var editing = false
     @State private var confirmDelete = false
+
+    init(photoID: String) { _selection = State(initialValue: photoID) }
+
+    private var current: Photo? { photos.first { $0.id == selection } }
+
+    var body: some View {
+        TabView(selection: $selection) {
+            ForEach(photos) { photo in
+                PhotoPage(photo: photo) { introspecting = true }
+                    .tag(photo.id)
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .background(Palette.paper.ignoresSafeArea())
+        .navigationTitle(current.map { $0.createdAt.formatted(date: .abbreviated, time: .shortened) } ?? "")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button { editing = true } label: { Label("Edit tags", systemImage: "tag") }
+                    Button(role: .destructive) { confirmDelete = true } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .disabled(current == nil)
+            }
+        }
+        .fullScreenCover(isPresented: $introspecting) {
+            IntrospectionView(image: current.flatMap { UIImage(data: $0.imageData) }) { introspecting = false }
+        }
+        .fullScreenCover(isPresented: $editing) {
+            if let current {
+                TagSheetView(photo: current) { editing = false }
+            }
+        }
+        .alert("Delete this photo?", isPresented: $confirmDelete) {
+            Button("Delete", role: .destructive) { deleteCurrent() }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This permanently removes the photo from your archive.")
+        }
+    }
+
+    /// Delete the current page, then move to a neighbour or leave if it was the
+    /// last one.
+    private func deleteCurrent() {
+        guard let current, let idx = photos.firstIndex(where: { $0.id == current.id }) else { return }
+        let neighbour = photos[safe: idx + 1] ?? photos[safe: idx - 1]
+        modelContext.delete(current)
+        try? modelContext.save()
+        if let neighbour { selection = neighbour.id } else { dismiss() }
+    }
+}
+
+/// A single detail page: tappable image + its tag rows.
+private struct PhotoPage: View {
+    @Bindable var photo: Photo
+    var onZoom: () -> Void
 
     private var image: UIImage? { UIImage(data: photo.imageData) }
 
@@ -18,7 +80,7 @@ struct PhotoDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 if let image {
-                    Button { introspecting = true } label: {
+                    Button(action: onZoom) {
                         Image(uiImage: image)
                             .resizable().scaledToFit()
                             .frame(maxWidth: .infinity)
@@ -34,37 +96,6 @@ struct PhotoDetailView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
-        }
-        .background(Palette.paper.ignoresSafeArea())
-        .navigationTitle(photo.createdAt.formatted(date: .abbreviated, time: .shortened))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button { editing = true } label: { Label("Edit tags", systemImage: "tag") }
-                    Button(role: .destructive) { confirmDelete = true } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-            }
-        }
-        .fullScreenCover(isPresented: $introspecting) {
-            IntrospectionView(image: image) { introspecting = false }
-        }
-        .fullScreenCover(isPresented: $editing) {
-            TagSheetView(photo: photo) { editing = false }
-        }
-        .alert("Delete this photo?", isPresented: $confirmDelete) {
-            Button("Delete", role: .destructive) {
-                modelContext.delete(photo)
-                try? modelContext.save()
-                dismiss()
-            }
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text("This permanently removes the photo from your archive.")
         }
     }
 
@@ -118,5 +149,12 @@ private struct DetailRow: View {
             Text(value).font(.subheadline)
             Spacer()
         }
+    }
+}
+
+private extension Array {
+    /// Safe index lookup — returns nil instead of trapping out of bounds.
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }
