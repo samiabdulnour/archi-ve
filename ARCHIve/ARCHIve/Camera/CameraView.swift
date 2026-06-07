@@ -214,6 +214,7 @@ struct CameraView: View {
                     Image(systemName: t.symbol)
                         .font(.system(size: 17, weight: .medium))
                         .foregroundStyle(active ? .black : .white.opacity(0.85))
+                        .rotatingIcon(motion.iconAngle)
                         .frame(width: 32, height: 32)
                         .background(active ? Circle().fill(.white) : Circle().fill(.clear))
                 }
@@ -243,6 +244,7 @@ struct CameraView: View {
             Image(systemName: symbol)
                 .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(active ? Palette.coral : .white)
+                .rotatingIcon(motion.iconAngle)
                 .frame(width: 32, height: 32)
         }
     }
@@ -311,6 +313,7 @@ struct CameraView: View {
                         .overlay(Image(systemName: "photo").foregroundStyle(.white.opacity(0.7)))
                 }
             }
+            .rotatingIcon(motion.iconAngle)
             .clipShape(RoundedRectangle(cornerRadius: 9))
             .overlay(RoundedRectangle(cornerRadius: 9).stroke(.white.opacity(0.5), lineWidth: 1))
         }
@@ -321,6 +324,7 @@ struct CameraView: View {
             Image(systemName: "arrow.triangle.2.circlepath")
                 .font(.system(size: 20, weight: .medium))
                 .foregroundStyle(.white)
+                .rotatingIcon(motion.iconAngle)
                 .frame(width: 46, height: 46)
                 .background(Circle().fill(.white.opacity(0.16)))
         }
@@ -350,6 +354,7 @@ struct CameraView: View {
                             .foregroundStyle(active ? Palette.lemon : .white)
                             .shadow(color: .black.opacity(active ? 0 : 0.45), radius: 2)
                     }
+                    .rotatingIcon(motion.iconAngle)
                     .frame(width: 44, height: 44)
                     .scaleEffect(active ? 1 : 0.88)
                     .contentShape(Circle())
@@ -583,6 +588,21 @@ private struct ProjectPickerSheet: View {
 }
 
 // MARK: - Overlays
+
+/// Rotates a control glyph to stay upright as the phone turns (native Camera
+/// behaviour) while the UI itself stays locked in portrait.
+private struct RotatingIcon: ViewModifier {
+    let angle: Double
+    func body(content: Content) -> some View {
+        content
+            .rotationEffect(.degrees(angle))
+            .animation(.easeInOut(duration: 0.28), value: angle)
+    }
+}
+
+private extension View {
+    func rotatingIcon(_ angle: Double) -> some View { modifier(RotatingIcon(angle: angle)) }
+}
 
 /// Springy press-shrink for the shutter, like the native Camera.
 private struct ShutterButtonStyle: ButtonStyle {

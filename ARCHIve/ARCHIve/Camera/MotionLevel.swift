@@ -15,6 +15,10 @@ final class MotionLevel {
     var isLevel: Bool = false
     /// True when the phone is lying flat (gravity mostly on Z) — level hidden.
     var isFlat: Bool = false
+    /// Rotation (degrees) to apply to control icons so they stay upright as the
+    /// phone turns — snapped to 0 / ±90 / 180, like the native Camera. Updates
+    /// only once the phone settles near a cardinal, and always the short way.
+    var iconAngle: Double = 0
 
     private let manager = CMMotionManager()
     private var smoothed: Double = 0
@@ -55,5 +59,23 @@ final class MotionLevel {
         // Nearest cardinal (0/90/180/-90).
         let bucket = (smoothed / 90).rounded() * 90
         isLevel = !isFlat && abs(smoothed - bucket) < 1.0
+
+        // Icon orientation: only commit a new cardinal once the phone has
+        // settled within 35° of it (hysteresis → no flicker at the 45° edges),
+        // and rotate the short way so it never spins the long way round.
+        if !isFlat, abs(wrap(smoothed - bucket)) < 35 {
+            var target = -bucket
+            while target - iconAngle > 180 { target -= 360 }
+            while target - iconAngle < -180 { target += 360 }
+            iconAngle = target
+        }
+    }
+
+    /// Normalise an angle to -180...180.
+    private func wrap(_ d: Double) -> Double {
+        var x = d
+        while x > 180 { x -= 360 }
+        while x < -180 { x += 360 }
+        return x
     }
 }
