@@ -32,7 +32,7 @@ struct CameraView: View {
             ZStack {
                 Color.black.ignoresSafeArea()
                 if camera.authorized {
-                    previewStack(in: geo.size)
+                    previewStack(in: geo)
                 } else if camera.permissionDenied {
                     permissionView
                 } else {
@@ -74,21 +74,68 @@ struct CameraView: View {
     // MARK: Preview + overlays
 
     @ViewBuilder
-    private func previewStack(in size: CGSize) -> some View {
-        // Full-bleed live feed; controls float over it (native behaviour).
+    private func previewStack(in geo: GeometryProxy) -> some View {
+        // Native-style layout: the live feed stays full-bleed, but the *crop
+        // window* sits in the region above the controls (not centred on the
+        // whole screen), so its bottom edge never collides with the shutter.
+        // The zoom bar rides the bottom edge of that window and moves with the
+        // chosen ratio, exactly like the system Camera.
+        let ratio = camera.aspect.portraitRatio          // width / height (<1)
+        let topSafe = geo.safeAreaInsets.top
+        let botSafe = geo.safeAreaInsets.bottom
+        let fullW = geo.size.width
+        let fullH = geo.size.height + topSafe + botSafe   // physical screen height
+        let topReserve = topSafe + 50                     // top pill row
+        let bottomReserve = botSafe + 172                 // shutter + mode row
+        let availH = max(0, fullH - topReserve - bottomReserve)
+        let frameH = min(availH, fullW / ratio)
+        let frameW = min(fullW, frameH * ratio)
+        let frameCx = fullW / 2
+        let frameTop = topReserve + (availH - frameH) / 2
+        let frameCy = frameTop + frameH / 2
+        let frameBottom = frameTop + frameH
+
         ZStack {
             CameraPreview(controller: camera) { point in handleFocusTap(point) }
                 .ignoresSafeArea()
-            AspectGuide(ratio: camera.aspect.portraitRatio).ignoresSafeArea()
-            if camera.gridOn { GridOverlay().ignoresSafeArea() }
+
+            // Dim everything outside the crop window, punching a clear hole.
+            ZStack {
+                Color.black.opacity(0.4)
+                Rectangle()
+                    .frame(width: frameW, height: frameH)
+                    .position(x: frameCx, y: frameCy)
+                    .blendMode(.destinationOut)
+            }
+            .compositingGroup()
+            .allowsHitTesting(false)
+
+            Rectangle().stroke(.white.opacity(0.5), lineWidth: 1)
+                .frame(width: frameW, height: frameH)
+                .position(x: frameCx, y: frameCy)
+                .allowsHitTesting(false)
+
+            if camera.gridOn {
+                GridOverlay()
+                    .frame(width: frameW, height: frameH)
+                    .position(x: frameCx, y: frameCy)
+            }
             if camera.levelOn && !motion.isFlat {
                 LevelOverlay(angle: motion.angle, isLevel: motion.isLevel)
+                    .position(x: frameCx, y: frameCy)
             }
             if let p = focusPoint, focusRingVisible { FocusRing().position(p) }
+
+            // Zoom bar pinned just inside the crop window's bottom edge.
+            if camera.maxZoom > 1.5 {
+                zoomBar.position(x: frameCx, y: frameBottom - 26)
+            }
+
             if shutterFlash { Color.white.ignoresSafeArea() }
             if let c = countdown {
                 Text("\(c)").font(.system(size: 120, weight: .thin, design: .rounded))
                     .foregroundStyle(.white).shadow(radius: 8)
+                    .position(x: frameCx, y: frameCy)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -110,7 +157,6 @@ struct CameraView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 16) {
-                if camera.maxZoom > 1.5 { zoomBar }
                 shutterButton
                 ZStack {
                     HStack {
@@ -502,27 +548,6 @@ private struct ProjectPickerSheet: View {
 }
 
 // MARK: - Overlays
-
-/// Crop guide on the full-bleed feed: the chosen aspect ratio shown as a clear
-/// centred frame with the area outside dimmed — so you can see what 1:1 / 4:3 /
-/// 16:9 will capture.
-private struct AspectGuide: View {
-    let ratio: CGFloat   // width / height, portrait
-    var body: some View {
-        GeometryReader { geo in
-            let w = geo.size.width
-            let h = min(geo.size.height, w / ratio)
-            let bar = max(0, (geo.size.height - h) / 2)
-            VStack(spacing: 0) {
-                Color.black.opacity(0.4).frame(height: bar)
-                Rectangle().fill(.clear).frame(height: h)
-                    .overlay(Rectangle().stroke(.white.opacity(0.5), lineWidth: 1))
-                Color.black.opacity(0.4).frame(height: bar)
-            }
-        }
-        .allowsHitTesting(false)
-    }
-}
 
 /// Springy press-shrink for the shutter, like the native Camera.
 private struct ShutterButtonStyle: ButtonStyle {
