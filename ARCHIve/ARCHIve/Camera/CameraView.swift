@@ -100,7 +100,7 @@ struct CameraView: View {
         let frameBottom = frameTop + frameH
 
         ZStack {
-            CameraPreview(controller: camera) { point in handleFocusTap(point) }
+            CameraPreview(controller: camera)
                 .ignoresSafeArea()
 
             if isFullBleed {
@@ -158,6 +158,12 @@ struct CameraView: View {
             MagnifyGesture()
                 .onChanged { value in camera.setZoom(baseZoom * value.magnification) }
                 .onEnded { _ in baseZoom = camera.zoomFactor }
+        )
+        // Tap-to-focus: a SwiftUI spatial tap so it coexists with the magnify
+        // gesture. Location is in the full-screen preview space.
+        .simultaneousGesture(
+            SpatialTapGesture()
+                .onEnded { value in handleFocusTap(value.location) }
         )
         .safeAreaInset(edge: .top, spacing: 0) {
             HStack(alignment: .top) {

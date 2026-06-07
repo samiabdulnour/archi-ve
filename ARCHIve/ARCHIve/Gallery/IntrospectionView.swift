@@ -28,100 +28,93 @@ struct IntrospectionView: View {
     }
 }
 
-/// UIScrollView-backed zoomable image: reliable pinch + pan + double-tap,
-/// which SwiftUI gestures handle poorly together.
+/// UIScrollView-backed zoomable image: reliable pinch + pan + double-tap.
+/// Layout happens in `layoutSubviews` (in the scroll-view subclass) so the
+/// image always fills the screen correctly once the real bounds are known —
+/// which `updateUIView` can miss.
 private struct ZoomableImage: UIViewRepresentable {
     let image: UIImage
     var onSingleTapWhenUnzoomed: () -> Void
 
-    func makeUIView(context: Context) -> UIScrollView {
-        let scroll = UIScrollView()
-        scroll.delegate = context.coordinator
-        scroll.minimumZoomScale = 1
-        scroll.maximumZoomScale = 6
-        scroll.showsVerticalScrollIndicator = false
-        scroll.showsHorizontalScrollIndicator = false
-        scroll.bouncesZoom = true
-        scroll.backgroundColor = .black
+    func makeUIView(context: Context) -> ZoomScrollView {
+        ZoomScrollView(image: image, onSingleTap: onSingleTapWhenUnzoomed)
+    }
 
-        let imageView = UIImageView(image: image)
+    func updateUIView(_ uiView: ZoomScrollView, context: Context) {}
+}
+
+/// A self-contained zoomable scroll view: fits the image to the screen, pinch
+/// to zoom (up to 6×), pan when zoomed, double-tap to toggle 3×, single tap
+/// (when unzoomed) to dismiss.
+final class ZoomScrollView: UIScrollView, UIScrollViewDelegate {
+    private let imageView = UIImageView()
+    private let onSingleTap: () -> Void
+
+    init(image: UIImage, onSingleTap: @escaping () -> Void) {
+        self.onSingleTap = onSingleTap
+        super.init(frame: .zero)
+
+        delegate = self
+        minimumZoomScale = 1
+        maximumZoomScale = 6
+        bouncesZoom = true
+        showsVerticalScrollIndicator = false
+        showsHorizontalScrollIndicator = false
+        backgroundColor = .black
+        contentInsetAdjustmentBehavior = .never
+
+        imageView.image = image
         imageView.contentMode = .scaleAspectFit
         imageView.isUserInteractionEnabled = true
-        scroll.addSubview(imageView)
-        context.coordinator.imageView = imageView
-        context.coordinator.scrollView = scroll
+        addSubview(imageView)
 
-        let doubleTap = UITapGestureRecognizer(target: context.coordinator,
-                                               action: #selector(Coordinator.handleDoubleTap(_:)))
+        let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
         doubleTap.numberOfTapsRequired = 2
-        scroll.addGestureRecognizer(doubleTap)
+        addGestureRecognizer(doubleTap)
 
-        let singleTap = UITapGestureRecognizer(target: context.coordinator,
-                                               action: #selector(Coordinator.handleSingleTap(_:)))
+        let singleTap = UITapGestureRecognizer(target: self, action: #selector(handleSingleTap))
         singleTap.numberOfTapsRequired = 1
         singleTap.require(toFail: doubleTap)
-        scroll.addGestureRecognizer(singleTap)
-
-        return scroll
+        addGestureRecognizer(singleTap)
     }
 
-    func updateUIView(_ uiView: UIScrollView, context: Context) {
-        context.coordinator.layoutImage()
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        // While unzoomed, keep the image filling the viewport (aspect-fit).
+        if zoomScale == minimumZoomScale {
+            imageView.frame = bounds
+            contentSize = bounds.size
+        }
+        centerImage()
     }
 
-    func makeCoordinator() -> Coordinator { Coordinator(onSingleTap: onSingleTapWhenUnzoomed) }
+    func viewForZooming(in scrollView: UIScrollView) -> UIView? { imageView }
+    func scrollViewDidZoom(_ scrollView: UIScrollView) { centerImage() }
 
-    final class Coordinator: NSObject, UIScrollViewDelegate {
-        weak var imageView: UIImageView?
-        weak var scrollView: UIScrollView?
-        let onSingleTap: () -> Void
-        private var didLayout = false
+    private func centerImage() {
+        let w = bounds.width, h = bounds.height
+        let cw = imageView.frame.width, ch = imageView.frame.height
+        imageView.frame.origin = CGPoint(x: max(0, (w - cw) / 2),
+                                         y: max(0, (h - ch) / 2))
+    }
 
-        init(onSingleTap: @escaping () -> Void) { self.onSingleTap = onSingleTap }
-
-        func viewForZooming(in scrollView: UIScrollView) -> UIView? { imageView }
-
-        func scrollViewDidZoom(_ scrollView: UIScrollView) { centerImage() }
-
-        func layoutImage() {
-            guard let scroll = scrollView, let iv = imageView, !didLayout,
-                  scroll.bounds.width > 0 else { return }
-            didLayout = true
-            iv.frame = scroll.bounds
-            scroll.contentSize = scroll.bounds.size
+    @objc private func handleDoubleTap(_ gr: UITapGestureRecognizer) {
+        if zoomScale > minimumZoomScale {
+            setZoomScale(minimumZoomScale, animated: true)
+        } else {
+            let point = gr.location(in: imageView)
+            let target = min(maximumZoomScale, 3)
+            let rect = CGRect(x: point.x - (bounds.width / target) / 2,
+                              y: point.y - (bounds.height / target) / 2,
+                              width: bounds.width / target,
+                              height: bounds.height / target)
+            zoom(to: rect, animated: true)
         }
+    }
 
-        private func centerImage() {
-            guard let scroll = scrollView, let iv = imageView else { return }
-            let w = scroll.bounds.width, h = scroll.bounds.height
-            let cw = iv.frame.width, ch = iv.frame.height
-            let x = max(0, (w - cw) / 2)
-            let y = max(0, (h - ch) / 2)
-            iv.frame.origin = CGPoint(x: x, y: y)
-        }
-
-        @objc func handleDoubleTap(_ gr: UITapGestureRecognizer) {
-            guard let scroll = scrollView else { return }
-            if scroll.zoomScale > scroll.minimumZoomScale {
-                scroll.setZoomScale(scroll.minimumZoomScale, animated: true)
-            } else {
-                let point = gr.location(in: imageView)
-                let size = scroll.bounds.size
-                let target = min(scroll.maximumZoomScale, 3)
-                let rect = CGRect(
-                    x: point.x - (size.width / target) / 2,
-                    y: point.y - (size.height / target) / 2,
-                    width: size.width / target,
-                    height: size.height / target)
-                scroll.zoom(to: rect, animated: true)
-            }
-        }
-
-        @objc func handleSingleTap(_ gr: UITapGestureRecognizer) {
-            guard let scroll = scrollView else { return }
-            if scroll.zoomScale <= scroll.minimumZoomScale {
-                onSingleTap()
-            }
-        }
+    @objc private func handleSingleTap() {
+        if zoomScale <= minimumZoomScale { onSingleTap() }
     }
 }
