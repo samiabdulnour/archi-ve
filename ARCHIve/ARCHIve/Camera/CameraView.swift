@@ -80,6 +80,10 @@ struct CameraView: View {
         // whole screen), so its bottom edge never collides with the shutter.
         // The zoom bar rides the bottom edge of that window and moves with the
         // chosen ratio, exactly like the system Camera.
+        // 16:9 is the full-bleed mode (like native): the feed fills the screen
+        // edge-to-edge and the controls float over it. 4:3 / 1:1 use a framed
+        // crop window with the area outside dimmed.
+        let isFullBleed = camera.aspect == .sixteenNine
         let ratio = camera.aspect.portraitRatio          // width / height (<1)
         let topSafe = geo.safeAreaInsets.top
         let botSafe = geo.safeAreaInsets.bottom
@@ -99,43 +103,52 @@ struct CameraView: View {
             CameraPreview(controller: camera) { point in handleFocusTap(point) }
                 .ignoresSafeArea()
 
-            // Dim everything outside the crop window, punching a clear hole.
-            ZStack {
-                Color.black.opacity(0.4)
-                Rectangle()
-                    .frame(width: frameW, height: frameH)
-                    .position(x: frameCx, y: frameCy)
-                    .blendMode(.destinationOut)
-            }
-            .compositingGroup()
-            .allowsHitTesting(false)
-
-            Rectangle().stroke(.white.opacity(0.5), lineWidth: 1)
-                .frame(width: frameW, height: frameH)
-                .position(x: frameCx, y: frameCy)
+            if isFullBleed {
+                // No crop window: full-screen grid + centred level, controls
+                // float over the feed (zoom lives in the bottom inset below).
+                if camera.gridOn { GridOverlay().ignoresSafeArea() }
+                if camera.levelOn && !motion.isFlat {
+                    LevelOverlay(angle: motion.angle, isLevel: motion.isLevel)
+                }
+            } else {
+                // Dim everything outside the crop window, punching a clear hole.
+                ZStack {
+                    Color.black.opacity(0.4)
+                    Rectangle()
+                        .frame(width: frameW, height: frameH)
+                        .position(x: frameCx, y: frameCy)
+                        .blendMode(.destinationOut)
+                }
+                .compositingGroup()
                 .allowsHitTesting(false)
 
-            if camera.gridOn {
-                GridOverlay()
+                Rectangle().stroke(.white.opacity(0.5), lineWidth: 1)
                     .frame(width: frameW, height: frameH)
                     .position(x: frameCx, y: frameCy)
-            }
-            if camera.levelOn && !motion.isFlat {
-                LevelOverlay(angle: motion.angle, isLevel: motion.isLevel)
-                    .position(x: frameCx, y: frameCy)
-            }
-            if let p = focusPoint, focusRingVisible { FocusRing().position(p) }
+                    .allowsHitTesting(false)
 
-            // Zoom bar pinned just inside the crop window's bottom edge.
-            if camera.maxZoom > 1.5 {
-                zoomBar.position(x: frameCx, y: frameBottom - 26)
+                if camera.gridOn {
+                    GridOverlay()
+                        .frame(width: frameW, height: frameH)
+                        .position(x: frameCx, y: frameCy)
+                }
+                if camera.levelOn && !motion.isFlat {
+                    LevelOverlay(angle: motion.angle, isLevel: motion.isLevel)
+                        .position(x: frameCx, y: frameCy)
+                }
+                // Zoom bar pinned just inside the crop window's bottom edge.
+                if camera.maxZoom > 1.5 {
+                    zoomBar.position(x: frameCx, y: frameBottom - 26)
+                }
             }
+
+            if let p = focusPoint, focusRingVisible { FocusRing().position(p) }
 
             if shutterFlash { Color.white.ignoresSafeArea() }
             if let c = countdown {
                 Text("\(c)").font(.system(size: 120, weight: .thin, design: .rounded))
                     .foregroundStyle(.white).shadow(radius: 8)
-                    .position(x: frameCx, y: frameCy)
+                    .position(x: frameCx, y: isFullBleed ? fullH / 2 : frameCy)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -157,6 +170,9 @@ struct CameraView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 16) {
+                // In full-bleed (16:9) the zoom bar floats above the shutter;
+                // in framed modes it rides the crop window's bottom edge instead.
+                if isFullBleed && camera.maxZoom > 1.5 { zoomBar }
                 shutterButton
                 ZStack {
                     HStack {
