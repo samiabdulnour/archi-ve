@@ -322,30 +322,37 @@ struct CameraView: View {
 
     private var zoomBar: some View {
         // Native style: the active factor is always centred with a small filled
-        // circle around it; the other factors are plain numbers flanking it
-        // (no circle). Tapping one slides it to the centre.
+        // circle around it; the other factors are plain numbers flanking it.
+        // Everything that changes between active/inactive is animatable — the
+        // circle fades (opacity), the size scales (scaleEffect), and every slot
+        // is a fixed size — so switching factors is smooth, not flickery.
         let stops = zoomStops
         let activeIndex = stops.firstIndex { abs(camera.zoomFactor - $0) < 0.1 } ?? 0
-        let slot: CGFloat = 46
+        let slot: CGFloat = 48
         return ZStack {
             ForEach(Array(stops.enumerated()), id: \.element) { i, z in
                 let active = i == activeIndex
                 let num = z == 1 ? "1" : String(format: "%.0f", z)
                 Button { camera.setZoom(z); baseZoom = z } label: {
-                    Text(active ? "\(num)×" : num)
-                        .font(.system(size: active ? 16 : 14, weight: .semibold))
-                        .foregroundStyle(active ? Palette.lemon : .white)
-                        .frame(width: active ? 40 : 30, height: active ? 40 : 30)
-                        .background {
-                            if active { Circle().fill(.black.opacity(0.5)) }
-                        }
-                        .shadow(color: .black.opacity(active ? 0 : 0.5), radius: 2)
+                    ZStack {
+                        Circle().fill(.black.opacity(0.5))
+                            .frame(width: 40, height: 40)
+                            .opacity(active ? 1 : 0)
+                        Text(active ? "\(num)×" : num)
+                            .font(.system(size: 15, weight: .semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(active ? Palette.lemon : .white)
+                            .shadow(color: .black.opacity(active ? 0 : 0.45), radius: 2)
+                    }
+                    .frame(width: 44, height: 44)
+                    .scaleEffect(active ? 1 : 0.82)
+                    .contentShape(Circle())
                 }
                 .offset(x: CGFloat(i - activeIndex) * slot)
             }
         }
         .frame(height: 48)
-        .animation(.spring(response: 0.25, dampingFraction: 0.85), value: activeIndex)
+        .animation(.spring(response: 0.3, dampingFraction: 0.9), value: activeIndex)
     }
 
     private var zoomStops: [CGFloat] {
