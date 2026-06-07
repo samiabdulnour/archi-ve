@@ -270,8 +270,8 @@ struct CameraView: View {
         // springy press-shrink for tactility.
         Button(action: onShutter) {
             ZStack {
-                Circle().stroke(.white, lineWidth: 3).frame(width: 74, height: 74)
-                Circle().fill(.white).frame(width: 59, height: 59)
+                Circle().stroke(.white, lineWidth: 2.5).frame(width: 72, height: 72)
+                Circle().fill(.white).frame(width: 63, height: 63)
             }
         }
         .buttonStyle(ShutterButtonStyle())
@@ -351,14 +351,14 @@ struct CameraView: View {
                             .shadow(color: .black.opacity(active ? 0 : 0.45), radius: 2)
                     }
                     .frame(width: 44, height: 44)
-                    .scaleEffect(active ? 1 : 0.82)
+                    .scaleEffect(active ? 1 : 0.88)
                     .contentShape(Circle())
                 }
                 .offset(x: CGFloat(i - activeIndex) * slot)
             }
         }
         .frame(height: 48)
-        .animation(.spring(response: 0.3, dampingFraction: 0.9), value: activeIndex)
+        .animation(.easeInOut(duration: 0.24), value: activeIndex)
     }
 
     private var zoomStops: [CGFloat] {
