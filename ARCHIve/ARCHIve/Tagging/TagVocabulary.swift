@@ -38,7 +38,7 @@ enum TagVocab {
         TagOption("context",     "Context",     "site, urban"),
         TagOption("circulation", "Circulation", "movement, route"),
         TagOption("scale",       "Scale",       "proportion, size"),
-        TagOption("threshold",   "Threshold",   "edge, entry"),
+        TagOption("colour",      "Colour",      "palette, tone"),
         TagOption("other",       "Other",       "something else"),
     ]
 
@@ -77,15 +77,18 @@ enum TagVocab {
     }
 
     // Element → Category → sub-element (single-select each), like the web app.
+    // 10 categories (two rows of 5) × 5 sub-elements each (one row of 5).
     static let elementCategories: [(category: String, items: [String])] = [
-        ("Structure", ["Wall", "Column", "Beam", "Slab"]),
-        ("Vertical",  ["Stair", "Ramp", "Railing", "Elevator"]),
-        ("Opening",   ["Door", "Window", "Curtain wall", "Skylight"]),
-        ("Envelope",  ["Roof", "Facade", "Ceiling", "Floor"]),
-        ("Finish",    ["Tile", "Cladding", "Paint", "Render"]),
-        ("Detail",    ["Joint", "Section", "Profile", "Pattern"]),
-        ("Service",   ["HVAC", "Plumbing", "Electrical", "Fire"]),
-        ("Product",   ["Furniture", "Lighting", "Appliance", "Decor"]),
+        ("Structure", ["Wall", "Column", "Beam", "Slab", "Frame"]),
+        ("Vertical",  ["Stair", "Ramp", "Railing", "Elevator", "Escalator"]),
+        ("Opening",   ["Door", "Window", "Curtain wall", "Skylight", "Gate"]),
+        ("Envelope",  ["Roof", "Facade", "Ceiling", "Floor", "Soffit"]),
+        ("Finish",    ["Tile", "Cladding", "Paint", "Render", "Flooring"]),
+        ("Detail",    ["Joint", "Section", "Profile", "Pattern", "Trim"]),
+        ("Service",   ["HVAC", "Plumbing", "Electrical", "Fire", "Drainage"]),
+        ("Product",   ["Furniture", "Lighting", "Appliance", "Decor", "Fixture"]),
+        ("Ornament",  ["Cornice", "Moulding", "Relief", "Frieze", "Inlay"]),
+        ("Landscape", ["Paving", "Planting", "Water", "Fence", "Bench"]),
     ]
     static func elementItems(for category: String) -> [String] {
         elementCategories.first { $0.category == category }?.items ?? []
@@ -114,8 +117,8 @@ enum TagVocab {
         TagOption("plan",    "Plan",    "floor plan, layout"),
         TagOption("render",  "Render",  "visualisation, 3D"),
         TagOption("diagram", "Diagram", "schema, section"),
-        TagOption("photo",   "Photo",   "photograph"),
-        TagOption("sign",    "Sign",    "signage, lettering"),
+        TagOption("web",     "Web",     "website, screen"),
+        TagOption("model",   "Model",   "physical model"),
         TagOption("contact", "Contact", "business card"),
         TagOption("other",   "Other",   "note, receipt"),
     ]
@@ -139,16 +142,17 @@ enum TagVocab {
         case "concept":
             raw = ["form": "cube", "space": "square.dashed", "light": "sun.max", "materiality": "square.grid.3x3",
                    "structure": "square.stack.3d.up", "context": "map", "circulation": "figure.walk",
-                   "scale": "ruler", "threshold": "door.left.hand.open", "other": "ellipsis"][id] ?? "circle"
+                   "scale": "ruler", "colour": "paintpalette", "other": "ellipsis"][id] ?? "circle"
         case "elementcat":
             raw = ["Structure": "square.stack.3d.up", "Vertical": "stairs", "Opening": "door.left.hand.closed",
                    "Envelope": "house", "Finish": "paintbrush", "Detail": "ruler",
-                   "Service": "wrench.and.screwdriver", "Product": "sofa"][id] ?? "square"
+                   "Service": "wrench.and.screwdriver", "Product": "sofa",
+                   "Ornament": "seal", "Landscape": "tree"][id] ?? "square"
         case "elementsub":
             raw = elementSubSymbols[id] ?? "square"
         case "graphic":
             raw = ["artwork": "photo.artframe", "book": "book", "drawing": "pencil.and.outline", "plan": "ruler",
-                   "render": "cube.transparent", "diagram": "chart.bar", "photo": "photo", "sign": "signpost.right",
+                   "render": "cube.transparent", "diagram": "chart.bar", "web": "globe", "model": "cube.fill",
                    "contact": "person.crop.rectangle", "other": "ellipsis"][id] ?? "doc"
         case "visual":
             raw = ["Colorful": "paintpalette", "Monochrome": "circle.lefthalf.filled", "Textured": "square.grid.3x3",
@@ -173,15 +177,28 @@ enum TagVocab {
     ]
 
     static let elementSubSymbols: [String: String] = [
-        "Wall": "rectangle.portrait", "Column": "building.columns", "Beam": "rectangle", "Slab": "square",
-        "Stair": "stairs", "Ramp": "line.diagonal", "Railing": "rectangle.split.3x1", "Elevator": "arrow.up.arrow.down",
+        // Structure
+        "Wall": "rectangle.portrait", "Column": "building.columns", "Beam": "rectangle", "Slab": "square", "Frame": "square.split.2x2",
+        // Vertical
+        "Stair": "stairs", "Ramp": "line.diagonal", "Railing": "rectangle.split.3x1", "Elevator": "arrow.up.arrow.down", "Escalator": "arrow.up.and.down",
+        // Opening
         "Door": "door.left.hand.closed", "Window": "rectangle.split.2x2", "Curtain wall": "rectangle.split.3x3",
-        "Skylight": "sun.max", "Roof": "triangle", "Facade": "rectangle.grid.3x2",
-        "Ceiling": "rectangle.tophalf.inset.filled", "Floor": "rectangle.bottomhalf.inset.filled",
-        "Tile": "square.grid.3x3", "Cladding": "square.grid.2x2", "Paint": "paintbrush.pointed", "Render": "cube.transparent",
-        "Joint": "link", "Section": "square.dashed.inset.filled", "Profile": "squareshape", "Pattern": "circle.grid.2x2",
-        "HVAC": "wind", "Plumbing": "drop", "Electrical": "bolt", "Fire": "flame",
-        "Furniture": "sofa", "Lighting": "lightbulb", "Appliance": "refrigerator", "Decor": "leaf",
+        "Skylight": "sun.max", "Gate": "door.garage.closed",
+        // Envelope
+        "Roof": "triangle", "Facade": "rectangle.grid.3x2",
+        "Ceiling": "rectangle.tophalf.inset.filled", "Floor": "rectangle.bottomhalf.inset.filled", "Soffit": "rectangle.tophalf.filled",
+        // Finish
+        "Tile": "square.grid.3x3", "Cladding": "square.grid.2x2", "Paint": "paintbrush.pointed", "Render": "cube.transparent", "Flooring": "rectangle.grid.1x2",
+        // Detail
+        "Joint": "link", "Section": "square.dashed.inset.filled", "Profile": "squareshape", "Pattern": "circle.grid.2x2", "Trim": "ruler",
+        // Service
+        "HVAC": "wind", "Plumbing": "drop", "Electrical": "bolt", "Fire": "flame", "Drainage": "drop.fill",
+        // Product
+        "Furniture": "sofa", "Lighting": "lightbulb", "Appliance": "refrigerator", "Decor": "leaf", "Fixture": "shower",
+        // Ornament
+        "Cornice": "scribble.variable", "Moulding": "scribble", "Relief": "square.3.layers.3d", "Frieze": "rectangle.split.3x1", "Inlay": "square.grid.3x3.square",
+        // Landscape
+        "Paving": "square.grid.3x3.fill", "Planting": "leaf.fill", "Water": "drop", "Fence": "rectangle.split.3x1", "Bench": "chair",
     ]
 
     /// Returns `name` if the SF Symbol exists, else a neutral fallback.
@@ -196,6 +213,8 @@ enum TagVocab {
         case "artwork": return [("title", "Title"), ("creator", "Artist"), ("year", "Year"), ("source", "Source / where")]
         case "book":    return [("title", "Title"), ("creator", "Author"), ("source", "Publisher / library")]
         case "drawing": return [("title", "Title"), ("creator", "Creator"), ("year", "Year")]
+        case "web":     return [("title", "Title"), ("source", "Site / URL")]
+        case "model":   return [("title", "Title"), ("creator", "Architect"), ("year", "Year")]
         case "contact": return [("name", "Name"), ("company", "Company")]
         default:        return []
         }

@@ -111,13 +111,15 @@ enum Settings {
         switch flow {
         case "element": return [("element", "Element"), ("materiality", "Materiality"), ("colour", "Colour"),
                                 ("authoryear", "Author & year"), ("note", "Note")]
-        case "graphic": return [("kind", "Kind"), ("details", "Details"), ("note", "Note")]
+        case "graphic": return [("kind", "Kind"), ("details", "Details"), ("visual", "Visual"), ("note", "Note")]
         default:        return [("typology", "Typology"), ("concept", "Concept"), ("materiality", "Materiality"),
                                 ("colour", "Colour"), ("authoryear", "Author & year"), ("note", "Note")]
         }
     }
-    /// Concept and Colour are off by default; everything else on.
-    static func flowDefault(_ step: String) -> Bool { step != "concept" && step != "colour" }
+    /// Concept, Colour and Visual are off by default; everything else on.
+    static func flowDefault(_ step: String) -> Bool {
+        step != "concept" && step != "colour" && step != "visual"
+    }
 
     static func flowEnabled(_ flow: String, _ step: String) -> Bool {
         flowDict()["\(flow).\(step)"] ?? flowDefault(step)

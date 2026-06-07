@@ -180,7 +180,7 @@ struct TagSheetView: View {
     @ViewBuilder private var graphicSections: some View {
         if enabled("kind") { graphicKindSection }
         if enabled("details") { graphicDetailSection }
-        visualSection
+        if enabled("visual") { visualSection }
     }
 
     /// Per-kind detail fields, matching the web app's GRAPHIC_FIELDS.
