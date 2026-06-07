@@ -413,7 +413,6 @@ private struct CameraSettingsSheet: View {
     @Bindable var camera: CameraController
     @Environment(\.dismiss) private var dismiss
     @State private var showAppSettings = false
-    @State private var showHowTo = false
 
     private let cols = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
 
@@ -428,7 +427,6 @@ private struct CameraSettingsSheet: View {
                 item("GRID", "grid", active: camera.gridOn) { camera.gridOn.toggle() }
                 item("LEVEL", "level", active: camera.levelOn) { camera.levelOn.toggle() }
                 item("SETTINGS", "gearshape", active: false) { showAppSettings = true }
-                item("HOW TO USE", "questionmark", active: false) { showHowTo = true }
             }
             .padding(.horizontal, 22)
             Spacer(minLength: 16)
@@ -436,8 +434,7 @@ private struct CameraSettingsSheet: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .environment(\.colorScheme, .dark)
         .sheet(isPresented: $showAppSettings) { SettingsView() }
-        .sheet(isPresented: $showHowTo) { NavigationStack { HowToUseView() } }
-        .presentationDetents([.height(380)])
+        .presentationDetents([.height(320)])
         // Liquid-glass: a forced-dark frosted material so the blurred feed
         // shows through, like the native Camera control sheet.
         .presentationBackground {
