@@ -5,6 +5,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var photos: [Photo]
     @State private var showCamera = false
+    @State private var didAutoOpen = false
     @AppStorage("appearance") private var appearance = "auto"
     @AppStorage("welcomed") private var welcomed = false
 
@@ -17,34 +18,31 @@ struct ContentView: View {
                     PhotoDetailView(photoID: photo.id)
                 }
                 .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
+                    ToolbarItem(placement: .topBarLeading) {
                         Button { showCamera = true } label: {
                             Image(systemName: "camera.fill")
                         }
                     }
                     #if targetEnvironment(simulator)
-                    ToolbarItem(placement: .topBarLeading) {
+                    ToolbarItem(placement: .topBarTrailing) {
                         Button("Seed") { seedSample() }
                     }
                     #endif
                 }
-                .safeAreaInset(edge: .bottom) {
-                    Button { showCamera = true } label: {
-                        Label("Capture", systemImage: "camera.fill")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
+                // Launch straight into capture (once per launch) when the user
+                // has already seen the welcome screen.
+                .onAppear {
+                    if !didAutoOpen && welcomed {
+                        didAutoOpen = true
+                        showCamera = true
                     }
-                    .buttonStyle(.borderedProminent)
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 8)
                 }
         }
         .fullScreenCover(isPresented: $showCamera) {
             CameraView()
         }
         .fullScreenCover(isPresented: Binding(get: { !welcomed }, set: { welcomed = !$0 })) {
-            WelcomeView { welcomed = true }
+            WelcomeView { welcomed = true; showCamera = true }
         }
         .preferredColorScheme(Settings.colorScheme(for: appearance))
     }

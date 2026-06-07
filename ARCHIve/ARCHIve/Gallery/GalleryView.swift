@@ -37,6 +37,7 @@ struct GalleryView: View {
 
     // Import
     @State private var importItems: [PhotosPickerItem] = []
+    @State private var showImporter = false
 
     // Settings
     @State private var showSettings = false
@@ -98,6 +99,7 @@ struct GalleryView: View {
         } message: { Text("This can't be undone.") }
         .sheet(isPresented: $showShare) { ActivityView(items: shareItems) }
         .sheet(isPresented: $showSettings) { SettingsView() }
+        .photosPicker(isPresented: $showImporter, selection: $importItems, matching: .images)
         .onChange(of: importItems) { _, items in Task { await importPhotos(items) } }
     }
 
@@ -116,9 +118,7 @@ struct GalleryView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button { showFilter = true } label: { Label("Filter", systemImage: "line.3.horizontal.decrease.circle") }
-                    PhotosPicker(selection: $importItems, matching: .images) {
-                        Label("Import", systemImage: "square.and.arrow.down")
-                    }
+                    Button { showImporter = true } label: { Label("Import", systemImage: "square.and.arrow.down") }
                     Button { selecting = true } label: { Label("Select", systemImage: "checkmark.circle") }
                     Divider()
                     Button { showSettings = true } label: { Label("Settings", systemImage: "gearshape") }

@@ -116,13 +116,16 @@ enum Settings {
                                 ("colour", "Colour"), ("authoryear", "Author & year"), ("note", "Note")]
         }
     }
-    /// Concept, Colour and Visual are off by default; everything else on.
-    static func flowDefault(_ step: String) -> Bool {
-        step != "concept" && step != "colour" && step != "visual"
+    /// Concept, Colour, Visual are off by default everywhere; Materiality is
+    /// off by default for Buildings only (kept on for Elements). Rest on.
+    static func flowDefault(_ flow: String, _ step: String) -> Bool {
+        if step == "concept" || step == "colour" || step == "visual" { return false }
+        if step == "materiality" && flow == "building" { return false }
+        return true
     }
 
     static func flowEnabled(_ flow: String, _ step: String) -> Bool {
-        flowDict()["\(flow).\(step)"] ?? flowDefault(step)
+        flowDict()["\(flow).\(step)"] ?? flowDefault(flow, step)
     }
     static func flowDict() -> [String: Bool] {
         let raw = UserDefaults.standard.string(forKey: "flowSteps") ?? ""

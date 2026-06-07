@@ -321,22 +321,22 @@ struct CameraView: View {
     }
 
     private var zoomBar: some View {
-        HStack(spacing: 6) {
+        // Native style: separate round buttons (no connecting pill). The active
+        // factor is a larger filled circle showing "1×"; the rest are plain
+        // numbers in a smaller dark circle.
+        HStack(spacing: 10) {
             ForEach(zoomStops, id: \.self) { z in
                 let active = abs(camera.zoomFactor - z) < 0.1
                 let num = z == 1 ? "1" : String(format: "%.0f", z)
                 Button { camera.setZoom(z); baseZoom = z } label: {
-                    // Native: the "×" only shows on the active factor.
                     Text(active ? "\(num)×" : num)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: active ? 15 : 13, weight: .semibold))
                         .foregroundStyle(active ? Palette.lemon : .white)
-                        .frame(width: 34, height: 34)
-                        .background(active ? Circle().fill(.black.opacity(0.45)) : Circle().fill(.clear))
+                        .frame(width: active ? 44 : 36, height: active ? 44 : 36)
+                        .background(Circle().fill(.black.opacity(active ? 0.5 : 0.3)))
                 }
             }
         }
-        .padding(4)
-        .background(Capsule().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
     }
 
     private var zoomStops: [CGFloat] {

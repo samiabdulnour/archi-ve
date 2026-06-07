@@ -13,6 +13,7 @@ struct PhotoDetailView: View {
     @State private var introspecting = false
     @State private var editing = false
     @State private var confirmDelete = false
+    @State private var showShare = false
 
     init(photoID: String) { _selection = State(initialValue: photoID) }
 
@@ -33,6 +34,7 @@ struct PhotoDetailView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button { editing = true } label: { Label("Edit tags", systemImage: "tag") }
+                    Button { showShare = true } label: { Label("Share", systemImage: "square.and.arrow.up") }
                     Button(role: .destructive) { confirmDelete = true } label: {
                         Label("Delete", systemImage: "trash")
                     }
@@ -48,6 +50,11 @@ struct PhotoDetailView: View {
         .fullScreenCover(isPresented: $editing) {
             if let current {
                 TagSheetView(photo: current) { editing = false }
+            }
+        }
+        .sheet(isPresented: $showShare) {
+            if let img = current.flatMap({ UIImage(data: $0.imageData) }) {
+                ActivityView(items: [img])
             }
         }
         .alert("Delete this photo?", isPresented: $confirmDelete) {
