@@ -11,13 +11,15 @@ import SwiftData
 @Model
 final class Photo: Identifiable {
     /// Stable id (UUID string) — matches the web app's record id style.
-    @Attribute(.unique) var id: String
+    /// NB: no `.unique` constraint — CloudKit sync doesn't allow it; uniqueness
+    /// is guaranteed by generating UUIDs and de-duping by id on restore/import.
+    var id: String = ""
 
     /// The captured JPEG. Stored outside the main store file for size.
-    @Attribute(.externalStorage) var imageData: Data
+    @Attribute(.externalStorage) var imageData: Data = Data()
 
     /// When the photo was taken (capture time, not import time).
-    var createdAt: Date
+    var createdAt: Date = Date()
 
     // GPS comes free from the phone; nil when unavailable / denied.
     var latitude: Double?
@@ -25,10 +27,10 @@ final class Photo: Identifiable {
 
     /// The owner's structured tags. Encoded JSON so the shape can evolve
     /// without a SwiftData migration for every taxonomy tweak.
-    var humanTagsData: Data
+    var humanTagsData: Data = Data()
 
     /// Reserved for machine-suggested tags. Empty for now.
-    var machineTagsData: Data
+    var machineTagsData: Data = Data()
 
     /// Project association (editable later); nil = unfiled.
     var project: String?
