@@ -189,15 +189,19 @@ struct CompactTile<Art: View>: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 3) {
-                art.frame(width: 24, height: 24)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)   // centre in the space above the label
-                Text(label)
-                    .font(.system(size: 9, weight: .medium))
-                    .lineLimit(2).multilineTextAlignment(.center).minimumScaleFactor(0.85)
-                    .frame(height: 22, alignment: .top)
+            ZStack {
+                // Icon centred in the whole tile…
+                art.frame(width: 26, height: 26)
+                // …with the label pinned to the bottom edge.
+                VStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    Text(label)
+                        .font(.system(size: 9, weight: .medium))
+                        .lineLimit(1).minimumScaleFactor(0.6)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.bottom, 7).padding(.horizontal, 3)
             }
-            .padding(.top, 8).padding(.bottom, 6).padding(.horizontal, 2)
             .frame(maxWidth: .infinity)
             .frame(height: 66)
             .background(RoundedRectangle(cornerRadius: 9).fill(selected ? Palette.coral.opacity(0.14) : Palette.tile))
