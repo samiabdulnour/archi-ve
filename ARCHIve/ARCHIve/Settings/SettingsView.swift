@@ -1,16 +1,25 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 /// App settings, mirroring the old web app: Projects, Appearance, Capture flow
 /// steps, Custom materials, and the How-to guide.
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Photo.createdAt, order: .reverse) private var photos: [Photo]
 
     @AppStorage("appearance") private var appearance = "auto"
     @AppStorage("customProjects") private var customProjectsRaw = ""
 
     @State private var newProject = ""
+
+    // Backup
+    @State private var exportURL: URL?
+    @State private var showExportShare = false
+    @State private var showImporter = false
+    @State private var backupMessage = ""
+    @State private var showBackupResult = false
 
     private var derivedProjects: [String] {
         var seen = Set<String>(); var out: [String] = []
@@ -27,6 +36,9 @@ struct SettingsView: View {
                 Section { projectsBody } header: { header("Projects") }
                 Section { appearanceBody } header: { header("Appearance") }
                 Section { captureStepsBody } header: { header("Capture flow steps") }
+                Section { backupBody } header: { header("Backup") } footer: {
+                    Text("Saves all photos + tags to a folder you can keep in Files or iCloud Drive. Restore adds back any photos not already here.")
+                }
                 Section {
                     NavigationLink { HowToUseView() } label: { Text("How to use ARCHI-ve") }
                 }
@@ -38,6 +50,57 @@ struct SettingsView: View {
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
         .tint(Palette.coral)
+        .sheet(isPresented: $showExportShare) {
+            if let exportURL { ActivityView(items: [exportURL]) }
+        }
+        .fileImporter(isPresented: $showImporter, allowedContentTypes: [.folder]) { result in
+            handleRestore(result)
+        }
+        .alert("Backup", isPresented: $showBackupResult) {
+            Button("OK") { }
+        } message: { Text(backupMessage) }
+    }
+
+    // MARK: Backup
+    @ViewBuilder private var backupBody: some View {
+        Button {
+            do {
+                exportURL = try BackupManager.makeBackup(photos)
+                showExportShare = true
+            } catch {
+                backupMessage = "Backup failed: \(error.localizedDescription)"
+                showBackupResult = true
+            }
+        } label: {
+            Label("Back up all photos", systemImage: "square.and.arrow.up.on.square")
+        }
+        .disabled(photos.isEmpty)
+
+        Button {
+            showImporter = true
+        } label: {
+            Label("Restore from backup", systemImage: "square.and.arrow.down.on.square")
+        }
+    }
+
+    private func handleRestore(_ result: Result<URL, Error>) {
+        switch result {
+        case .success(let url):
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            do {
+                let n = try BackupManager.restore(from: url, into: modelContext,
+                                                  existingIDs: Set(photos.map(\.id)))
+                backupMessage = n == 0 ? "Nothing new to restore — everything in this backup is already here."
+                                       : "Restored \(n) photo\(n == 1 ? "" : "s")."
+            } catch {
+                backupMessage = "Restore failed. Make sure you picked an ARCHI-ve backup folder.\n\n\(error.localizedDescription)"
+            }
+            showBackupResult = true
+        case .failure(let error):
+            backupMessage = "Restore failed: \(error.localizedDescription)"
+            showBackupResult = true
+        }
     }
 
     private func header(_ t: String) -> some View {
