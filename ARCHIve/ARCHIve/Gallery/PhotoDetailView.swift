@@ -74,7 +74,10 @@ private struct PhotoPage: View {
     @Bindable var photo: Photo
     var onZoom: () -> Void
 
+    @State private var showLabel = false
+
     private var image: UIImage? { UIImage(data: photo.imageData) }
+    private var labelImage: UIImage? { photo.labelImageData.flatMap { UIImage(data: $0) } }
 
     var body: some View {
         ScrollView {
@@ -94,8 +97,26 @@ private struct PhotoPage: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 24)
+
+                if let labelImage {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Label").font(.subheadline).foregroundStyle(.secondary)
+                        Button { showLabel = true } label: {
+                            Image(uiImage: labelImage)
+                                .resizable().scaledToFit()
+                                .frame(maxWidth: .infinity)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Palette.hairline, lineWidth: 0.5))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 16)
+                }
             }
+            .padding(.bottom, 24)
+        }
+        .fullScreenCover(isPresented: $showLabel) {
+            IntrospectionView(image: labelImage) { showLabel = false }
         }
     }
 

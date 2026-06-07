@@ -36,6 +36,11 @@ final class Photo: Identifiable {
     /// Set when the photo was brought in via Import rather than the camera.
     var importedAt: Date?
 
+    /// An optional second photo of an info placard / wall label (e.g. the
+    /// painting's caption at an exhibition) — captured instead of typing the
+    /// title/artist. Stored outside the main store file like the main image.
+    @Attribute(.externalStorage) var labelImageData: Data?
+
     init(
         id: String = UUID().uuidString,
         imageData: Data,
@@ -44,7 +49,8 @@ final class Photo: Identifiable {
         longitude: Double? = nil,
         humanTags: HumanTags = HumanTags(),
         project: String? = nil,
-        importedAt: Date? = nil
+        importedAt: Date? = nil,
+        labelImageData: Data? = nil
     ) {
         self.id = id
         self.imageData = imageData
@@ -55,6 +61,7 @@ final class Photo: Identifiable {
         self.machineTagsData = Data()
         self.project = project
         self.importedAt = importedAt
+        self.labelImageData = labelImageData
     }
 
     /// Decoded view of the human tags.

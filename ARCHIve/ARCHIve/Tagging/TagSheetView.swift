@@ -15,6 +15,9 @@ struct TagSheetView: View {
     @State private var tags = HumanTags()
     @State private var project = ""
     @State private var showFullscreen = false
+    @State private var labelImage: UIImage?
+    @State private var showLabelCamera = false
+    @State private var showFullscreenLabel = false
     @AppStorage("flowSteps") private var flowRaw = ""
 
     private var flow: String { tags.type ?? "building" }
@@ -62,11 +65,18 @@ struct TagSheetView: View {
                         .disabled(tags.type == nil)
                 }
             }
-            .onAppear { tags = photo.humanTags; project = photo.project ?? "" }
+            .onAppear {
+                tags = photo.humanTags; project = photo.project ?? ""
+                if let d = photo.labelImageData { labelImage = UIImage(data: d) }
+            }
         }
         .interactiveDismissDisabled(false)
         .fullScreenCover(isPresented: $showFullscreen) {
             IntrospectionView(image: UIImage(data: photo.imageData)) { showFullscreen = false }
+        }
+        .fullScreenCover(isPresented: $showLabelCamera) {
+            ImagePicker { data in labelImage = UIImage(data: data) }
+                .ignoresSafeArea()
         }
     }
 
@@ -200,17 +210,61 @@ struct TagSheetView: View {
         if enabled("visual") { visualSection }
     }
 
-    /// Per-kind detail fields, matching the web app's GRAPHIC_FIELDS.
+    /// Per-kind detail fields, matching the web app's GRAPHIC_FIELDS. Plus a
+    /// "Capture label" shortcut: at a gallery/exhibition you can snap the wall
+    /// placard instead of typing the title/artist by hand.
     @ViewBuilder private var graphicDetailSection: some View {
         let fields = TagVocab.graphicFields(for: tags.graphicKind)
         if !fields.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 sectionLabel("Details")
+                labelCaptureRow
                 ForEach(fields, id: \.0) { field in
                     TextField(field.1, text: binding(for: field.0))
                         .textFieldStyle(.roundedBorder)
                 }
             }
+        }
+    }
+
+    /// Snap-the-placard control: a button when empty, a tappable thumbnail
+    /// (with retake / remove) once a label photo has been captured.
+    @ViewBuilder private var labelCaptureRow: some View {
+        if let img = labelImage {
+            HStack(spacing: 12) {
+                Button { showFullscreenLabel = true } label: {
+                    Image(uiImage: img)
+                        .resizable().scaledToFill()
+                        .frame(width: 54, height: 54)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Palette.hairline, lineWidth: 0.5))
+                }
+                .buttonStyle(.plain)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Label captured").font(.subheadline.weight(.medium)).foregroundStyle(Palette.ink)
+                    Text("Tap to view").font(.caption).foregroundStyle(Palette.ink3)
+                }
+                Spacer()
+                Button { showLabelCamera = true } label: {
+                    Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 16))
+                }
+                Button(role: .destructive) { labelImage = nil } label: {
+                    Image(systemName: "trash").font(.system(size: 16))
+                }
+            }
+            .fullScreenCover(isPresented: $showFullscreenLabel) {
+                IntrospectionView(image: labelImage) { showFullscreenLabel = false }
+            }
+        } else {
+            Button { showLabelCamera = true } label: {
+                Label("Capture label", systemImage: "text.viewfinder")
+                    .font(.subheadline.weight(.medium))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Palette.tile))
+                    .foregroundStyle(Palette.ink)
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -425,6 +479,7 @@ struct TagSheetView: View {
         photo.humanTags = tags
         let trimmed = project.trimmingCharacters(in: .whitespacesAndNewlines)
         photo.project = trimmed.isEmpty ? nil : trimmed
+        photo.labelImageData = labelImage?.jpegData(compressionQuality: 0.85)
         try? modelContext.save()
         finish()
     }
