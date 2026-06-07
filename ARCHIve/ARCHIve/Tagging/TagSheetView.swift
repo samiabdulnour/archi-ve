@@ -359,27 +359,32 @@ struct TagSheetView: View {
     // MARK: Extras
 
     private var extrasSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Divider()
-            // Graphic has its own per-kind Title/Creator/Year fields, so the
-            // generic Author & year is only shown for Building / Element.
+        // Compact, label-light layout (placeholders act as labels) so the whole
+        // tag form ideally fits without scrolling.
+        VStack(alignment: .leading, spacing: 8) {
+            Divider().padding(.vertical, 2)
+            // Graphic has its own per-kind Title/Creator/Year fields, so Author
+            // & year is only shown for Building / Element — as two separate
+            // fields with the year on the right.
             if tags.type != "graphic" && enabled("authoryear") {
-                sectionLabel("Author & year")
-                TextField("e.g. Aalto, 1939", text: Binding(
-                    get: { tags.authorYear ?? "" },
-                    set: { tags.authorYear = $0.isEmpty ? nil : $0 }))
-                    .textFieldStyle(.roundedBorder)
+                HStack(spacing: 8) {
+                    TextField("Author", text: strBinding(\.creator))
+                        .textFieldStyle(.roundedBorder)
+                    TextField("Year", text: strBinding(\.year))
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 78)
+                        .multilineTextAlignment(.center)
+                        .keyboardType(.numbersAndPunctuation)
+                }
             }
             if enabled("note") {
-                sectionLabel("Note")
-                TextField("Personal note", text: Binding(
+                TextField("Note", text: Binding(
                     get: { tags.note ?? "" },
                     set: { tags.note = $0.isEmpty ? nil : $0 }), axis: .vertical)
-                    .lineLimit(1...4)
+                    .lineLimit(1...3)
                     .textFieldStyle(.roundedBorder)
             }
-            sectionLabel("Keywords")
-            TextField("comma, separated", text: Binding(
+            TextField("Keywords (comma separated)", text: Binding(
                 get: { tags.keywords.joined(separator: ", ") },
                 set: { tags.keywords = $0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty } }))
                 .textFieldStyle(.roundedBorder)
@@ -391,8 +396,7 @@ struct TagSheetView: View {
     /// Project association lives on the Photo (not in HumanTags). Tap an existing
     /// project to reuse it, or type a new one. Tapping the active chip clears it.
     private var projectSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionLabel("Project")
+        VStack(alignment: .leading, spacing: 6) {
             if !existingProjects.isEmpty {
                 chipGrid(existingProjects.map { ($0, $0, nil as String?) }) { id in
                     project == id
@@ -400,7 +404,7 @@ struct TagSheetView: View {
                     project = (project == id) ? "" : id
                 }
             }
-            TextField("New project name", text: $project)
+            TextField("Project", text: $project)
                 .textFieldStyle(.roundedBorder)
                 .autocorrectionDisabled()
         }
