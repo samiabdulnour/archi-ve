@@ -90,7 +90,7 @@ struct TagSheetView: View {
                 if let img = UIImage(data: photo.imageData) {
                     Image(uiImage: img)
                         .resizable().scaledToFill()
-                        .frame(height: 96)
+                        .frame(height: 140)
                         .frame(maxWidth: .infinity)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         .overlay(alignment: .bottomTrailing) {
