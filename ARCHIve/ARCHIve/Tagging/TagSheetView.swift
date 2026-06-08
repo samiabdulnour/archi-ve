@@ -361,6 +361,7 @@ struct TagSheetView: View {
         // tag form ideally fits without scrolling.
         VStack(alignment: .leading, spacing: 8) {
             Divider().padding(.vertical, 2)
+            if enabled("rating") { ratingRow }
             // Graphic has its own per-kind Title/Creator/Year fields, so Author
             // & year is only shown for Building / Element — as two separate
             // fields with the year on the right.
@@ -375,7 +376,6 @@ struct TagSheetView: View {
                         .keyboardType(.numbersAndPunctuation)
                 }
             }
-            if enabled("rating") { ratingRow }
             if enabled("note") {
                 TextField("Note", text: Binding(
                     get: { tags.note ?? "" },
