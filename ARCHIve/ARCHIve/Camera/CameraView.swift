@@ -140,15 +140,17 @@ struct CameraView: View {
                     LevelOverlay(angle: motion.angle, isLevel: motion.isLevel)
                         .position(x: frameCx, y: frameCy)
                 }
-                // Zoom bar pinned just inside the crop window's bottom edge.
-                if camera.maxZoom > 1.5 {
-                    zoomBar.position(x: frameCx, y: frameBottom - 26)
-                }
             }
 
             // Tap-to-focus + drag-to-expose, in its own full-screen space so the
             // reticle lands exactly under the finger. Hosts the pinch-zoom too.
             FocusExposureView(camera: camera, baseZoom: $baseZoom)
+
+            // Framed-mode zoom bar rides the crop window's bottom edge — kept
+            // ABOVE the focus overlay so tapping a factor zooms (not focuses).
+            if !isFullBleed && camera.maxZoom > 1.5 {
+                zoomBar.position(x: frameCx, y: frameBottom - 26)
+            }
 
             if shutterFlash { Color.white.ignoresSafeArea() }
             if let c = countdown {
