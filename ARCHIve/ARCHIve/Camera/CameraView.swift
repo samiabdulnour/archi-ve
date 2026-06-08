@@ -159,7 +159,7 @@ struct CameraView: View {
                 zoomBar.position(x: frameCx, y: frameBottom - 26)
             }
 
-            if shutterFlash { Color.white.ignoresSafeArea() }
+            if shutterFlash { Color.black.ignoresSafeArea() }
             if let c = countdown {
                 Text("\(c)").font(.system(size: 120, weight: .thin, design: .rounded))
                     .foregroundStyle(.white).shadow(radius: 8)
