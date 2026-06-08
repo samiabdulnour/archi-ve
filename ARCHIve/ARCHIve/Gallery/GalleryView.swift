@@ -28,6 +28,7 @@ struct GalleryView: View {
     @State private var showFilter = false
     @State private var filterType: String?     // nil | "untagged" | building | element | graphic
     @State private var filterProject: String?
+    @State private var filterFavorites = false
 
     // Selection
     @State private var selecting = false
@@ -55,11 +56,12 @@ struct GalleryView: View {
 
     // MARK: Derived
 
-    private var filtersActive: Bool { filterType != nil || filterProject != nil }
+    private var filtersActive: Bool { filterType != nil || filterProject != nil || filterFavorites }
 
     private var filtered: [Photo] {
         let words = search.lowercased().split(separator: " ").map(String.init)
         return photos.filter { p in
+            if filterFavorites && !p.isFavorite { return false }
             if !words.isEmpty {
                 let txt = p.searchText
                 if !words.allSatisfy({ txt.contains($0) }) { return false }
@@ -99,7 +101,8 @@ struct GalleryView: View {
         .toolbar { galleryToolbar }
         .safeAreaInset(edge: .bottom) { if selecting { selectionBar } }
         .sheet(isPresented: $showFilter) {
-            FilterSheet(type: $filterType, project: $filterProject, projects: projectNames)
+            FilterSheet(type: $filterType, project: $filterProject,
+                        favorites: $filterFavorites, projects: projectNames)
         }
         .confirmationDialog("Delete \(selected.count) photo\(selected.count == 1 ? "" : "s")?",
                             isPresented: $confirmDelete, titleVisibility: .visible) {
@@ -267,6 +270,7 @@ struct GalleryView: View {
 
     private var resultBar: some View {
         HStack(spacing: 8) {
+            if filterFavorites { filterPill(label: "★ Favourites") { filterFavorites = false } }
             if let ft = filterType { filterPill(label: ft.capitalized) { filterType = nil } }
             if let fp = filterProject { filterPill(label: fp) { filterProject = nil } }
             Spacer()
@@ -411,7 +415,18 @@ struct TileBadges: View {
             } else if let ref = referenceLabel {
                 pill(ref, Palette.mint)
             }
+            if let r = photo.humanTags.rating, r > 0 { ratingPill(r) }
         }
+    }
+
+    private func ratingPill(_ r: Int) -> some View {
+        HStack(spacing: 2) {
+            Image(systemName: "star.fill").font(.system(size: 8))
+            Text("\(r)").font(.system(size: 9, weight: .semibold))
+        }
+        .padding(.horizontal, 5).padding(.vertical, 2)
+        .background(Capsule().fill(Palette.coral))
+        .foregroundStyle(.white)
     }
     private var referenceLabel: String? {
         let t = photo.humanTags
@@ -435,6 +450,7 @@ struct TileBadges: View {
 private struct FilterSheet: View {
     @Binding var type: String?
     @Binding var project: String?
+    @Binding var favorites: Bool
     let projects: [String]
     @Environment(\.dismiss) private var dismiss
 
@@ -444,6 +460,12 @@ private struct FilterSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    Toggle(isOn: $favorites) {
+                        Label("Favourites only", systemImage: "heart.fill")
+                    }
+                    .tint(Palette.coral)
+                }
                 Section("Type") {
                     Picker("Type", selection: Binding(get: { type ?? "all" },
                                                       set: { type = $0 == "all" ? nil : $0 })) {
@@ -464,7 +486,7 @@ private struct FilterSheet: View {
             .navigationTitle("Filter")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Clear") { type = nil; project = nil } }
+                ToolbarItem(placement: .cancellationAction) { Button("Clear") { type = nil; project = nil; favorites = false } }
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
         }
