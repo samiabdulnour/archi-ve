@@ -144,7 +144,14 @@ struct CameraView: View {
 
             // Tap-to-focus + drag-to-expose, in its own full-screen space so the
             // reticle lands exactly under the finger. Hosts the pinch-zoom too.
-            FocusExposureView(camera: camera, baseZoom: $baseZoom)
+            // Focus only registers inside the crop frame (whole screen in 16:9).
+            FocusExposureView(
+                camera: camera,
+                baseZoom: $baseZoom,
+                focusRegion: isFullBleed
+                    ? CGRect(x: 0, y: 0, width: fullW, height: fullH)
+                    : CGRect(x: frameCx - frameW / 2, y: frameCy - frameH / 2, width: frameW, height: frameH)
+            )
 
             // Framed-mode zoom bar rides the crop window's bottom edge — kept
             // ABOVE the focus overlay so tapping a factor zooms (not focuses).
@@ -705,11 +712,15 @@ private struct LevelOverlay: View {
 private struct FocusExposureView: View {
     let camera: CameraController
     @Binding var baseZoom: CGFloat
+    /// Taps that start outside this rect don't focus (the dimmed area in 4:3 /
+    /// 1:1). Pinch-to-zoom still works anywhere.
+    var focusRegion: CGRect
 
     @State private var point: CGPoint?
     @State private var bias: Float = 0
     @State private var visible = false
     @State private var gestureStarted = false
+    @State private var ignoring = false
     @State private var hideItem: DispatchWorkItem?
 
     var body: some View {
@@ -730,14 +741,18 @@ private struct FocusExposureView: View {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
                 if !gestureStarted {
-                    // First touch of this gesture = tap-to-focus at that point.
                     gestureStarted = true
+                    // Ignore the whole gesture if it began outside the frame.
+                    ignoring = !focusRegion.contains(value.startLocation)
+                    guard !ignoring else { return }
+                    // First touch inside the frame = tap-to-focus at that point.
                     point = value.startLocation
                     bias = 0
                     camera.focusAndExpose(atLayerPoint: value.startLocation)
                     camera.setExposureBias(0)
                     reveal()
                 }
+                guard !ignoring else { return }
                 // Drag up = brighter, down = darker (≈90pt per EV).
                 let dy = value.location.y - value.startLocation.y
                 bias = Float(max(-2, min(2, Double(-dy) / 90)))
@@ -746,6 +761,7 @@ private struct FocusExposureView: View {
             }
             .onEnded { _ in
                 gestureStarted = false
+                ignoring = false
                 scheduleHide()
             }
     }
