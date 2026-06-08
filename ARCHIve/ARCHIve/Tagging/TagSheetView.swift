@@ -375,6 +375,7 @@ struct TagSheetView: View {
                         .keyboardType(.numbersAndPunctuation)
                 }
             }
+            if enabled("rating") { ratingRow }
             if enabled("note") {
                 TextField("Note", text: Binding(
                     get: { tags.note ?? "" },
@@ -389,6 +390,25 @@ struct TagSheetView: View {
                 .autocorrectionDisabled()
             projectSection
         }
+    }
+
+    /// Five-star rating. Tap a star to set 1…5; tap the current rating to clear.
+    private var ratingRow: some View {
+        HStack(spacing: 8) {
+            ForEach(1...5, id: \.self) { i in
+                let filled = (tags.rating ?? 0) >= i
+                Button {
+                    tags.rating = (tags.rating == i) ? nil : i
+                } label: {
+                    Image(systemName: filled ? "star.fill" : "star")
+                        .font(.system(size: 22))
+                        .foregroundStyle(filled ? Palette.coral : Palette.ink3)
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer()
+        }
+        .padding(.vertical, 2)
     }
 
     /// Project association lives on the Photo (not in HumanTags). Tap an existing

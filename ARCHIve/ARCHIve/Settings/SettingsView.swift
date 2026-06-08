@@ -220,16 +220,17 @@ enum Settings {
     static func flowSteps(_ flow: String) -> [(String, String)] {
         switch flow {
         case "element": return [("element", "Element"), ("materiality", "Materiality"), ("colour", "Colour"),
-                                ("authoryear", "Author & year"), ("note", "Note")]
-        case "graphic": return [("kind", "Kind"), ("details", "Details"), ("visual", "Visual"), ("note", "Note")]
+                                ("authoryear", "Author & year"), ("note", "Note"), ("rating", "Rating")]
+        case "graphic": return [("kind", "Kind"), ("details", "Details"), ("visual", "Visual"),
+                                ("note", "Note"), ("rating", "Rating")]
         default:        return [("typology", "Typology"), ("concept", "Concept"), ("materiality", "Materiality"),
-                                ("colour", "Colour"), ("authoryear", "Author & year"), ("note", "Note")]
+                                ("colour", "Colour"), ("authoryear", "Author & year"), ("note", "Note"), ("rating", "Rating")]
         }
     }
-    /// Concept, Colour, Visual are off by default everywhere; Materiality is
-    /// off by default for Buildings only (kept on for Elements). Rest on.
+    /// Concept, Colour, Visual, Rating are off by default everywhere; Materiality
+    /// is off by default for Buildings only (kept on for Elements). Rest on.
     static func flowDefault(_ flow: String, _ step: String) -> Bool {
-        if step == "concept" || step == "colour" || step == "visual" { return false }
+        if step == "concept" || step == "colour" || step == "visual" || step == "rating" { return false }
         if step == "materiality" && flow == "building" { return false }
         return true
     }

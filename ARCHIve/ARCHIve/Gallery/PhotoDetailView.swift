@@ -169,6 +169,7 @@ private struct PhotoPage: View {
         add("Contact", [t.contactName, t.contactCompany].compactMap { $0 }.joined(separator: " · "))
         addList("Visual", t.visual)
         add("Author & year", t.authorYear)
+        add("Rating", t.rating.map { String(repeating: "★", count: $0) + String(repeating: "☆", count: 5 - $0) })
         add("Note", t.note)
         addList("Keywords", t.keywords)
         add("Project", photo.project)

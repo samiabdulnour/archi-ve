@@ -123,6 +123,7 @@ struct HumanTags: Codable, Equatable {
     var authorYear: String?        // "Aalto, 1939" etc.
     var note: String?              // personal note
     var keywords: [String] = []    // free user keywords
+    var rating: Int?               // 1...5 stars (optional, off by default)
 
     /// A draft is "tagged" once a type is chosen.
     var isEmpty: Bool {
