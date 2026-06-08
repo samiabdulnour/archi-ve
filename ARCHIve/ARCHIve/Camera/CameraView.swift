@@ -18,6 +18,11 @@ struct CameraView: View {
 
     @State private var tagMode: TagMode = .full
     @State private var reuseTags: HumanTags?
+
+    // Lite-mode "Saved" toast
+    @State private var savedToast: Photo?
+    @State private var savedToastType = "building"
+    @State private var toastHideItem: DispatchWorkItem?
     @State private var showSettings = false
     @State private var showProjectPicker = false
 
@@ -37,6 +42,7 @@ struct CameraView: View {
                     ProgressView().tint(.white)
                 }
             }
+            .overlay(alignment: .top) { savedToastView }
         }
         .statusBarHidden(true)
         .onAppear {
@@ -367,6 +373,49 @@ struct CameraView: View {
         return stops
     }
 
+    /// Lite-mode confirmation toast: "Saved as <type> · Tag later in gallery"
+    /// with a one-tap "Tag now". Styled in the warm/mint palette of the old app.
+    @ViewBuilder private var savedToastView: some View {
+        if let photo = savedToast {
+            let type = TagVocab.types.first { $0.id == savedToastType }
+            HStack(spacing: 12) {
+                Image(systemName: type?.symbol ?? "photo")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(Color(hex: "16140F"))
+                    .frame(width: 44, height: 44)
+                    .background(RoundedRectangle(cornerRadius: 11).fill(.white))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Saved as \(savedToastType)")
+                        .font(.headline)
+                        .foregroundStyle(Color(hex: "16140F"))
+                    Text("Tag later in gallery")
+                        .font(.subheadline)
+                        .foregroundStyle(Color(hex: "16140F").opacity(0.6))
+                }
+                Spacer(minLength: 8)
+                Button {
+                    toastHideItem?.cancel()
+                    withAnimation(.easeInOut(duration: 0.2)) { savedToast = nil }
+                    camera.stop()
+                    tagTarget = photo
+                } label: {
+                    Text("Tag now")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 16).padding(.vertical, 10)
+                        .background(Capsule().fill(Color(hex: "16140F")))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(10)
+            .background(RoundedRectangle(cornerRadius: 18).fill(Palette.mint))
+            .shadow(color: .black.opacity(0.2), radius: 8, y: 3)
+            .padding(.horizontal, 12)
+            .padding(.top, 6)
+            .transition(.move(edge: .top).combined(with: .opacity))
+        }
+    }
+
     private var permissionView: some View {
         VStack(spacing: 16) {
             Image(systemName: "camera.fill").font(.system(size: 44)).foregroundStyle(.white)
@@ -421,8 +470,23 @@ struct CameraView: View {
             if tagMode == .full {
                 camera.stop()
                 tagTarget = photo
+            } else {
+                // Lite mode: no tag sheet — confirm with a toast offering a
+                // one-tap "Tag now" (like the old app).
+                showSavedToast(photo)
             }
         }
+    }
+
+    private func showSavedToast(_ photo: Photo) {
+        savedToastType = camera.captureType
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) { savedToast = photo }
+        toastHideItem?.cancel()
+        let item = DispatchWorkItem {
+            withAnimation(.easeInOut(duration: 0.3)) { savedToast = nil }
+        }
+        toastHideItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.5, execute: item)
     }
 
     /// Seed the new photo's tags: the Type chosen on the camera, plus any tags
