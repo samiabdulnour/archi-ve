@@ -47,6 +47,12 @@ struct PhotoDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    if let current {
+                        Button { current.isFavorite.toggle(); try? modelContext.save() } label: {
+                            Label(current.isFavorite ? "Remove Favourite" : "Favourite",
+                                  systemImage: current.isFavorite ? "heart.slash" : "heart")
+                        }
+                    }
                     Button { showShare = true } label: { Label("Share", systemImage: "square.and.arrow.up") }
                     Button(role: .destructive) { confirmDelete = true } label: {
                         Label("Delete", systemImage: "trash")

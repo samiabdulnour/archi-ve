@@ -6,10 +6,13 @@ import SwiftUI
 /// a hero grid. Mirrors the web app's row-index browser.
 struct ReferenceLens: View {
     let photos: [Photo]
+    @Binding var gridCols: Int
 
+    @Environment(\.modelContext) private var modelContext
     @State private var outer = "all"
     @State private var buildingDim = "typology"
     @State private var elementDim = "element"
+    @State private var pinchBase: Int?
 
     private let cols = Array(repeating: GridItem(.flexible(), spacing: 2), count: 3)
 
@@ -120,16 +123,40 @@ struct ReferenceLens: View {
     }
 
     private func grid(_ items: [Photo]) -> some View {
-        ScrollView {
-            LazyVGrid(columns: cols, spacing: 2) {
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: gridCols)
+        return ScrollView {
+            LazyVGrid(columns: columns, spacing: 2) {
                 ForEach(items) { p in
                     NavigationLink(value: p) {
                         PhotoThumbnail(photo: p).aspectRatio(1, contentMode: .fill).clipped()
+                            .overlay { if p.isFavorite { Rectangle().strokeBorder(Color.red, lineWidth: 2) } }
                             .overlay(alignment: .topLeading) { TileBadges(photo: p).padding(4) }
-                    }.buttonStyle(.plain)
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button { p.isFavorite.toggle(); try? modelContext.save() } label: {
+                            Label(p.isFavorite ? "Remove Favourite" : "Favourite",
+                                  systemImage: p.isFavorite ? "heart.slash" : "heart")
+                        }
+                        Divider()
+                        Button(role: .destructive) {
+                            modelContext.delete(p); try? modelContext.save()
+                        } label: { Label("Delete", systemImage: "trash") }
+                    }
                 }
             }
+            .animation(.easeInOut(duration: 0.2), value: gridCols)
         }
+        .simultaneousGesture(
+            MagnifyGesture()
+                .onChanged { value in
+                    if pinchBase == nil { pinchBase = gridCols }
+                    let base = pinchBase ?? gridCols
+                    let steps = Int((value.magnification - 1) * 5)
+                    gridCols = min(8, max(1, base - steps))
+                }
+                .onEnded { _ in pinchBase = nil }
+        )
     }
 }
 
@@ -154,6 +181,7 @@ private struct CategoryHero: View {
                             ForEach(items) { p in
                                 NavigationLink(value: p) {
                                     PhotoThumbnail(photo: p).aspectRatio(1, contentMode: .fill).clipped()
+                                        .overlay { if p.isFavorite { Rectangle().strokeBorder(Color.red, lineWidth: 2) } }
                                 }.buttonStyle(.plain)
                             }
                         }

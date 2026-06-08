@@ -43,6 +43,10 @@ struct GalleryView: View {
     // Settings
     @State private var showSettings = false
 
+    // Single-photo context-menu actions
+    @State private var editTarget: Photo?
+    @State private var photoToDelete: Photo?
+
     private let cols = Array(repeating: GridItem(.flexible(), spacing: 2), count: 3)
 
     // Time-grid zoom: pinch to change how many photos per row (1...5).
@@ -104,8 +108,19 @@ struct GalleryView: View {
         } message: { Text("This can't be undone.") }
         .sheet(isPresented: $showShare) { ActivityView(items: shareItems) }
         .sheet(isPresented: $showSettings) { SettingsView() }
+        .fullScreenCover(item: $editTarget) { photo in
+            TagSheetView(photo: photo) { editTarget = nil }
+        }
         .photosPicker(isPresented: $showImporter, selection: $importItems, matching: .images)
         .onChange(of: importItems) { _, items in Task { await importPhotos(items) } }
+        .alert("Delete this photo?", isPresented: Binding(
+            get: { photoToDelete != nil }, set: { if !$0 { photoToDelete = nil } })) {
+            Button("Delete", role: .destructive) {
+                if let p = photoToDelete { modelContext.delete(p); try? modelContext.save() }
+                photoToDelete = nil
+            }
+            Button("Cancel", role: .cancel) { photoToDelete = nil }
+        } message: { Text("This permanently removes the photo from your archive.") }
     }
 
     // MARK: Toolbar
@@ -140,16 +155,14 @@ struct GalleryView: View {
     // MARK: Lenses
 
     private var referenceLens: some View {
-        ReferenceLens(photos: filtered)
+        ReferenceLens(photos: filtered, gridCols: $gridCols)
     }
 
     private var projectLens: some View {
-        let groups = Dictionary(grouping: filtered) { $0.project ?? "Unfiled" }
-        let keys = groups.keys.sorted { a, b in
-            if a == "Unfiled" { return false }
-            if b == "Unfiled" { return true }
-            return a < b
-        }
+        // Only photos that belong to a project (skip unfiled).
+        let filed = filtered.filter { ($0.project ?? "").isEmpty == false }
+        let groups = Dictionary(grouping: filed) { $0.project ?? "" }
+        let keys = groups.keys.sorted()
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: 18, pinnedViews: [.sectionHeaders]) {
                 ForEach(keys, id: \.self) { key in
@@ -201,13 +214,30 @@ struct GalleryView: View {
         } else {
             NavigationLink(value: photo) { tile(photo, selected: false) }
                 .buttonStyle(.plain)
+                .contextMenu { photoMenu(photo) }
         }
+    }
+
+    /// Native-style long-press menu for a single photo.
+    @ViewBuilder
+    private func photoMenu(_ photo: Photo) -> some View {
+        Button { toggleFavorite(photo) } label: {
+            Label(photo.isFavorite ? "Remove Favourite" : "Favourite",
+                  systemImage: photo.isFavorite ? "heart.slash" : "heart")
+        }
+        Button { editTarget = photo } label: { Label("Edit tags", systemImage: "tag") }
+        Button { shareOne(photo) } label: { Label("Share", systemImage: "square.and.arrow.up") }
+        Divider()
+        Button(role: .destructive) { photoToDelete = photo } label: { Label("Delete", systemImage: "trash") }
     }
 
     private func tile(_ photo: Photo, selected sel: Bool) -> some View {
         PhotoThumbnail(photo: photo)
             .aspectRatio(1, contentMode: .fill)
             .clipped()
+            .overlay { if photo.isFavorite {
+                Rectangle().strokeBorder(Color.red, lineWidth: 2)
+            } }
             .overlay(alignment: .topLeading) { TileBadges(photo: photo).padding(4) }
             .overlay { if selecting {
                 ZStack(alignment: .topTrailing) {
@@ -218,6 +248,15 @@ struct GalleryView: View {
                         .shadow(radius: 1)
                 }
             } }
+    }
+
+    private func toggleFavorite(_ photo: Photo) {
+        photo.isFavorite.toggle()
+        try? modelContext.save()
+    }
+
+    private func shareOne(_ photo: Photo) {
+        if let img = UIImage(data: photo.imageData) { shareItems = [img]; showShare = true }
     }
 
     private func toggleSelect(_ p: Photo) {

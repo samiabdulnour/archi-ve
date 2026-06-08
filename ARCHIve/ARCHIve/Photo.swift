@@ -35,6 +35,9 @@ final class Photo: Identifiable {
     /// Project association (editable later); nil = unfiled.
     var project: String?
 
+    /// User-marked favourite — shown with a thin red frame in the gallery.
+    var isFavorite: Bool = false
+
     /// Set when the photo was brought in via Import rather than the camera.
     var importedAt: Date?
 
