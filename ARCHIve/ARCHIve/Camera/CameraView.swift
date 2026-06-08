@@ -411,7 +411,7 @@ struct CameraView: View {
             .background(RoundedRectangle(cornerRadius: 18).fill(Palette.mint))
             .shadow(color: .black.opacity(0.2), radius: 8, y: 3)
             .padding(.horizontal, 12)
-            .padding(.top, 6)
+            .padding(.top, 58)   // clear the top control row
             .transition(.move(edge: .top).combined(with: .opacity))
         }
     }
