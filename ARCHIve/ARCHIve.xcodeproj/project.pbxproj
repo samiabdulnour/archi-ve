@@ -250,6 +250,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Archi.vé";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCameraUsageDescription = "ARCHI-ve uses the camera to capture photos for your archive.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "ARCHI-ve tags each photo with the place it was taken.";
@@ -285,6 +286,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Archi.vé";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCameraUsageDescription = "ARCHI-ve uses the camera to capture photos for your archive.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "ARCHI-ve tags each photo with the place it was taken.";
