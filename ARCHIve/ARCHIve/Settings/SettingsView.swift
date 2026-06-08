@@ -55,6 +55,9 @@ struct SettingsView: View {
             .onAppear { sync.refreshAccount() }
         }
         .tint(Palette.coral)
+        // Apply the chosen appearance to this sheet too, so switching
+        // Light/Dark/Auto updates it immediately (a sheet is its own context).
+        .preferredColorScheme(Settings.colorScheme(for: appearance))
         .sheet(isPresented: $showExportShare) {
             if let exportURL { ActivityView(items: [exportURL]) }
         }
