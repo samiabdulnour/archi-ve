@@ -4,6 +4,16 @@ A handoff for designing a **new iOS app icon** for ARCHI-ve. Everything a
 designer (or a design agent) needs: identity, palette, concept directions,
 constraints, and exact delivery specs.
 
+> ✅ **DONE (2026-06-08).** Shipped a **coral aperture** icon — a black aperture
+> with a pale hexagonal centre on the coral `#F44E48` field — as the
+> **light / dark / tinted** three-appearance set in
+> `ARCHIve/ARCHIve/Assets.xcassets/AppIcon.appiconset/` (`AppIcon.png`,
+> `AppIcon-dark.png`, `AppIcon-tinted.png`). The brief below is kept for
+> reference / future iterations.
+> *Submission note:* the light PNG still carries an (opaque) alpha channel;
+> Xcode flattens the marketing icon at archive time, but flatten it explicitly
+> if App Store validation ever flags transparency.
+
 ---
 
 ## 1. What the app is
