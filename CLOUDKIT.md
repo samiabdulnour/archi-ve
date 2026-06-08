@@ -1,6 +1,6 @@
 # CloudKit sync — how it works & release checklist
 
-ARCHI-ve stores everything locally with **SwiftData**, and that store is
+Archi.vé stores everything locally with **SwiftData**, and that store is
 **mirrored to your private iCloud** so it syncs across your devices and is
 backed up automatically.
 

@@ -1,8 +1,8 @@
-# Privacy Policy — ARCHI-ve
+# Privacy Policy — Archi.vé
 
 _Last updated: 8 June 2026_
 
-ARCHI-ve is a private photo journal for architects, created by Sami Abdulnour
+Archi.vé is a private photo journal for architects, created by Sami Abdulnour
 ("we", "the developer"). This policy explains how the app handles your
 information. In short: **we don't collect it.**
 
@@ -20,7 +20,7 @@ information. In short: **we don't collect it.**
   cannot access it.**
 
 ## What we collect
-- **Nothing.** ARCHI-ve has no developer server, no user accounts, no
+- **Nothing.** Archi.vé has no developer server, no user accounts, no
   advertising, no analytics, and no third-party tracking or SDKs. We do not
   receive, see, or transmit your photos, tags, location, or any other data.
 

@@ -1,4 +1,4 @@
-# Building ARCHI-ve for iOS (App Store)
+# Building Archi.vé for iOS (App Store)
 
 This is a step-by-step you run **once your Apple Developer Program enrolment is approved** and you're sitting at a Mac with Xcode installed. Until then, everything in this file is "later" — the repo prep (manifest, icons, Capacitor config) is already done.
 
@@ -38,7 +38,7 @@ bash scripts/build-web.sh
 
 # Capacitor reads capacitor.config.json (already in this repo) for appId,
 # appName, and webDir. Init writes the config it doesn't already know.
-npx cap init "ARCHI-ve" "com.samiabdulnour.archive" --web-dir=www
+npx cap init "Archi.vé" "com.samiabdulnour.archive" --web-dir=www
 
 # Add the iOS platform. This creates an /ios folder with an Xcode project.
 npx cap add ios
@@ -82,12 +82,12 @@ In Xcode, with the **App** target selected:
 1. **Signing & Capabilities** tab.
 2. Tick **Automatically manage signing**.
 3. **Team**: pick your Apple Developer team from the dropdown.
-4. **Bundle Identifier**: should read `com.samiabdulnour.archive` (set in `capacitor.config.json`). Capacitor doesn't allow dashes, so the wordmark "ARCHI-ve" lives in the display name, not the bundle ID.
+4. **Bundle Identifier**: should read `com.samiabdulnour.archive` (set in `capacitor.config.json`). Capacitor doesn't allow dashes, so the wordmark "Archi.vé" lives in the display name, not the bundle ID.
 5. Click **+ Capability** and add:
    - **Camera** — for live capture via getUserMedia in the WebView.
-   - Add an **Info.plist key** `NSCameraUsageDescription` = `"ARCHI-ve uses the camera to capture photos for your archive."`
-   - `NSPhotoLibraryAddUsageDescription` = `"ARCHI-ve saves photos to your Photos library on request."` (only if you wire up the share-to-Photos feature later).
-   - `NSLocationWhenInUseUsageDescription` = `"ARCHI-ve tags each photo with the place it was taken so you can browse the archive on a map."`
+   - Add an **Info.plist key** `NSCameraUsageDescription` = `"Archi.vé uses the camera to capture photos for your archive."`
+   - `NSPhotoLibraryAddUsageDescription` = `"Archi.vé saves photos to your Photos library on request."` (only if you wire up the share-to-Photos feature later).
+   - `NSLocationWhenInUseUsageDescription` = `"Archi.vé tags each photo with the place it was taken so you can browse the archive on a map."`
 
 ---
 
@@ -98,7 +98,7 @@ In Xcode, top toolbar:
 1. Pick **iPhone 15 Pro** (or any) from the device dropdown.
 2. Press **▶ Run** (Cmd+R).
 3. Wait. First build is slow (Xcode compiles Capacitor's Swift glue).
-4. The simulator boots and launches ARCHI-ve.
+4. The simulator boots and launches Archi.vé.
 
 If the app shows a white screen: `npx cap sync ios` and rebuild. The web assets didn't copy over.
 
@@ -140,7 +140,7 @@ Commit `ios/App/App.xcodeproj`, `ios/App/Podfile`, `capacitor.config.json`, `pac
 3. Go to <https://appstoreconnect.apple.com>, your app → **TestFlight** tab.
 4. The build appears after Apple processes it (~10–30 min).
 5. Fill in **Test Information** (what to test, contact email).
-6. Add yourself as an internal tester. Install **TestFlight** from the App Store on your iPhone, accept the invite, install ARCHI-ve.
+6. Add yourself as an internal tester. Install **TestFlight** from the App Store on your iPhone, accept the invite, install Archi.vé.
 
 This is the path you should use for at least a week before submitting to the public App Store — to shake out crashes and iOS-specific bugs.
 

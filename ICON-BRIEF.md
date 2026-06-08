@@ -1,6 +1,6 @@
-# ARCHI-ve — App Icon Design Brief (handoff)
+# Archi.vé — App Icon Design Brief (handoff)
 
-A handoff for designing a **new iOS app icon** for ARCHI-ve. Everything a
+A handoff for designing a **new iOS app icon** for Archi.vé. Everything a
 designer (or a design agent) needs: identity, palette, concept directions,
 constraints, and exact delivery specs.
 
@@ -18,7 +18,7 @@ constraints, and exact delivery specs.
 
 ## 1. What the app is
 
-**ARCHI-ve** — a fast, private **photo-journal for an architect**. The owner
+**Archi.vé** — a fast, private **photo-journal for an architect**. The owner
 snaps architecture they notice in everyday life (buildings, details, materials,
 exhibition pieces, book pages), tags each shot with a small structured
 vocabulary (two taps), and browses the archive later by time, reference,
@@ -29,8 +29,9 @@ feel — it's a personal, considered tool.
 not techy/neon. Think a well-made notebook or a museum wall label, rendered with
 Apple-native restraint. Minimal, confident, a little crafted.
 
-**Name styling:** the wordmark is written **ARCHI-ve** — "ARCHI" in ink, "-ve"
-in the coral accent. (For reference only; the icon should **not** contain text.)
+**Name styling:** the wordmark is written **Archi.vé** (serif lockup) — "Archi"
+in ink, ".vé" in the coral accent. (For reference only; the icon should **not**
+contain text.)
 
 ---
 
@@ -140,4 +141,4 @@ both light and dark home-screen mock backgrounds, and at a small size
 3. (If dark/tinted variants are added, I'll update `Contents.json` to the
    three-appearance single-size format and wire the extra files.)
 
-App identity: **ARCHI-ve** · bundle `com.samiabdulnour.archive`.
+App identity: **Archi.vé** · bundle `com.samiabdulnour.archive`.
