@@ -55,9 +55,10 @@ struct SettingsView: View {
             .onAppear { sync.refreshAccount() }
         }
         .tint(Palette.coral)
-        // Apply the chosen appearance to this sheet too, so switching
-        // Light/Dark/Auto updates it immediately (a sheet is its own context).
-        .preferredColorScheme(Settings.colorScheme(for: appearance))
+        // Appearance is driven at the window level (Settings.applyAppearance),
+        // so the sheet — and Auto — update correctly without a per-sheet
+        // preferredColorScheme override.
+        .onChange(of: appearance) { _, new in Settings.applyAppearance(new) }
         .sheet(isPresented: $showExportShare) {
             if let exportURL { ActivityView(items: [exportURL]) }
         }
@@ -206,6 +207,21 @@ enum Settings {
 
     static func colorScheme(for appearance: String) -> ColorScheme? {
         switch appearance { case "light": return .light; case "dark": return .dark; default: return nil }
+    }
+
+    /// Apply the chosen appearance to every window so it takes effect app-wide
+    /// (including sheets). `.unspecified` follows the system (Auto).
+    static func applyAppearance(_ appearance: String) {
+        let style: UIUserInterfaceStyle
+        switch appearance {
+        case "light": style = .light
+        case "dark":  style = .dark
+        default:      style = .unspecified
+        }
+        for scene in UIApplication.shared.connectedScenes {
+            guard let ws = scene as? UIWindowScene else { continue }
+            for window in ws.windows { window.overrideUserInterfaceStyle = style }
+        }
     }
     static var customMaterials: [String] {
         list(UserDefaults.standard.string(forKey: "customMaterials") ?? "")

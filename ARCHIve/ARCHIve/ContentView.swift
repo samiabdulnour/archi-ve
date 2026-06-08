@@ -44,7 +44,11 @@ struct ContentView: View {
         .fullScreenCover(isPresented: Binding(get: { !welcomed }, set: { welcomed = !$0 })) {
             WelcomeView { welcomed = true; showCamera = true }
         }
-        .preferredColorScheme(Settings.colorScheme(for: appearance))
+        // Drive appearance at the window level so it applies everywhere —
+        // including sheets — and Auto cleanly reverts to the system setting
+        // (preferredColorScheme(nil) doesn't reliably clear on a sheet).
+        .onAppear { Settings.applyAppearance(appearance) }
+        .onChange(of: appearance) { _, newValue in Settings.applyAppearance(newValue) }
     }
 
     #if targetEnvironment(simulator)
