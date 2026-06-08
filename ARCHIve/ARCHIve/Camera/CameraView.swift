@@ -520,12 +520,12 @@ private struct CameraSettingsSheet: View {
                 item("SETTINGS", "gearshape", active: false) { showAppSettings = true }
             }
             .padding(.horizontal, 22)
-            Spacer(minLength: 16)
+            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .environment(\.colorScheme, .dark)
         .sheet(isPresented: $showAppSettings) { SettingsView() }
-        .presentationDetents([.height(320)])
+        .presentationDetents([.height(246)])
         // Liquid-glass: a forced-dark frosted material so the blurred feed
         // shows through, like the native Camera control sheet.
         .presentationBackground {
