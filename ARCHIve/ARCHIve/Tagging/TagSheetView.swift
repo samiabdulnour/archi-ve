@@ -392,23 +392,30 @@ struct TagSheetView: View {
         }
     }
 
-    /// Five-star rating. Tap a star to set 1…5; tap the current rating to clear.
+    /// Five-star rating, styled as a labelled field to match the text inputs:
+    /// "Rating" on the left, stars right-aligned. Tap a star to set 1…5; tap the
+    /// current rating to clear it.
     private var ratingRow: some View {
-        HStack(spacing: 8) {
-            ForEach(1...5, id: \.self) { i in
-                let filled = (tags.rating ?? 0) >= i
-                Button {
-                    tags.rating = (tags.rating == i) ? nil : i
-                } label: {
-                    Image(systemName: filled ? "star.fill" : "star")
-                        .font(.system(size: 22))
-                        .foregroundStyle(filled ? Palette.coral : Palette.ink3)
-                }
-                .buttonStyle(.plain)
-            }
+        HStack {
+            Text("Rating").foregroundStyle(Palette.ink3)
             Spacer()
+            HStack(spacing: 6) {
+                ForEach(1...5, id: \.self) { i in
+                    let filled = (tags.rating ?? 0) >= i
+                    Button {
+                        tags.rating = (tags.rating == i) ? nil : i
+                    } label: {
+                        Image(systemName: filled ? "star.fill" : "star")
+                            .font(.system(size: 17))
+                            .foregroundStyle(filled ? Palette.coral : Palette.ink3)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
-        .padding(.vertical, 2)
+        .padding(.horizontal, 12).padding(.vertical, 9)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Palette.paperElev))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Palette.hairline, lineWidth: 0.5))
     }
 
     /// Project association lives on the Photo (not in HumanTags). Tap an existing
