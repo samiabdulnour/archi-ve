@@ -44,8 +44,8 @@ struct SettingsView: View {
                     Text("Saves all photos + tags to a folder you can keep in Files or iCloud Drive. Restore adds back any photos not already here.")
                 }
                 Section {
-                    NavigationLink { HowToUseView() } label: { Text("How to use ARCHI-ve") }
-                    NavigationLink { AboutView() } label: { Text("About ARCHI-ve") }
+                    NavigationLink { HowToUseView() } label: { Text("How to use Archi.vé") }
+                    NavigationLink { AboutView() } label: { Text("About Archi.vé") }
                 }
             }
             .scrollContentBackground(.hidden)
@@ -143,7 +143,7 @@ struct SettingsView: View {
                 backupMessage = n == 0 ? "Nothing new to restore — everything in this backup is already here."
                                        : "Restored \(n) photo\(n == 1 ? "" : "s")."
             } catch {
-                backupMessage = "Restore failed. Make sure you picked an ARCHI-ve backup folder.\n\n\(error.localizedDescription)"
+                backupMessage = "Restore failed. Make sure you picked an Archi.vé backup folder.\n\n\(error.localizedDescription)"
             }
             showBackupResult = true
         case .failure(let error):

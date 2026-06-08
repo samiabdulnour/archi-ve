@@ -19,7 +19,7 @@ enum BackupManager {
         let hasLabel: Bool
     }
 
-    static let folderName = "ARCHIve-Backup"
+    static let folderName = "Archi.vé Backup"
 
     /// Builds the backup folder in a temp directory and returns its URL.
     static func makeBackup(_ photos: [Photo]) throws -> URL {

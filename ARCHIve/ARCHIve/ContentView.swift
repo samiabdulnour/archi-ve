@@ -12,7 +12,7 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             GalleryView()
-                .navigationTitle("ARCHI-ve")
+                .navigationTitle("Archi.vé")
                 .navigationBarTitleDisplayMode(.inline)
                 .navigationDestination(for: Photo.self) { photo in
                     PhotoDetailView(photoID: photo.id)
