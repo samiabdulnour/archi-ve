@@ -395,6 +395,9 @@ struct TagSheetView: View {
     /// project to reuse it, or type a new one. Tapping the active chip clears it.
     private var projectSection: some View {
         VStack(alignment: .leading, spacing: 6) {
+            TextField("Project", text: $project)
+                .textFieldStyle(.roundedBorder)
+                .autocorrectionDisabled()
             if !existingProjects.isEmpty {
                 chipGrid(existingProjects.map { ($0, $0, nil as String?) }) { id in
                     project == id
@@ -402,9 +405,6 @@ struct TagSheetView: View {
                     project = (project == id) ? "" : id
                 }
             }
-            TextField("Project", text: $project)
-                .textFieldStyle(.roundedBorder)
-                .autocorrectionDisabled()
         }
     }
 
