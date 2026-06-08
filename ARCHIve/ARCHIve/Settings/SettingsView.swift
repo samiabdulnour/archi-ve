@@ -45,6 +45,7 @@ struct SettingsView: View {
                 }
                 Section {
                     NavigationLink { HowToUseView() } label: { Text("How to use ARCHI-ve") }
+                    NavigationLink { AboutView() } label: { Text("About ARCHI-ve") }
                 }
             }
             .scrollContentBackground(.hidden)
