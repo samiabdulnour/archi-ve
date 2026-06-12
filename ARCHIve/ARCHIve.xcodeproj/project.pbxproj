@@ -435,6 +435,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCameraUsageDescription = "ARCHI-ve uses the camera to capture photos for your archive.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "ARCHI-ve tags each photo with the place it was taken.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Archi.vé reads your photo library so you can tag existing photos without making copies.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UIBackgroundModes = "remote-notification";
@@ -471,6 +472,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCameraUsageDescription = "ARCHI-ve uses the camera to capture photos for your archive.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "ARCHI-ve tags each photo with the place it was taken.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Archi.vé reads your photo library so you can tag existing photos without making copies.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UIBackgroundModes = "remote-notification";

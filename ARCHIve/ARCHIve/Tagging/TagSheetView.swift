@@ -15,6 +15,7 @@ struct TagSheetView: View {
     @State private var tags = HumanTags()
     @State private var project = ""
     @State private var showFullscreen = false
+    @State private var headerImage: UIImage?
     @State private var labelImage: UIImage?
     @State private var showLabelCamera = false
     @State private var showFullscreenLabel = false
@@ -69,10 +70,11 @@ struct TagSheetView: View {
                 tags = photo.humanTags; project = photo.project ?? ""
                 if let d = photo.labelImageData { labelImage = UIImage(data: d) }
             }
+            .task(id: photo.id) { headerImage = await PhotoImage.full(for: photo) }
         }
         .interactiveDismissDisabled(false)
         .fullScreenCover(isPresented: $showFullscreen) {
-            IntrospectionView(image: UIImage(data: photo.imageData)) { showFullscreen = false }
+            IntrospectionView(image: headerImage) { showFullscreen = false }
         }
         .fullScreenCover(isPresented: $showLabelCamera) {
             ImagePicker { data in labelImage = UIImage(data: data) }
@@ -87,7 +89,7 @@ struct TagSheetView: View {
     private var thumbnail: some View {
         Button { showFullscreen = true } label: {
             Group {
-                if let img = UIImage(data: photo.imageData) {
+                if let img = headerImage {
                     Image(uiImage: img)
                         .resizable().scaledToFill()
                         .frame(height: 140)

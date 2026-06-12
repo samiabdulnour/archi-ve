@@ -14,6 +14,7 @@ struct PhotoDetailView: View {
     @State private var editing = false
     @State private var confirmDelete = false
     @State private var showShare = false
+    @State private var currentImage: UIImage?
 
     init(photoID: String) { _selection = State(initialValue: photoID) }
 
@@ -22,11 +23,15 @@ struct PhotoDetailView: View {
     var body: some View {
         TabView(selection: $selection) {
             ForEach(photos) { photo in
-                PhotoPage(photo: photo) { introspecting = true }
+                PhotoPage(photo: photo) { img in currentImage = img; introspecting = true }
                     .tag(photo.id)
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
+        .task(id: selection) {
+            currentImage = nil
+            if let c = current { currentImage = await PhotoImage.full(for: c) }
+        }
         .background(Palette.paper.ignoresSafeArea())
         .safeAreaInset(edge: .bottom) {
             if let current {
@@ -64,7 +69,7 @@ struct PhotoDetailView: View {
             }
         }
         .fullScreenCover(isPresented: $introspecting) {
-            IntrospectionView(image: current.flatMap { UIImage(data: $0.imageData) }) { introspecting = false }
+            IntrospectionView(image: currentImage) { introspecting = false }
         }
         .fullScreenCover(isPresented: $editing) {
             if let current {
@@ -72,9 +77,7 @@ struct PhotoDetailView: View {
             }
         }
         .sheet(isPresented: $showShare) {
-            if let img = current.flatMap({ UIImage(data: $0.imageData) }) {
-                ActivityView(items: [img])
-            }
+            if let img = currentImage { ActivityView(items: [img]) }
         }
         .alert("Delete this photo?", isPresented: $confirmDelete) {
             Button("Delete", role: .destructive) { deleteCurrent() }
@@ -98,23 +101,27 @@ struct PhotoDetailView: View {
 /// A single detail page: tappable image + its tag rows.
 private struct PhotoPage: View {
     @Bindable var photo: Photo
-    var onZoom: () -> Void
+    var onZoom: (UIImage) -> Void
 
     @State private var showLabel = false
+    @State private var image: UIImage?
 
-    private var image: UIImage? { UIImage(data: photo.imageData) }
     private var labelImage: UIImage? { photo.labelImageData.flatMap { UIImage(data: $0) } }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 if let image {
-                    Button(action: onZoom) {
+                    Button { onZoom(image) } label: {
                         Image(uiImage: image)
                             .resizable().scaledToFit()
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.plain)
+                } else {
+                    Rectangle().fill(Palette.tile)
+                        .aspectRatio(4/3, contentMode: .fit)
+                        .overlay(ProgressView())
                 }
 
                 VStack(alignment: .leading, spacing: 14) {
@@ -140,6 +147,9 @@ private struct PhotoPage: View {
                 }
             }
             .padding(.bottom, 24)
+        }
+        .task(id: photo.id) {
+            if image == nil { image = await PhotoImage.full(for: photo) }
         }
         .fullScreenCover(isPresented: $showLabel) {
             IntrospectionView(image: labelImage) { showLabel = false }

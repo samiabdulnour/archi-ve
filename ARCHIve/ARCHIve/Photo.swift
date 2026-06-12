@@ -38,6 +38,11 @@ final class Photo: Identifiable {
     /// User-marked favourite — shown with a thin red frame in the gallery.
     var isFavorite: Bool = false
 
+    /// When set, this record is a *reference* to a photo in the system Photos
+    /// library (no copy is stored). The pixels are loaded on demand from Photos
+    /// via this local identifier; `imageData` stays empty for references.
+    var assetLocalID: String?
+
     /// Set when the photo was brought in via Import rather than the camera.
     var importedAt: Date?
 
@@ -55,7 +60,8 @@ final class Photo: Identifiable {
         humanTags: HumanTags = HumanTags(),
         project: String? = nil,
         importedAt: Date? = nil,
-        labelImageData: Data? = nil
+        labelImageData: Data? = nil,
+        assetLocalID: String? = nil
     ) {
         self.id = id
         self.imageData = imageData
@@ -67,7 +73,11 @@ final class Photo: Identifiable {
         self.project = project
         self.importedAt = importedAt
         self.labelImageData = labelImageData
+        self.assetLocalID = assetLocalID
     }
+
+    /// True when the photo's pixels live in the system Photos library.
+    var isReference: Bool { (assetLocalID ?? "").isEmpty == false }
 
     /// Decoded view of the human tags.
     var humanTags: HumanTags {

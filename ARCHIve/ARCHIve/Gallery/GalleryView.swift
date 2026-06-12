@@ -45,6 +45,9 @@ struct GalleryView: View {
     // Settings
     @State private var showSettings = false
 
+    // Tag from existing Photos library
+    @State private var showLibrary = false
+
     // Single-photo context-menu actions
     @State private var editTarget: Photo?
     @State private var photoToDelete: Photo?
@@ -117,6 +120,7 @@ struct GalleryView: View {
         .fullScreenCover(item: $editTarget) { photo in
             TagSheetView(photo: photo) { editTarget = nil }
         }
+        .fullScreenCover(isPresented: $showLibrary) { LibraryView() }
         .photosPicker(isPresented: $showImporter, selection: $importItems, matching: .images)
         .onChange(of: importItems) { _, items in Task { await importPhotos(items) } }
         .alert("Delete this photo?", isPresented: Binding(
@@ -144,7 +148,8 @@ struct GalleryView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button { showFilter = true } label: { Label("Filter", systemImage: "line.3.horizontal.decrease.circle") }
-                    Button { showImporter = true } label: { Label("Import", systemImage: "square.and.arrow.down") }
+                    Button { showLibrary = true } label: { Label("Tag from Photos…", systemImage: "photo.on.rectangle.angled") }
+                    Button { showImporter = true } label: { Label("Import (copy)", systemImage: "square.and.arrow.down") }
                     Button { selecting = true } label: { Label("Select", systemImage: "checkmark.circle") }
                     Divider()
                     Button { showSettings = true } label: { Label("Settings", systemImage: "gearshape") }
@@ -521,7 +526,12 @@ struct PhotoThumbnail: View {
             }
             .frame(width: geo.size.width, height: geo.size.height)
             .task(id: photo.id) {
-                if image == nil { image = await Self.thumbnail(from: photo.imageData, maxPixel: 400) }
+                if image != nil { return }
+                if let id = photo.assetLocalID, !id.isEmpty {
+                    image = await PhotosLibrary.image(localID: id, maxPixel: 400)
+                } else {
+                    image = await Self.thumbnail(from: photo.imageData, maxPixel: 400)
+                }
             }
         }
     }
