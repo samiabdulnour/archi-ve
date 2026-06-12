@@ -6,6 +6,7 @@ struct ContentView: View {
     @Query private var photos: [Photo]
     @State private var showCamera = false
     @State private var didAutoOpen = false
+    @Environment(\.scenePhase) private var scenePhase
     @AppStorage("appearance") private var appearance = "auto"
     @AppStorage("welcomed") private var welcomed = false
 
@@ -47,7 +48,15 @@ struct ContentView: View {
         // Drive appearance at the window level so it applies everywhere —
         // including sheets — and Auto cleanly reverts to the system setting
         // (preferredColorScheme(nil) doesn't reliably clear on a sheet).
-        .onAppear { Settings.applyAppearance(appearance) }
+        .onAppear {
+            Settings.applyAppearance(appearance)
+            if QuickCapture.consumeCameraRequest() { showCamera = true }
+        }
+        // Lock Screen control / widget tapped while the app was already running:
+        // open the camera when we come back to the foreground.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active && QuickCapture.consumeCameraRequest() { showCamera = true }
+        }
         .onChange(of: appearance) { _, newValue in Settings.applyAppearance(newValue) }
     }
 
