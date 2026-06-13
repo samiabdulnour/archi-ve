@@ -168,9 +168,6 @@ struct CameraView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
-        // Live keystone: warp the preview to keep verticals straight as you tilt.
-        .onChange(of: motion.pitch) { _, p in camera.setKeystonePitch(p) }
-        .onChange(of: camera.keystoneOn) { _, _ in camera.setKeystonePitch(motion.pitch) }
         .safeAreaInset(edge: .top, spacing: 0) {
             HStack(alignment: .top) {
                 if camera.mode == .project { projectPill } else { typeSegment }
@@ -435,9 +432,13 @@ struct CameraView: View {
             Image(systemName: "skew").font(.system(size: 14)).foregroundStyle(.white.opacity(0.85))
             Slider(value: Binding(
                 get: { camera.keystoneStrength },
-                set: { camera.keystoneStrength = $0; camera.setKeystonePitch(motion.pitch) }
-            ), in: 0...1)
+                set: { camera.setKeystoneStrength($0) }
+            ), in: -1...1)
             .tint(Palette.coral)
+        }
+        .overlay(alignment: .center) {
+            // a subtle centre tick (0 = no correction)
+            Rectangle().fill(.white.opacity(0.3)).frame(width: 1, height: 12)
         }
         .padding(.horizontal, 24)
         .frame(maxWidth: 340)
