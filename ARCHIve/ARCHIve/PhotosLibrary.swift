@@ -8,10 +8,13 @@ import CoreLocation
 /// Loads a displayable image for a Photo, whether it owns its pixels or
 /// references one in the Photos library.
 enum PhotoImage {
+    /// Screen-grade image for display/zoom/share. Requesting a bounded size
+    /// (not the full original) returns the on-device rendition instantly even
+    /// under "Optimize iPhone Storage" — no slow iCloud download of the original.
     static func full(for photo: Photo) async -> UIImage? {
         let base: UIImage?
         if let id = photo.assetLocalID, !id.isEmpty {
-            base = await PhotosLibrary.image(localID: id, maxPixel: 0)
+            base = await PhotosLibrary.image(localID: id, maxPixel: 2400)
         } else {
             base = UIImage(data: photo.imageData)
         }
@@ -94,7 +97,9 @@ enum PhotosLibrary {
             let target = maxPixel > 0
                 ? CGSize(width: maxPixel, height: maxPixel)
                 : PHImageManagerMaximumSize
-            let mode: PHImageContentMode = maxPixel > 0 ? .aspectFill : .aspectFit
+            // Always aspect-fit so the whole image comes back (uncropped); the
+            // grid cells fill their square via the view's scaledToFill.
+            let mode: PHImageContentMode = .aspectFit
             PHImageManager.default().requestImage(for: asset, targetSize: target,
                                                   contentMode: mode, options: opts) { img, _ in
                 if !resumed { resumed = true; cont.resume(returning: img) }
