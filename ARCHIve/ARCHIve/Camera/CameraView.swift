@@ -67,7 +67,9 @@ struct CameraView: View {
             TagSheetView(photo: photo) { tagTarget = nil }
         }
         .sheet(isPresented: $showSettings) {
-            CameraSettingsSheet(camera: camera)
+            CameraSettingsSheet(camera: camera) { selected in
+                withAnimation(.easeInOut(duration: 0.2)) { tool = selected }
+            }
         }
         .sheet(isPresented: $showProjectPicker) {
             ProjectPickerSheet(projects: existingProjects, current: camera.currentProject) { name in
@@ -117,7 +119,9 @@ struct CameraView: View {
         let fullW = geo.size.width
         let fullH = geo.size.height + topSafe + botSafe   // physical screen height
         let topReserve = topSafe + 50                     // top pill row
-        let bottomReserve = botSafe + 172                 // shutter + mode row
+        // Reserve extra room when the looks/keystone tray is open so it sits
+        // clear below the crop frame (never touching the 4:3 border).
+        let bottomReserve = botSafe + 172 + (tool == .none ? 0 : 70)
         let availH = max(0, fullH - topReserve - bottomReserve)
         let frameH = min(availH, fullW / ratio)
         let frameW = min(fullW, frameH * ratio)
@@ -269,18 +273,13 @@ struct CameraView: View {
             pillButton("arrow.2.squarepath", active: reuseTags != nil) {
                 reuseTags = (reuseTags == nil) ? latest?.humanTags : nil
             }
-            pillButton("camera.filters", active: tool == .looks || camera.colorLook != .original) {
-                tool = (tool == .looks) ? .none : .looks
+            // Effect (looks) + Tilt (keystone) now live inside this settings
+            // sheet to keep the top row uncluttered; the gear lights up when
+            // either is active.
+            pillButton("circle.grid.3x3.fill",
+                       active: camera.colorLook != .original || camera.keystoneStrength != 0) {
+                showSettings = true
             }
-            pillButton("skew", active: tool == .keystone || camera.keystoneStrength != 0) {
-                if tool == .keystone {
-                    tool = .none
-                    camera.setKeystoneStrength(0)   // tapping again cancels the tilt
-                } else {
-                    tool = .keystone
-                }
-            }
-            pillButton("circle.grid.3x3.fill", active: false) { showSettings = true }
         }
         .padding(.horizontal, 10).padding(.vertical, 3)
         .background(Capsule().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
@@ -470,13 +469,28 @@ struct CameraView: View {
     }
 
     /// One effects panel above the shutter — looks OR keystone, never both, so
-    /// the core controls (zoom, shutter) stay uncrowded.
+    /// the core controls (zoom, shutter) stay uncrowded. A trailing ✕ closes it
+    /// (since the entry points moved into the settings sheet).
     @ViewBuilder private var toolTray: some View {
         switch tool {
-        case .looks:    LooksWheel(camera: camera)
-        case .keystone: keystoneSlider
-        case .none:     EmptyView()
+        case .looks:
+            HStack(spacing: 6) { LooksWheel(camera: camera); trayCloseButton }
+        case .keystone:
+            HStack(spacing: 6) { keystoneSlider; trayCloseButton }
+        case .none:
+            EmptyView()
         }
+    }
+
+    private var trayCloseButton: some View {
+        Button { withAnimation(.easeInOut(duration: 0.2)) { tool = .none } } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.85))
+                .frame(width: 30, height: 30)
+                .background(Circle().fill(.white.opacity(0.16)))
+        }
+        .padding(.trailing, 4)
     }
 
     /// Strength control for the keystone correction (shown only when on).
@@ -583,6 +597,8 @@ struct CameraView: View {
 
 private struct CameraSettingsSheet: View {
     @Bindable var camera: CameraController
+    /// Opens the looks/keystone tray above the shutter, then dismisses the sheet.
+    var onSelectTool: (CameraView.CameraTool) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var showAppSettings = false
 
@@ -596,6 +612,12 @@ private struct CameraSettingsSheet: View {
                 item("TIMER", "timer", active: camera.timerSeconds != 0,
                      badge: camera.timerSeconds == 0 ? nil : "\(camera.timerSeconds)") { cycleTimer() }
                 item("ASPECT", "aspectratio", active: camera.aspect != .fourThree, badge: camera.aspect.rawValue) { cycleAspect() }
+                item("EFFECT", "camera.filters", active: camera.colorLook != .original) {
+                    onSelectTool(.looks); dismiss()
+                }
+                item("TILT", "skew", active: camera.keystoneStrength != 0) {
+                    onSelectTool(.keystone); dismiss()
+                }
                 item("GRID", "grid", active: camera.gridOn) { camera.gridOn.toggle() }
                 item("LEVEL", "level", active: camera.levelOn) { camera.levelOn.toggle() }
                 item("SETTINGS", "gearshape", active: false) { showAppSettings = true }
@@ -606,7 +628,7 @@ private struct CameraSettingsSheet: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .environment(\.colorScheme, .dark)
         .sheet(isPresented: $showAppSettings) { SettingsView() }
-        .presentationDetents([.height(246)])
+        .presentationDetents([.height(330)])
         // Liquid-glass: a forced-dark frosted material so the blurred feed
         // shows through, like the native Camera control sheet.
         .presentationBackground {

@@ -35,10 +35,11 @@ struct TagSheetView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            header
+            Divider().overlay(Palette.hairline)
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    thumbnail
                     typePicker
                     switch tags.type {
                     case "building": buildingSections
@@ -51,27 +52,15 @@ struct TagSheetView: View {
                     }
                     if tags.type != nil { extrasSection }
                 }
-                .padding(.horizontal, 16).padding(.vertical, 12)
+                .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 28)
             }
-            .background(Palette.paper.ignoresSafeArea())
-            .navigationTitle("Tag photo")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Skip") { finish() }      // keeps type only
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") { commit() }
-                        .fontWeight(.semibold)
-                        .disabled(tags.type == nil)
-                }
-            }
-            .onAppear {
-                tags = photo.humanTags; project = photo.project ?? ""
-                if let d = photo.labelImageData { labelImage = UIImage(data: d) }
-            }
-            .task(id: photo.id) { headerImage = await PhotoImage.full(for: photo) }
         }
+        .background(Palette.paper.ignoresSafeArea())
+        .onAppear {
+            tags = photo.humanTags; project = photo.project ?? ""
+            if let d = photo.labelImageData { labelImage = UIImage(data: d) }
+        }
+        .task(id: photo.id) { headerImage = await PhotoImage.full(for: photo) }
         .interactiveDismissDisabled(false)
         .fullScreenCover(isPresented: $showFullscreen) {
             IntrospectionView(image: headerImage) { showFullscreen = false }
@@ -82,34 +71,68 @@ struct TagSheetView: View {
         }
     }
 
-    // MARK: Header
+    // MARK: Header — Skip · photo · Save (no scrolling to reach the actions)
 
-    /// Tap the thumbnail to inspect the shot fullscreen (pinch-zoom) before
-    /// committing tags. A large, centred square — vertical phone photos read far
-    /// better here than in a short wide banner.
-    private var thumbnail: some View {
+    /// Pinned action row: a portrait photo card flanked by Skip / Save, like a
+    /// Tinder card. Replaces the nav-bar title + toolbar so the screen opens
+    /// straight into the photo and its two decisions.
+    private var header: some View {
+        HStack(alignment: .center, spacing: 18) {
+            actionCircle(symbol: "xmark", label: "Skip",
+                         tint: Palette.ink, fill: Palette.tile) { finish() }
+            photoCard
+            actionCircle(symbol: "checkmark", label: "Save",
+                         tint: tags.type == nil ? Palette.ink3 : .white,
+                         fill: tags.type == nil ? Palette.tile : Palette.coral,
+                         disabled: tags.type == nil) { commit() }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 20)
+        .padding(.top, 12).padding(.bottom, 14)
+    }
+
+    /// Tap to inspect the shot fullscreen (pinch-zoom) before committing tags.
+    /// Portrait card so vertical phone photos fill it cleanly.
+    private var photoCard: some View {
         Button { showFullscreen = true } label: {
             Group {
                 if let img = headerImage {
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(Palette.tile)
-                        .aspectRatio(1, contentMode: .fit)
-                        .overlay { Image(uiImage: img).resizable().scaledToFill() }
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .overlay(alignment: .bottomTrailing) {
-                            Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(.white)
-                                .padding(6)
-                                .background(Circle().fill(.black.opacity(0.45)))
-                                .padding(8)
-                        }
-                        .frame(maxWidth: 300)
+                    Image(uiImage: img).resizable().scaledToFill()
+                } else {
+                    Palette.tile
                 }
             }
-            .frame(maxWidth: .infinity)   // centre the square in the column
+            .frame(width: 150, height: 196)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Palette.hairline, lineWidth: 0.5))
+            .overlay(alignment: .bottomTrailing) {
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(6)
+                    .background(Circle().fill(.black.opacity(0.45)))
+                    .padding(7)
+            }
+            .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
         }
         .buttonStyle(.plain)
+    }
+
+    private func actionCircle(symbol: String, label: String, tint: Color, fill: Color,
+                              disabled: Bool = false, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 7) {
+                ZStack {
+                    Circle().fill(fill).frame(width: 62, height: 62)
+                        .shadow(color: .black.opacity(0.10), radius: 4, y: 2)
+                    Image(systemName: symbol).font(.system(size: 25, weight: .semibold)).foregroundStyle(tint)
+                }
+                Text(label).font(.caption.weight(.medium)).foregroundStyle(Palette.ink3)
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled)
+        .opacity(disabled ? 0.45 : 1)
     }
 
     /// Building / Element / Graphic as a single segmented toggle.
