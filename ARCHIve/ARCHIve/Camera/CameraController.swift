@@ -255,7 +255,7 @@ final class CameraController: NSObject {
         if keystoneOn {
             let clamped = max(-25, min(25, keystonePitch))
             let factor = 0.8 + 3.2 * keystoneStrength      // slider 0…1 → 0.8…4.0
-            var angle = clamped * .pi / 180 * factor       // counter-rotate the preview plane
+            var angle = -clamped * .pi / 180 * factor      // counter-rotate the preview plane
             angle = max(-0.7, min(0.7, angle))             // clamp to ~±40°
             var t = CATransform3DIdentity
             t.m34 = -1.0 / 1500                            // perspective
@@ -286,7 +286,7 @@ final class CameraController: NSObject {
         let W = ci.extent.width, H = ci.extent.height
         let factor = 0.8 + 3.2 * strength   // match the preview factor (slider 0…1)
         let k = min(0.6, abs(tan(pitchDegrees * .pi / 180)) * factor) * W
-        let widenTop = pitchDegrees < 0   // tilted up → verticals converge upward
+        let widenTop = pitchDegrees > 0   // tilted up → verticals converge upward
         let f = CIFilter(name: "CIPerspectiveTransform")!
         f.setValue(ci, forKey: kCIInputImageKey)
         if widenTop {
