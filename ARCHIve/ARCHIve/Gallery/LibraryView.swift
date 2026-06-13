@@ -109,21 +109,27 @@ private struct LibraryCell: View {
     @State private var image: UIImage?
 
     var body: some View {
-        ZStack {
-            Palette.tile
-            if let image { Image(uiImage: image).resizable().scaledToFill() }
-        }
-        .aspectRatio(1, contentMode: .fill)
-        .clipped()
-        .overlay(alignment: .topTrailing) {
-            if tagged {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.white, Palette.coral)
-                    .padding(4).shadow(radius: 1)
+        // Color.clear forces a square sized to the cell width; the image fills it
+        // and is clipped — a definite frame, so thumbnails never overflow.
+        Color.clear
+            .aspectRatio(1, contentMode: .fit)
+            .overlay {
+                ZStack {
+                    Palette.tile
+                    if let image { Image(uiImage: image).resizable().scaledToFill() }
+                }
             }
-        }
-        .task(id: asset.localIdentifier) {
-            if image == nil { image = await PhotosLibrary.image(asset: asset, maxPixel: 300) }
-        }
+            .clipped()
+            .contentShape(Rectangle())
+            .overlay(alignment: .topTrailing) {
+                if tagged {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.white, Palette.coral)
+                        .padding(4).shadow(radius: 1)
+                }
+            }
+            .task(id: asset.localIdentifier) {
+                if image == nil { image = await PhotosLibrary.image(asset: asset, maxPixel: 400) }
+            }
     }
 }
