@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import PhotosUI
 
 /// Post-capture tagging. Binds to a freshly-saved Photo so the image is never
 /// lost — Save commits the chosen tags, Skip leaves it untagged (only `type`
@@ -21,6 +22,7 @@ struct TagSheetView: View {
     @State private var headerImage: UIImage?
     @State private var labelImage: UIImage?
     @State private var showLabelCamera = false
+    @State private var labelPickerItem: PhotosPickerItem?    // library-mode label pick
     @State private var showFullscreenLabel = false
     @AppStorage("flowSteps") private var flowRaw = ""
 
@@ -64,6 +66,15 @@ struct TagSheetView: View {
             if let d = photo.labelImageData { labelImage = UIImage(data: d) }
         }
         .task(id: photo.id) { headerImage = await PhotoImage.full(for: photo) }
+        .onChange(of: labelPickerItem) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self) {
+                    labelImage = UIImage(data: data)
+                }
+                labelPickerItem = nil
+            }
+        }
         .interactiveDismissDisabled(false)
         .fullScreenCover(isPresented: $showFullscreen) {
             IntrospectionView(image: headerImage) { showFullscreen = false }
@@ -286,8 +297,15 @@ struct TagSheetView: View {
                     Text("Tap to view").font(.caption).foregroundStyle(Palette.ink3)
                 }
                 Spacer()
-                Button { showLabelCamera = true } label: {
-                    Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 16))
+                // Replace: pick again from the library (reference) or re-shoot.
+                if photo.isReference {
+                    PhotosPicker(selection: $labelPickerItem, matching: .images) {
+                        Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 16))
+                    }
+                } else {
+                    Button { showLabelCamera = true } label: {
+                        Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 16))
+                    }
                 }
                 Button(role: .destructive) { labelImage = nil } label: {
                     Image(systemName: "trash").font(.system(size: 16))
@@ -295,6 +313,16 @@ struct TagSheetView: View {
             }
             .fullScreenCover(isPresented: $showFullscreenLabel) {
                 IntrospectionView(image: labelImage) { showFullscreenLabel = false }
+            }
+        } else if photo.isReference {
+            // Tagging from the library: pick the label from the library too.
+            PhotosPicker(selection: $labelPickerItem, matching: .images) {
+                Label("Select label", systemImage: "photo.on.rectangle.angled")
+                    .font(.subheadline.weight(.medium))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Palette.tile))
+                    .foregroundStyle(Palette.ink)
             }
         } else {
             Button { showLabelCamera = true } label: {
