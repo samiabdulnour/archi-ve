@@ -8,11 +8,11 @@ import CoreGraphics
 /// reined in — the way Fuji film sims and Ricoh GR recipes actually behave.
 enum CameraLook: String, CaseIterable, Identifiable {
     case original  = "Original"
-    case chrome    = "Chrome"        // Classic-Chrome-style: muted, Kodak-ish
-    case cinema    = "Cinema"        // Ricoh-GR-style cinematic green, warm WB
-    case nostalgic = "Nostalgic"     // Classic-Neg-style: warm highlights, cool shadows
-    case studio    = "Studio"        // our own architectural teal-orange
-    case mono      = "Mono"          // rich black & white
+    case portra    = "Portra 400"      // warm, soft, lifted shadows, muted greens
+    case gold      = "Gold 200"        // golden, nostalgic, warm yellows
+    case ektar     = "Ektar 100"       // vivid, punchy, clean
+    case cinestill = "CineStill 800T"  // tungsten: cool, teal shadows, halation glow
+    case trix      = "Tri-X 400"       // contrasty black & white
     var id: String { rawValue }
 }
 
@@ -31,39 +31,47 @@ enum CameraProcessing {
         case .original:
             return ci
 
-        case .chrome:                                  // muted, full-bodied, Kodak-ish
-            var x = temperature(ci, from: 6500, to: 6540)      // ~neutral, a hair cool
-            x = applyCube(x, data: chromeCube)                 // subdue reds+greens, blues→cyan
-            x = controls(x, sat: 0.88, con: 1.06)
-            // soft highlights, deeper shadows
-            return curve(x, [p(0,0.03), p(0.25,0.235), p(0.5,0.5), p(0.75,0.78), p(1,0.955)])
+        case .portra:                                  // Kodak Portra 400
+            var x = temperature(ci, from: 6500, to: 6250)     // warm
+            x = applyCube(x, data: portraCube)                // muted greens (→yellow), blues→cyan
+            x = controls(x, sat: 0.96, con: 0.94)             // soft, low contrast
+            x = vibrance(x, 0.06)
+            // lifted shadows (the signature trait) + soft highlight rolloff
+            return curve(x, [p(0,0.06), p(0.25,0.275), p(0.5,0.5), p(0.75,0.74), p(1,0.95)])
 
-        case .cinema:                                  // Ricoh-GR cinematic green
-            var x = temperature(ci, from: 6500, to: 6300)      // warm WB
-            x = applyCube(x, data: cinemaCube)                 // greens → muted teal, reds down
-            x = controls(x, sat: 0.93, con: 1.0)
-            x = vibrance(x, 0.05)
-            // lifted blacks + gentle rolloff = matte, faded cinema
-            return curve(x, [p(0,0.055), p(0.25,0.27), p(0.5,0.5), p(0.75,0.74), p(1,0.95)])
+        case .gold:                                    // Kodak Gold 200
+            var x = temperature(ci, from: 6500, to: 6120)     // golden warm
+            x = applyCube(x, data: goldCube)                  // greens → gold, punchy yellows
+            x = controls(x, sat: 1.05, con: 1.04)
+            return curve(x, [p(0,0.045), p(0.25,0.26), p(0.5,0.5), p(0.75,0.76), p(1,0.97)])
 
-        case .nostalgic:                               // Classic-Neg-style
-            var x = temperature(ci, from: 6500, to: 6360)      // warm
-            x = controls(x, sat: 1.06, con: 1.07)
-            x = splitTone(x, strength: 1.0)                    // warm highlights, cool shadows
-            return curve(x, [p(0,0.025), p(0.25,0.22), p(0.5,0.5), p(0.78,0.8), p(1,0.985)])
+        case .ektar:                                   // Kodak Ektar 100
+            var x = temperature(ci, from: 6500, to: 6600)     // a touch cool/clean
+            x = applyCube(x, data: ektarCube)                 // punchy reds + blues
+            x = controls(x, sat: 1.18, con: 1.10)
+            x = vibrance(x, 0.12)
+            return curve(x, [p(0,0.02), p(0.25,0.225), p(0.5,0.5), p(0.75,0.785), p(1,0.998)])
 
-        case .studio:                                  // our own architectural teal-orange
-            var x = controls(ci, sat: 0.96, con: 1.05)
-            x = applyCube(x, data: studioCube)                 // tame iPhone reds
-            x = splitTone(x, strength: 1.9)                    // shadows teal, highlights warm
-            x = vibrance(x, 0.08)
-            return curve(x, [p(0,0.03), p(0.25,0.23), p(0.5,0.5), p(0.76,0.79), p(1,0.985)])
+        case .cinestill:                               // CineStill 800T (tungsten)
+            var x = temperature(ci, from: 6500, to: 6950)     // tungsten → cool/blue
+            x = applyCube(x, data: cinestillCube)             // greens → teal
+            x = controls(x, sat: 0.98, con: 1.06)
+            x = splitTone(x, strength: 1.6)                   // teal shadows, warm highlights
+            x = bloom(x)                                      // signature red-highlight halation glow
+            return curve(x, [p(0,0.04), p(0.25,0.235), p(0.5,0.5), p(0.78,0.8), p(1,0.97)])
 
-        case .mono:                                    // rich black & white
+        case .trix:                                    // Kodak Tri-X 400
             let m = CIFilter.photoEffectMono(); m.inputImage = ci
-            let base = controls(m.outputImage ?? ci, sat: 1, con: 1.08)
-            return curve(base, [p(0,0.02), p(0.25,0.2), p(0.5,0.5), p(0.75,0.8), p(1,0.99)])
+            let base = controls(m.outputImage ?? ci, sat: 1, con: 1.10)
+            return curve(base, [p(0,0.03), p(0.25,0.2), p(0.5,0.5), p(0.75,0.8), p(1,0.99)])
         }
+    }
+
+    /// Soft highlight glow — CineStill's halation. Bloom enlarges the extent, so
+    /// crop back to the input's frame.
+    private static func bloom(_ ci: CIImage) -> CIImage {
+        let f = CIFilter.bloom(); f.inputImage = ci; f.radius = 9; f.intensity = 0.35
+        return (f.outputImage ?? ci).cropped(to: ci.extent)
     }
 
     // MARK: Building blocks
@@ -140,34 +148,38 @@ enum CameraProcessing {
         return cube.withUnsafeBufferPointer { Data(buffer: $0) }
     }
 
-    // Classic-Chrome-ish: subdue reds & greens, nudge blues toward cyan.
-    private static let chromeCube = makeCube { rgb in
+    // Portra: greens lean yellow-green and mute; blues muted toward cyan.
+    private static let portraCube = makeCube { rgb in
         var hsv = rgb2hsv(rgb)
         let h = hsv.x
-        if h < 40 || h > 330 { hsv.y *= 0.70 }              // reds/oranges
-        else if h > 70 && h < 170 { hsv.y *= 0.80 }         // greens
-        else if h > 185 && h < 265 { hsv.x = h - 12 }       // blues → cyan
+        if h > 70 && h < 175 { hsv.x = h - 12; hsv.y *= 0.78 }        // greens → yellow-green, muted
+        else if h > 185 && h < 265 { hsv.x = h - 10; hsv.y *= 0.82 } // blues → cyan, muted
         return hsv2rgb(hsv)
     }
 
-    // Ricoh-GR cinematic green: rotate greens toward teal and mute them; reds down.
-    private static let cinemaCube = makeCube { rgb in
+    // Gold: greens drift to gold; yellows get punchier (the golden cast).
+    private static let goldCube = makeCube { rgb in
         var hsv = rgb2hsv(rgb)
         let h = hsv.x
-        if h > 70 && h < 165 {                               // greens
-            hsv.x = min(h + 22, 176)                         // toward cyan/teal
-            hsv.y *= 0.70
-        } else if h < 35 || h > 335 {                        // reds
-            hsv.y *= 0.85
-        }
+        if h > 70 && h < 160 { hsv.x = h - 18; hsv.y *= 0.82 }        // greens → golden
+        else if h >= 40 && h <= 70 { hsv.y = min(hsv.y * 1.12, 1) }  // yellows punchier
         return hsv2rgb(hsv)
     }
 
-    // Our own: just rein in the iPhone's over-saturated reds; tones do the rest.
-    private static let studioCube = makeCube { rgb in
+    // Ektar: punch up the primaries (reds + blues) — vivid, clean.
+    private static let ektarCube = makeCube { rgb in
         var hsv = rgb2hsv(rgb)
         let h = hsv.x
-        if h < 35 || h > 335 { hsv.y *= 0.80 }
+        if h < 35 || h > 330 { hsv.y = min(hsv.y * 1.15, 1) }        // reds
+        else if h > 185 && h < 265 { hsv.y = min(hsv.y * 1.12, 1) }  // blues
+        return hsv2rgb(hsv)
+    }
+
+    // CineStill: greens drift to teal and mute (with the cool tungsten WB + split-tone).
+    private static let cinestillCube = makeCube { rgb in
+        var hsv = rgb2hsv(rgb)
+        let h = hsv.x
+        if h > 80 && h < 175 { hsv.x = min(h + 18, 178); hsv.y *= 0.80 }
         return hsv2rgb(hsv)
     }
 
