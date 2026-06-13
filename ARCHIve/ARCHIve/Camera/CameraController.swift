@@ -57,12 +57,22 @@ final class CameraController: NSObject {
     var captureType: String = "building"   // Type segment: building | element | graphic
     var position: AVCaptureDevice.Position = .back
 
-    /// Set by CameraPreview (main thread) so we can convert taps to device points.
-    @ObservationIgnored weak var previewLayer: AVCaptureVideoPreviewLayer?
+    /// Selected colour look (film-simulation style), applied live + on capture.
+    var colorLook: CameraLook = .standard
 
+    /// Hidden preview layer used only to convert taps to device points for focus.
+    @ObservationIgnored weak var previewLayer: AVCaptureVideoPreviewLayer?
+    @ObservationIgnored weak var metalView: CameraMetalView?
+
+    // Plain snapshots read on the video queue (avoid touching observable state off-main).
+    @ObservationIgnored private var liveKeystone: Double = 0
+    @ObservationIgnored private var liveLook: CameraLook = .standard
     @ObservationIgnored private var pendingKeystone: Double?   // strength to correct at capture
+    @ObservationIgnored private var pendingLook: CameraLook = .standard
 
     @ObservationIgnored private let photoOutput = AVCapturePhotoOutput()
+    @ObservationIgnored private let videoOutput = AVCaptureVideoDataOutput()
+    @ObservationIgnored private let videoQueue = DispatchQueue(label: "archive.camera.video")
     @ObservationIgnored private var videoDevice: AVCaptureDevice?
     @ObservationIgnored private let sessionQueue = DispatchQueue(label: "archive.camera.session")
     @ObservationIgnored private var configured = false
@@ -123,6 +133,14 @@ final class CameraController: NSObject {
                 conn.videoRotationAngle = 90
             }
 
+            // Live frames for the Metal viewfinder.
+            self.videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
+            self.videoOutput.alwaysDiscardsLateVideoFrames = true
+            self.videoOutput.setSampleBufferDelegate(self, queue: self.videoQueue)
+            if self.session.canAddOutput(self.videoOutput) { self.session.addOutput(self.videoOutput) }
+            if let vc = self.videoOutput.connection(with: .video),
+               vc.isVideoRotationAngleSupported(90) { vc.videoRotationAngle = 90 }
+
             self.session.commitConfiguration()
 
             let maxZ = min(device.activeFormat.videoMaxZoomFactor, 8.0)
@@ -172,6 +190,10 @@ final class CameraController: NSObject {
             if let conn = self.photoOutput.connection(with: .video),
                conn.isVideoRotationAngleSupported(90) {
                 conn.videoRotationAngle = 90
+            }
+            if let vc = self.videoOutput.connection(with: .video) {
+                if vc.isVideoRotationAngleSupported(90) { vc.videoRotationAngle = 90 }
+                if vc.isVideoMirroringSupported { vc.isVideoMirrored = (newPos == .front) }
             }
             self.session.commitConfiguration()
             let maxZ = min(self.videoDevice?.activeFormat.videoMaxZoomFactor ?? 1, 8.0)
@@ -237,33 +259,26 @@ final class CameraController: NSObject {
 
     // MARK: Capture
 
-    // MARK: Keystone (architectural vertical correction)
+    // MARK: Keystone + colour look (processed live in the Metal pipeline)
 
-    /// Toggle the live keystone preview.
-    func setKeystoneEnabled(_ on: Bool) { keystoneOn = on; applyPreviewKeystone() }
+    func attachMetal(_ view: CameraMetalView) {
+        metalView = view
+        previewLayer = view.focusLayer
+        sessionQueue.async { [weak self, weak view] in
+            guard let self else { return }
+            DispatchQueue.main.async { view?.focusLayer.session = self.session }
+        }
+    }
 
-    /// Manual keystone amount (−1…1); drives the preview directly (no motion).
+    func setKeystoneEnabled(_ on: Bool) { keystoneOn = on; liveKeystone = on ? keystoneStrength : 0 }
+
+    /// Manual keystone amount (−1…1); reflected live on the next frame.
     func setKeystoneStrength(_ v: Double) {
         keystoneStrength = max(-1, min(1, v))
-        if keystoneOn { applyPreviewKeystone() }
+        liveKeystone = keystoneOn ? keystoneStrength : 0
     }
 
-    private func applyPreviewKeystone() {
-        guard let layer = previewLayer else { return }
-        CATransaction.begin(); CATransaction.setDisableActions(true)
-        if keystoneOn {
-            let angle = -keystoneStrength * 0.7            // slider −1…1 → ∓40°
-            var t = CATransform3DIdentity
-            t.m34 = -1.0 / 1500                            // perspective
-            t = CATransform3DRotate(t, CGFloat(angle), 1, 0, 0)
-            let s = 1.0 / cos(angle) + 0.12                // scale up to refill the frame
-            t = CATransform3DScale(t, CGFloat(s), CGFloat(s), 1)
-            layer.transform = t
-        } else {
-            layer.transform = CATransform3DIdentity
-        }
-        CATransaction.commit()
-    }
+    func setColorLook(_ look: CameraLook) { colorLook = look; liveLook = look }
 
     /// Redraw to `.up` orientation so Core Image works in display space.
     private static func normalized(_ image: UIImage) -> UIImage {
@@ -272,39 +287,15 @@ final class CameraController: NSObject {
         return r.image { _ in image.draw(in: CGRect(origin: .zero, size: image.size)) }
     }
 
-    /// Straighten converging verticals by widening the compressed edge, then
-    /// crop to match the preview. `strength` is the slider amount (−1…1).
-    static func correctKeystone(_ image: UIImage, strength: Double) -> UIImage {
-        guard abs(strength) > 0.01 else { return image }
-        let upright = normalized(image)
+    @ObservationIgnored private let stillContext = CIContext()
+
+    /// Apply the same keystone + colour look as the live preview to a still.
+    private func processedStill(_ image: UIImage, keystone: Double, look: CameraLook) -> UIImage {
+        let upright = CameraController.normalized(image)
         guard let cg = upright.cgImage else { return image }
-        let ci = CIImage(cgImage: cg)
-        let W = ci.extent.width, H = ci.extent.height
-        let k = min(0.6, abs(strength) * 0.6) * W
-        let widenTop = strength > 0       // positive = correct upward-converging verticals
-        let f = CIFilter(name: "CIPerspectiveTransform")!
-        f.setValue(ci, forKey: kCIInputImageKey)
-        if widenTop {
-            f.setValue(CIVector(x: -k, y: H), forKey: "inputTopLeft")
-            f.setValue(CIVector(x: W + k, y: H), forKey: "inputTopRight")
-            f.setValue(CIVector(x: 0, y: 0), forKey: "inputBottomLeft")
-            f.setValue(CIVector(x: W, y: 0), forKey: "inputBottomRight")
-        } else {
-            f.setValue(CIVector(x: 0, y: H), forKey: "inputTopLeft")
-            f.setValue(CIVector(x: W, y: H), forKey: "inputTopRight")
-            f.setValue(CIVector(x: -k, y: 0), forKey: "inputBottomLeft")
-            f.setValue(CIVector(x: W + k, y: 0), forKey: "inputBottomRight")
-        }
-        guard let out = f.outputImage else { return image }
-        // Match the preview's scale-to-fill so the framing (and the aspect crop)
-        // agrees with what was shown: zoom in by the same factor the preview used.
-        let angle = abs(strength) * 0.7
-        let s = 1.0 / cos(angle) + 0.12
-        let cw = W / s, ch = H / s
-        let cropRect = CGRect(x: (W - cw) / 2, y: (H - ch) / 2, width: cw, height: ch)
-        let ctx = CIContext()
-        guard let cgOut = ctx.createCGImage(out, from: cropRect) else { return image }
-        return UIImage(cgImage: cgOut, scale: upright.scale, orientation: .up)
+        let ci = CameraProcessing.apply(to: CIImage(cgImage: cg), keystone: keystone, look: look)
+        guard let out = stillContext.createCGImage(ci, from: ci.extent) else { return upright }
+        return UIImage(cgImage: out, scale: upright.scale, orientation: .up)
     }
 
     /// Call on the main thread. `completion` is delivered on the main thread.
@@ -314,10 +305,12 @@ final class CameraController: NSObject {
         let aspect = self.aspect
         let flash = self.flashMode
         let keystone: Double? = keystoneOn ? keystoneStrength : nil
+        let look = self.colorLook
 
         sessionQueue.async { [weak self] in
             guard let self else { return }
             self.pendingKeystone = keystone
+            self.pendingLook = look
             // No camera (e.g. the Simulator) → safe no-op instead of throwing.
             guard self.session.isRunning, self.photoOutput.connection(with: .video) != nil else {
                 self.onMain { self.deliver(nil) }
@@ -370,11 +363,19 @@ extension CameraController: AVCapturePhotoCaptureDelegate {
             onMain { self.deliver(nil) }
             return
         }
-        let corrected = pendingKeystone.map {
-            CameraController.correctKeystone(image, strength: $0)
-        } ?? image
-        let cropped = CameraController.crop(corrected, to: aspect)
+        let processed = processedStill(image, keystone: pendingKeystone ?? 0, look: pendingLook)
+        let cropped = CameraController.crop(processed, to: aspect)
         let jpeg = cropped.jpegData(compressionQuality: 0.9)
         onMain { self.deliver(jpeg) }
+    }
+}
+
+extension CameraController: AVCaptureVideoDataOutputSampleBufferDelegate {
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer,
+                       from connection: AVCaptureConnection) {
+        guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        let processed = CameraProcessing.apply(to: CIImage(cvPixelBuffer: pb),
+                                               keystone: liveKeystone, look: liveLook)
+        DispatchQueue.main.async { [weak self] in self?.metalView?.update(processed) }
     }
 }

@@ -25,6 +25,7 @@ struct CameraView: View {
     @State private var toastHideItem: DispatchWorkItem?
     @State private var showSettings = false
     @State private var showProjectPicker = false
+    @State private var showLooks = false
 
     enum TagMode { case lite, full }
 
@@ -104,7 +105,7 @@ struct CameraView: View {
         let frameBottom = frameTop + frameH
 
         ZStack {
-            CameraPreview(controller: camera)
+            MetalCameraPreview(controller: camera)
                 .ignoresSafeArea()
 
             if isFullBleed {
@@ -182,6 +183,7 @@ struct CameraView: View {
                 // In full-bleed (16:9) the zoom bar floats above the shutter;
                 // in framed modes it rides the crop window's bottom edge instead.
                 if isFullBleed && camera.maxZoom > 1.5 { zoomBar }
+                if showLooks { looksStrip }
                 if camera.keystoneOn { keystoneSlider }
                 shutterButton
                 ZStack {
@@ -237,6 +239,7 @@ struct CameraView: View {
             pillButton("arrow.2.squarepath", active: reuseTags != nil) {
                 reuseTags = (reuseTags == nil) ? latest?.humanTags : nil
             }
+            pillButton("camera.filters", active: camera.colorLook != .standard) { showLooks.toggle() }
             pillButton("circle.grid.3x3.fill", active: false) { showSettings = true }
         }
         .padding(.horizontal, 10).padding(.vertical, 3)
@@ -424,6 +427,27 @@ struct CameraView: View {
             .padding(.top, 58)   // clear the top control row
             .transition(.move(edge: .top).combined(with: .opacity))
         }
+    }
+
+    /// Film-look picker strip (shown when the looks button is toggled).
+    private var looksStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(CameraLook.allCases) { look in
+                    let on = camera.colorLook == look
+                    Button { camera.setColorLook(look) } label: {
+                        Text(look.rawValue)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(on ? .black : .white)
+                            .padding(.horizontal, 12).padding(.vertical, 7)
+                            .background(Capsule().fill(on ? Palette.lemon : .white.opacity(0.18)))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+        .frame(height: 40)
     }
 
     /// Strength control for the keystone correction (shown only when on).
