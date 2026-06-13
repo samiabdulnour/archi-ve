@@ -9,10 +9,14 @@ import CoreLocation
 /// references one in the Photos library.
 enum PhotoImage {
     static func full(for photo: Photo) async -> UIImage? {
+        let base: UIImage?
         if let id = photo.assetLocalID, !id.isEmpty {
-            return await PhotosLibrary.image(localID: id, maxPixel: 0)
+            base = await PhotosLibrary.image(localID: id, maxPixel: 0)
+        } else {
+            base = UIImage(data: photo.imageData)
         }
-        return UIImage(data: photo.imageData)
+        guard let base else { return nil }
+        return photo.hasEdits ? PhotoEdits.render(base, photo) : base
     }
 }
 

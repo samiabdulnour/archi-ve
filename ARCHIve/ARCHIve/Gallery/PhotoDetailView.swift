@@ -14,6 +14,8 @@ struct PhotoDetailView: View {
     @State private var introspecting = false
     @State private var confirmDelete = false
     @State private var showShare = false
+    @State private var editing = false
+    @State private var refresh = 0          // bump to reload images after an edit
     @State private var currentImage: UIImage?
 
     init(photoID: String) { _selection = State(initialValue: photoID) }
@@ -23,12 +25,12 @@ struct PhotoDetailView: View {
     var body: some View {
         TabView(selection: $selection) {
             ForEach(photos) { photo in
-                PhotoPage(photo: photo) { img in currentImage = img; introspecting = true }
+                PhotoPage(photo: photo, refresh: refresh) { img in currentImage = img; introspecting = true }
                     .tag(photo.id)
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
-        .task(id: selection) {
+        .task(id: "\(selection)#\(refresh)") {
             currentImage = nil
             if let c = current { currentImage = await PhotoImage.full(for: c) }
         }
@@ -38,6 +40,8 @@ struct PhotoDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    Button { editing = true } label: { Label("Edit photo", systemImage: "slider.horizontal.3") }
+                        .disabled(current == nil)
                     if let current {
                         Button { current.isFavorite.toggle(); try? modelContext.save() } label: {
                             Label(current.isFavorite ? "Remove Favourite" : "Favourite",
@@ -56,6 +60,11 @@ struct PhotoDetailView: View {
         }
         .fullScreenCover(isPresented: $introspecting) {
             IntrospectionView(image: currentImage) { introspecting = false }
+        }
+        .fullScreenCover(isPresented: $editing) {
+            if let current {
+                PhotoEditorView(photo: current) { editing = false; refresh += 1 }
+            }
         }
         .sheet(isPresented: $showShare) {
             if let img = currentImage { ActivityView(items: [img]) }
@@ -83,6 +92,7 @@ struct PhotoDetailView: View {
 /// editor.
 private struct PhotoPage: View {
     @Bindable var photo: Photo
+    var refresh: Int
     var onZoom: (UIImage) -> Void
 
     @Environment(\.modelContext) private var modelContext
@@ -118,8 +128,8 @@ private struct PhotoPage: View {
             }
             .padding(.bottom, 28)
         }
-        .task(id: photo.id) {
-            if image == nil { image = await PhotoImage.full(for: photo) }
+        .task(id: "\(photo.id)#\(refresh)") {
+            image = await PhotoImage.full(for: photo)
         }
     }
 }

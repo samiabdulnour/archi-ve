@@ -527,11 +527,13 @@ struct PhotoThumbnail: View {
             .frame(width: geo.size.width, height: geo.size.height)
             .task(id: photo.id) {
                 if image != nil { return }
+                let base: UIImage?
                 if let id = photo.assetLocalID, !id.isEmpty {
-                    image = await PhotosLibrary.image(localID: id, maxPixel: 400)
+                    base = await PhotosLibrary.image(localID: id, maxPixel: 400)
                 } else {
-                    image = await Self.thumbnail(from: photo.imageData, maxPixel: 400)
+                    base = await Self.thumbnail(from: photo.imageData, maxPixel: 400)
                 }
+                if let base { image = photo.hasEdits ? PhotoEdits.render(base, photo) : base }
             }
         }
     }

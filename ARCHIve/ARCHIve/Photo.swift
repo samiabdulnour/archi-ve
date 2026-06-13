@@ -58,6 +58,23 @@ final class Photo: Identifiable {
     /// title/artist. Stored outside the main store file like the main image.
     @Attribute(.externalStorage) var labelImageData: Data?
 
+    // MARK: Non-destructive edits
+    // Applied on top of the source image when displayed/shared, so the original
+    // (in Photos or `imageData`) is never altered and edits stay reversible.
+
+    /// Colour look applied as an edit (CameraLook rawValue); nil = none.
+    var editLookRaw: String?
+    /// Keystone/tilt correction applied as an edit (−1…1, 0 = none).
+    var editKeystone: Double = 0
+    /// Rotation in clockwise degrees: 0 / 90 / 180 / 270.
+    var editRotation: Int = 0
+    /// Crop window in normalised coordinates of the (rotated) image, top-left
+    /// origin. Defaults to the full frame (no crop).
+    var cropX: Double = 0
+    var cropY: Double = 0
+    var cropW: Double = 1
+    var cropH: Double = 1
+
     init(
         id: String = UUID().uuidString,
         imageData: Data,
@@ -87,6 +104,13 @@ final class Photo: Identifiable {
 
     /// True when the photo's pixels live in the system Photos library.
     var isReference: Bool { (assetLocalID ?? "").isEmpty == false }
+
+    /// True when any non-destructive edit is set (so display can skip the
+    /// pipeline entirely for untouched photos).
+    var hasEdits: Bool {
+        editLookRaw != nil || editKeystone != 0 || editRotation % 360 != 0
+            || cropX > 0.0001 || cropY > 0.0001 || cropW < 0.9999 || cropH < 0.9999
+    }
 
     /// Decoded view of the human tags.
     var humanTags: HumanTags {
