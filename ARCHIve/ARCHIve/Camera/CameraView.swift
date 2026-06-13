@@ -240,7 +240,7 @@ struct CameraView: View {
             pillButton("arrow.2.squarepath", active: reuseTags != nil) {
                 reuseTags = (reuseTags == nil) ? latest?.humanTags : nil
             }
-            pillButton("camera.filters", active: tool == .looks || camera.colorLook != .standard) {
+            pillButton("camera.filters", active: tool == .looks || camera.colorLook != .neutral) {
                 tool = (tool == .looks) ? .none : .looks
             }
             pillButton("skew", active: tool == .keystone || camera.keystoneStrength != 0) {
@@ -439,7 +439,7 @@ struct CameraView: View {
     /// the core controls (zoom, shutter) stay uncrowded.
     @ViewBuilder private var toolTray: some View {
         switch tool {
-        case .looks:    LooksCarousel(camera: camera)
+        case .looks:    LooksWheel(camera: camera)
         case .keystone: keystoneSlider
         case .none:     EmptyView()
         }

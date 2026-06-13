@@ -5,13 +5,11 @@ import CoreImage.CIFilterBuiltins
 /// film sims and Ricoh GR effects: crisp, with cinematic colour balance (gentle
 /// S-curves, split toning, controlled saturation). Applied live + baked in.
 enum CameraLook: String, CaseIterable, Identifiable {
-    case standard = "Standard"
-    case vivid    = "Vivid"
-    case chrome   = "Chrome"
-    case cinema   = "Cinema"
-    case bleach   = "Bleach"
-    case mono     = "Mono"
-    case noir     = "Noir"
+    case neutral = "Neutral"
+    case chrome  = "Chrome"
+    case cinema  = "Cinema"
+    case silver  = "Silver"
+    case mono    = "Mono"
     var id: String { rawValue }
 }
 
@@ -27,38 +25,28 @@ enum CameraProcessing {
 
     static func colored(_ ci: CIImage, look: CameraLook) -> CIImage {
         switch look {
-        case .standard:
+        case .neutral:                                 // clean, true — a touch of life
             return vibrance(controls(ci, sat: 1.04, con: 1.03), 0.1)
 
-        case .vivid:                                   // Velvia-ish: punchy but controlled
-            var x = controls(ci, sat: 1.22, con: 1.10)
-            x = vibrance(x, 0.25)
-            return curve(x, [p(0,0), p(0.25,0.21), p(0.5,0.5), p(0.75,0.80), p(1,1)])
-
-        case .chrome:                                  // Classic Chrome / GR positive film: muted, matte
-            var x = controls(ci, sat: 0.78, con: 1.05)
-            x = temperature(x, from: 6500, to: 6250)   // a touch warm
-            // lifted blacks + rolled highlights = soft, documentary feel
-            return curve(x, [p(0,0.06), p(0.25,0.28), p(0.5,0.5), p(0.75,0.73), p(1,0.96)])
+        case .chrome:                                  // muted positive film: restrained, matte
+            var x = controls(ci, sat: 0.80, con: 1.06)
+            x = temperature(x, from: 6500, to: 6300)   // a touch warm
+            return curve(x, [p(0,0.05), p(0.25,0.27), p(0.5,0.5), p(0.75,0.74), p(1,0.97)])
 
         case .cinema:                                  // teal shadows, warm highlights
             var x = controls(ci, sat: 0.96, con: 1.06)
             x = splitTone(x)
             return curve(x, [p(0,0.03), p(0.25,0.22), p(0.5,0.5), p(0.78,0.82), p(1,0.99)])
 
-        case .bleach:                                  // bleach bypass: silvery, high-contrast
-            var x = controls(ci, sat: 0.42, con: 1.28)
-            x = highlightShadow(x, highlight: 0.25, shadow: -0.25)
+        case .silver:                                  // bleach bypass: silvery, high-contrast
+            var x = controls(ci, sat: 0.45, con: 1.26)
+            x = highlightShadow(x, highlight: 0.25, shadow: -0.22)
             return curve(x, [p(0,0.02), p(0.25,0.18), p(0.5,0.52), p(0.75,0.86), p(1,1)])
 
-        case .mono:                                    // Acros-ish: rich, crisp B&W
+        case .mono:                                    // rich, crisp black & white
             let m = CIFilter.photoEffectMono(); m.inputImage = ci
             let base = m.outputImage ?? ci
-            return curve(controls(base, sat: 1, con: 1.04), [p(0,0.02), p(0.25,0.2), p(0.5,0.5), p(0.75,0.8), p(1,0.99)])
-
-        case .noir:                                    // dramatic high-contrast B&W
-            let f = CIFilter.photoEffectNoir(); f.inputImage = ci
-            return f.outputImage ?? ci
+            return curve(controls(base, sat: 1, con: 1.05), [p(0,0.02), p(0.25,0.2), p(0.5,0.5), p(0.75,0.8), p(1,0.99)])
         }
     }
 
