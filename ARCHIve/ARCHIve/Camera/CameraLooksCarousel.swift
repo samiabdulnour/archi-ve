@@ -7,7 +7,8 @@ struct LooksWheel: View {
     @Bindable var camera: CameraController
     @State private var centered: CameraLook?
 
-    private let itemWidth: CGFloat = 120
+    private let itemWidth: CGFloat = 132
+    private let hitHeight: CGFloat = 46     // tall, finger-friendly tap target
 
     var body: some View {
         GeometryReader { geo in
@@ -20,7 +21,9 @@ struct LooksWheel: View {
                             .font(.system(size: 11, weight: on ? .semibold : .regular))
                             .tracking(1.4)
                             .foregroundStyle(on ? Palette.lemon : .white.opacity(0.5))
-                            .frame(width: itemWidth)
+                            // Visible text stays small, but the whole 132×46 slot
+                            // is tappable so a fingertip can't miss between names.
+                            .frame(width: itemWidth, height: hitHeight)
                             .contentShape(Rectangle())
                             .id(look)
                             // Tap any name to centre + select it — no need to nudge
@@ -42,6 +45,6 @@ struct LooksWheel: View {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }
         }
-        .frame(height: 22)
+        .frame(height: hitHeight)
     }
 }
