@@ -1,5 +1,6 @@
 import Photos
 import UIKit
+import CoreLocation
 
 /// Thin wrapper over the Photos framework for the "tag your existing library"
 /// flow: authorisation, fetching assets, and loading images by local identifier
@@ -38,8 +39,10 @@ enum PhotosLibrary {
     }
 
     /// Save JPEG data into the Photos library and return its local identifier
-    /// (so we can store a reference, not a duplicate). nil if not permitted/failed.
-    static func saveImage(_ data: Data) async -> String? {
+    /// (so we can store a reference, not a duplicate). The `coordinate`, if given,
+    /// is stamped onto the asset so it carries its location like a Camera shot.
+    /// nil if not permitted/failed.
+    static func saveImage(_ data: Data, coordinate: CLLocationCoordinate2D? = nil) async -> String? {
         let status = await requestAddAuthorization()
         guard status == .authorized || status == .limited else { return nil }
         return await withCheckedContinuation { cont in
@@ -47,6 +50,11 @@ enum PhotosLibrary {
             PHPhotoLibrary.shared().performChanges {
                 let req = PHAssetCreationRequest.forAsset()
                 req.addResource(with: .photo, data: data, options: nil)
+                if let c = coordinate {
+                    req.location = CLLocation(coordinate: c, altitude: 0,
+                                              horizontalAccuracy: kCLLocationAccuracyHundredMeters,
+                                              verticalAccuracy: -1, timestamp: Date())
+                }
                 localID = req.placeholderForCreatedAsset?.localIdentifier
             } completionHandler: { success, _ in
                 cont.resume(returning: success ? localID : nil)

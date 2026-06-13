@@ -605,7 +605,7 @@ struct CameraView: View {
                 // Save the shot into Photos and keep only a reference — one copy,
                 // no duplicate. If saving isn't permitted, fall back to storing
                 // the pixels in-app so the shot is never lost.
-                let localID = await PhotosLibrary.saveImage(data)
+                let localID = await PhotosLibrary.saveImage(data, coordinate: coord)
                 let photo: Photo
                 if let localID {
                     photo = Photo(imageData: Data(),
