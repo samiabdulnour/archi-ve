@@ -45,6 +45,9 @@ final class CameraController: NSObject {
     var timerSeconds = 0           // 0 | 3 | 10
     var zoomFactor: CGFloat = 1.0
     var maxZoom: CGFloat = 1.0
+    /// Architectural keystone: when on, the live preview is warped (and the
+    /// saved photo corrected) to keep verticals straight as the phone tilts.
+    var keystoneOn = false
 
     // Capture context (mirrors the web app's camera modes).
     var mode: CaptureMode = .reference
@@ -54,6 +57,9 @@ final class CameraController: NSObject {
 
     /// Set by CameraPreview (main thread) so we can convert taps to device points.
     @ObservationIgnored weak var previewLayer: AVCaptureVideoPreviewLayer?
+
+    @ObservationIgnored private var keystonePitch: Double = 0   // latest pitch (deg)
+    @ObservationIgnored private var pendingKeystone: Double?    // pitch to correct at capture
 
     @ObservationIgnored private let photoOutput = AVCapturePhotoOutput()
     @ObservationIgnored private var videoDevice: AVCaptureDevice?
@@ -230,15 +236,82 @@ final class CameraController: NSObject {
 
     // MARK: Capture
 
+    // MARK: Keystone (architectural vertical correction)
+
+    /// Toggle the live keystone preview.
+    func setKeystoneEnabled(_ on: Bool) { keystoneOn = on; applyPreviewKeystone() }
+
+    /// Feed the latest device pitch (degrees); warps the preview when enabled.
+    func setKeystonePitch(_ deg: Double) {
+        keystonePitch = deg
+        if keystoneOn { applyPreviewKeystone() }
+    }
+
+    private func applyPreviewKeystone() {
+        guard let layer = previewLayer else { return }
+        CATransaction.begin(); CATransaction.setDisableActions(true)
+        if keystoneOn {
+            let clamped = max(-22, min(22, keystonePitch))
+            let angle = clamped * .pi / 180 * 0.7          // counter-rotate the preview plane
+            var t = CATransform3DIdentity
+            t.m34 = -1.0 / 1500                            // perspective
+            t = CATransform3DRotate(t, CGFloat(angle), 1, 0, 0)
+            let s = 1.0 / cos(angle) + 0.12                // scale up to refill the frame
+            t = CATransform3DScale(t, CGFloat(s), CGFloat(s), 1)
+            layer.transform = t
+        } else {
+            layer.transform = CATransform3DIdentity
+        }
+        CATransaction.commit()
+    }
+
+    /// Redraw to `.up` orientation so Core Image works in display space.
+    private static func normalized(_ image: UIImage) -> UIImage {
+        guard image.imageOrientation != .up else { return image }
+        let r = UIGraphicsImageRenderer(size: image.size)
+        return r.image { _ in image.draw(in: CGRect(origin: .zero, size: image.size)) }
+    }
+
+    /// Straighten converging verticals by widening the compressed edge, then
+    /// crop back to the original frame. Approximate (pitch-driven), tunable.
+    static func correctKeystone(_ image: UIImage, pitchDegrees: Double) -> UIImage {
+        guard abs(pitchDegrees) > 1 else { return image }
+        let upright = normalized(image)
+        guard let cg = upright.cgImage else { return image }
+        let ci = CIImage(cgImage: cg)
+        let W = ci.extent.width, H = ci.extent.height
+        let k = min(0.32, abs(tan(pitchDegrees * .pi / 180)) * 0.5) * W
+        let widenTop = pitchDegrees < 0   // tilted up → verticals converge upward
+        let f = CIFilter(name: "CIPerspectiveTransform")!
+        f.setValue(ci, forKey: kCIInputImageKey)
+        if widenTop {
+            f.setValue(CIVector(x: -k, y: H), forKey: "inputTopLeft")
+            f.setValue(CIVector(x: W + k, y: H), forKey: "inputTopRight")
+            f.setValue(CIVector(x: 0, y: 0), forKey: "inputBottomLeft")
+            f.setValue(CIVector(x: W, y: 0), forKey: "inputBottomRight")
+        } else {
+            f.setValue(CIVector(x: 0, y: H), forKey: "inputTopLeft")
+            f.setValue(CIVector(x: W, y: H), forKey: "inputTopRight")
+            f.setValue(CIVector(x: -k, y: 0), forKey: "inputBottomLeft")
+            f.setValue(CIVector(x: W + k, y: 0), forKey: "inputBottomRight")
+        }
+        guard let out = f.outputImage else { return image }
+        let ctx = CIContext()
+        guard let cgOut = ctx.createCGImage(out, from: CGRect(x: 0, y: 0, width: W, height: H)) else { return image }
+        return UIImage(cgImage: cgOut, scale: upright.scale, orientation: .up)
+    }
+
     /// Call on the main thread. `completion` is delivered on the main thread.
     func capture(completion: @escaping (Data?) -> Void) {
         guard configured else { completion(nil); return }
         captureHandler = completion
         let aspect = self.aspect
         let flash = self.flashMode
+        let keystone = keystoneOn ? keystonePitch : nil
 
         sessionQueue.async { [weak self] in
             guard let self else { return }
+            self.pendingKeystone = keystone
             // No camera (e.g. the Simulator) → safe no-op instead of throwing.
             guard self.session.isRunning, self.photoOutput.connection(with: .video) != nil else {
                 self.onMain { self.deliver(nil) }
@@ -291,7 +364,8 @@ extension CameraController: AVCapturePhotoCaptureDelegate {
             onMain { self.deliver(nil) }
             return
         }
-        let cropped = CameraController.crop(image, to: aspect)
+        let corrected = pendingKeystone.map { CameraController.correctKeystone(image, pitchDegrees: $0) } ?? image
+        let cropped = CameraController.crop(corrected, to: aspect)
         let jpeg = cropped.jpegData(compressionQuality: 0.9)
         onMain { self.deliver(jpeg) }
     }

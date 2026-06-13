@@ -20,6 +20,12 @@ final class MotionLevel {
     /// only once the phone settles near a cardinal, and always the short way.
     var iconAngle: Double = 0
 
+    /// Forward/back tilt in degrees (0 = phone vertical, sensor plane parallel
+    /// to a façade). Negative = tilted up; positive = tilted down. Drives the
+    /// architectural keystone correction.
+    var pitch: Double = 0
+    private var smoothedPitch: Double = 0
+
     private let manager = CMMotionManager()
     private var smoothed: Double = 0
     private let ema = 0.18   // smoothing factor, matches web
@@ -55,6 +61,11 @@ final class MotionLevel {
         if smoothed < -180 { smoothed += 360 }
 
         angle = smoothed
+
+        // Forward/back tilt: 0 when the phone is vertical, ± when tilted up/down.
+        let rawPitch = atan2(gz, -gy) * 180 / .pi
+        smoothedPitch += (rawPitch - smoothedPitch) * ema
+        pitch = smoothedPitch
 
         // Nearest cardinal (0/90/180/-90).
         let bucket = (smoothed / 90).rounded() * 90

@@ -168,6 +168,9 @@ struct CameraView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
+        // Live keystone: warp the preview to keep verticals straight as you tilt.
+        .onChange(of: motion.pitch) { _, p in camera.setKeystonePitch(p) }
+        .onChange(of: camera.keystoneOn) { _, _ in camera.setKeystonePitch(motion.pitch) }
         .safeAreaInset(edge: .top, spacing: 0) {
             HStack(alignment: .top) {
                 if camera.mode == .project { projectPill } else { typeSegment }
@@ -526,6 +529,7 @@ private struct CameraSettingsSheet: View {
                 item("ASPECT", "aspectratio", active: camera.aspect != .fourThree, badge: camera.aspect.rawValue) { cycleAspect() }
                 item("GRID", "grid", active: camera.gridOn) { camera.gridOn.toggle() }
                 item("LEVEL", "level", active: camera.levelOn) { camera.levelOn.toggle() }
+                item("KEYSTONE", "skew", active: camera.keystoneOn) { camera.setKeystoneEnabled(!camera.keystoneOn) }
                 item("SETTINGS", "gearshape", active: false) { showAppSettings = true }
             }
             .padding(.horizontal, 22)
@@ -534,7 +538,7 @@ private struct CameraSettingsSheet: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .environment(\.colorScheme, .dark)
         .sheet(isPresented: $showAppSettings) { SettingsView() }
-        .presentationDetents([.height(246)])
+        .presentationDetents([.height(340)])
         // Liquid-glass: a forced-dark frosted material so the blurred feed
         // shows through, like the native Camera control sheet.
         .presentationBackground {
