@@ -73,66 +73,68 @@ struct TagSheetView: View {
 
     // MARK: Header — Skip · photo · Save (no scrolling to reach the actions)
 
-    /// Pinned action row: a portrait photo card flanked by Skip / Save, like a
-    /// Tinder card. Replaces the nav-bar title + toolbar so the screen opens
-    /// straight into the photo and its two decisions.
+    /// A big full-width 1:1 photo with Skip / Save floating on its lower corners,
+    /// like a Tinder card. Replaces the nav-bar title + toolbar so the screen
+    /// opens straight into the photo and its two decisions.
     private var header: some View {
-        HStack(alignment: .center, spacing: 18) {
-            actionCircle(symbol: "xmark", label: "Skip",
-                         tint: Palette.ink, fill: Palette.tile) { finish() }
-            photoCard
-            actionCircle(symbol: "checkmark", label: "Save",
-                         tint: tags.type == nil ? Palette.ink3 : .white,
-                         fill: tags.type == nil ? Palette.tile : Palette.coral,
-                         disabled: tags.type == nil) { commit() }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 20)
-        .padding(.top, 12).padding(.bottom, 14)
+        photoCard
+            .overlay(alignment: .bottomLeading) {
+                overlayAction(symbol: "xmark", fill: .black.opacity(0.42), iconTint: .white) { finish() }
+                    .padding(.leading, 26).padding(.bottom, 18)
+            }
+            .overlay(alignment: .bottomTrailing) {
+                overlayAction(symbol: "checkmark",
+                              fill: tags.type == nil ? .black.opacity(0.42) : Palette.coral,
+                              iconTint: .white, disabled: tags.type == nil) { commit() }
+                    .padding(.trailing, 26).padding(.bottom, 18)
+            }
     }
 
-    /// Tap to inspect the shot fullscreen (pinch-zoom) before committing tags.
-    /// Portrait card so vertical phone photos fill it cleanly.
+    /// Tap the photo (anywhere but the buttons) to inspect it fullscreen.
+    /// Full-width square — vertical phone photos read large here.
     private var photoCard: some View {
         Button { showFullscreen = true } label: {
-            Group {
-                if let img = headerImage {
-                    Image(uiImage: img).resizable().scaledToFill()
-                } else {
-                    Palette.tile
+            Color.clear
+                .aspectRatio(1, contentMode: .fit)
+                .overlay {
+                    ZStack {
+                        if let img = headerImage {
+                            Image(uiImage: img).resizable().scaledToFill()
+                        } else {
+                            Palette.tile
+                        }
+                        // scrim so the overlaid buttons stay legible on any photo
+                        LinearGradient(colors: [.clear, .black.opacity(0.45)],
+                                       startPoint: .center, endPoint: .bottom)
+                    }
                 }
-            }
-            .frame(width: 150, height: 196)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Palette.hairline, lineWidth: 0.5))
-            .overlay(alignment: .bottomTrailing) {
-                Image(systemName: "arrow.up.left.and.arrow.down.right")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.white)
-                    .padding(6)
-                    .background(Circle().fill(.black.opacity(0.45)))
-                    .padding(7)
-            }
-            .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
+                .clipped()
+                .overlay(alignment: .topTrailing) {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(7)
+                        .background(Circle().fill(.black.opacity(0.4)))
+                        .padding(10)
+                }
         }
         .buttonStyle(.plain)
     }
 
-    private func actionCircle(symbol: String, label: String, tint: Color, fill: Color,
-                              disabled: Bool = false, _ action: @escaping () -> Void) -> some View {
+    private func overlayAction(symbol: String, fill: Color, iconTint: Color,
+                               disabled: Bool = false, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(spacing: 7) {
-                ZStack {
-                    Circle().fill(fill).frame(width: 62, height: 62)
-                        .shadow(color: .black.opacity(0.10), radius: 4, y: 2)
-                    Image(systemName: symbol).font(.system(size: 25, weight: .semibold)).foregroundStyle(tint)
-                }
-                Text(label).font(.caption.weight(.medium)).foregroundStyle(Palette.ink3)
-            }
+            Image(systemName: symbol)
+                .font(.system(size: 27, weight: .bold))
+                .foregroundStyle(iconTint)
+                .frame(width: 66, height: 66)
+                .background(Circle().fill(fill))
+                .overlay(Circle().strokeBorder(.white.opacity(0.35), lineWidth: 1))
+                .shadow(color: .black.opacity(0.28), radius: 7, y: 2)
         }
         .buttonStyle(.plain)
         .disabled(disabled)
-        .opacity(disabled ? 0.45 : 1)
+        .opacity(disabled ? 0.5 : 1)
     }
 
     /// Building / Element / Graphic as a single segmented toggle.
