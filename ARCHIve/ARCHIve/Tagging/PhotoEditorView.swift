@@ -23,7 +23,7 @@ struct PhotoEditorView: View {
     @State private var preview: UIImage?    // source + rotation + tilt + look (no crop)
     @State private var keystoneWasZero = true
     @State private var moveStart: CGRect?   // crop at the start of a move-drag
-    @State private var renderTask: Task<Void, Never>?
+    @State private var renderSeq = 0        // drop stale async renders
 
     enum Tool: String, CaseIterable { case crop = "Crop", tilt = "Tilt", color = "Color" }
     private enum Corner { case tl, tr, bl, br }
@@ -33,6 +33,8 @@ struct PhotoEditorView: View {
         if let dev = MTLCreateSystemDefaultDevice() { return CIContext(mtlDevice: dev) }
         return CIContext()
     }()
+    // Serial queue so renders never overlap on the shared context.
+    private static let renderQueue = DispatchQueue(label: "archive.editor.render")
 
     var body: some View {
         VStack(spacing: 0) {
@@ -330,12 +332,14 @@ struct PhotoEditorView: View {
         source = base.map(normalizedUp)
     }
 
-    /// Rebuild the preview off the main thread: source + rotation + tilt + look
-    /// (crop is an overlay). Cancels any in-flight render so rapid taps don't pile up.
+    /// Rebuild the preview on a serial background queue (never overlapping):
+    /// source + rotation + tilt + look (crop is an overlay). Only the latest
+    /// render is applied.
     private func recompute() {
-        renderTask?.cancel()
+        renderSeq += 1
+        let seq = renderSeq
         let src = source, rot = rotation, ks = keystone, lk = look
-        renderTask = Task.detached(priority: .userInitiated) {
+        Self.renderQueue.async {
             guard let src, let cg = src.cgImage else { return }
             var ci = CIImage(cgImage: cg)
             if rot % 360 != 0 {
@@ -343,9 +347,9 @@ struct PhotoEditorView: View {
                 ci = ci.transformed(by: CGAffineTransform(translationX: -ci.extent.minX, y: -ci.extent.minY))
             }
             ci = CameraProcessing.apply(to: ci, keystone: ks, look: lk)
-            guard !Task.isCancelled, let out = Self.ciContext.createCGImage(ci, from: ci.extent) else { return }
+            guard let out = Self.ciContext.createCGImage(ci, from: ci.extent) else { return }
             let img = UIImage(cgImage: out)
-            await MainActor.run { preview = img }
+            DispatchQueue.main.async { if seq == renderSeq { preview = img } }
         }
     }
 

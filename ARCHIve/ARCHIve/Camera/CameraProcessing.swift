@@ -159,10 +159,12 @@ enum CameraProcessing {
     private static let cubeSize = 24
 
     private static func applyCube(_ ci: CIImage, data: Data) -> CIImage {
-        let f = CIFilter.colorCubeWithColorSpace()
+        // Plain CIColorCube (no colour space): rock-solid with createCGImage. The
+        // colour-space variant crashed when rendered off-screen via createCGImage
+        // (the live camera renders via a Metal drawable, which didn't hit it).
+        let f = CIFilter.colorCube()
         f.cubeDimension = Float(cubeSize)
         f.cubeData = data
-        f.colorSpace = CGColorSpace(name: CGColorSpace.sRGB)
         f.inputImage = ci
         return f.outputImage ?? ci
     }
