@@ -115,10 +115,22 @@ enum CameraProcessing {
             f.bottomLeft = CGPoint(x: e.minX - k, y: e.minY)
             f.bottomRight = CGPoint(x: e.maxX + k, y: e.minY)
         }
-        let out = f.outputImage ?? ci
-        let angle = abs(strength) * 0.7
-        let s = 1.0 / cos(angle) + 0.12
-        let cw = e.width / s, ch = e.height / s
+        var out = f.outputImage ?? ci
+
+        // Straightening verticals widens one end, which leaves the subject looking
+        // short and squashed. Counter it with a vertical stretch (about the centre)
+        // that grows with the tilt — keeps the object's proportions natural.
+        let v = 1.0 + abs(strength) * 0.5
+        let stretch = CGAffineTransform(translationX: 0, y: e.midY)
+            .scaledBy(x: 1, y: v)
+            .translatedBy(x: 0, y: -e.midY)
+        out = out.transformed(by: stretch)
+
+        // Crop back to the original frame, centred. The full sensor width fits with
+        // no transparent edges (the widened end only adds width, never removes it),
+        // so no zoom-in is needed — nothing leaves the frame. A 1% inset guards
+        // against a sub-pixel hairline at the corners.
+        let cw = e.width * 0.99, ch = e.height * 0.99
         return out.cropped(to: CGRect(x: e.midX - cw / 2, y: e.midY - ch / 2, width: cw, height: ch))
     }
 }
