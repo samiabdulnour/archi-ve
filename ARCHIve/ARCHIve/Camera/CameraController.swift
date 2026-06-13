@@ -301,8 +301,14 @@ final class CameraController: NSObject {
             f.setValue(CIVector(x: W + k, y: 0), forKey: "inputBottomRight")
         }
         guard let out = f.outputImage else { return image }
+        // Match the preview's scale-to-fill so the framing (and the aspect crop)
+        // agrees with what was shown: zoom in by the same factor the preview used.
+        let angle = max(-0.7, min(0.7, abs(pitchDegrees) * .pi / 180 * factor))
+        let s = 1.0 / cos(angle) + 0.12
+        let cw = W / s, ch = H / s
+        let cropRect = CGRect(x: (W - cw) / 2, y: (H - ch) / 2, width: cw, height: ch)
         let ctx = CIContext()
-        guard let cgOut = ctx.createCGImage(out, from: CGRect(x: 0, y: 0, width: W, height: H)) else { return image }
+        guard let cgOut = ctx.createCGImage(out, from: cropRect) else { return image }
         return UIImage(cgImage: cgOut, scale: upright.scale, orientation: .up)
     }
 
