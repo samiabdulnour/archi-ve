@@ -17,6 +17,10 @@ enum BackupManager {
         let importedAt: Date?
         let humanTags: HumanTags
         let hasLabel: Bool
+        // Photos-library references (incl. camera shots) carry no pixels of their
+        // own — back up the link instead. Optional so old backups still decode.
+        var assetLocalID: String?
+        var isCameraShot: Bool?
     }
 
     static let folderName = "Archi.vé Backup"
@@ -33,7 +37,10 @@ enum BackupManager {
 
         var records: [Record] = []
         for p in photos {
-            try p.imageData.write(to: imagesDir.appendingPathComponent("\(p.id).jpg"))
+            // References keep their pixels in Photos — only owned photos write a file.
+            if !p.imageData.isEmpty {
+                try p.imageData.write(to: imagesDir.appendingPathComponent("\(p.id).jpg"))
+            }
             var hasLabel = false
             if let label = p.labelImageData {
                 try label.write(to: labelsDir.appendingPathComponent("\(p.id).jpg"))
@@ -42,7 +49,8 @@ enum BackupManager {
             records.append(Record(id: p.id, createdAt: p.createdAt,
                                   latitude: p.latitude, longitude: p.longitude,
                                   project: p.project, importedAt: p.importedAt,
-                                  humanTags: p.humanTags, hasLabel: hasLabel))
+                                  humanTags: p.humanTags, hasLabel: hasLabel,
+                                  assetLocalID: p.assetLocalID, isCameraShot: p.isCameraShot))
         }
 
         let enc = JSONEncoder()
@@ -64,15 +72,22 @@ enum BackupManager {
 
         var added = 0
         for r in records where !existingIDs.contains(r.id) {
-            let imgURL = folder.appendingPathComponent("images/\(r.id).jpg")
-            guard let img = try? Data(contentsOf: imgURL) else { continue }
             let label: Data? = r.hasLabel
                 ? (try? Data(contentsOf: folder.appendingPathComponent("labels/\(r.id).jpg")))
                 : nil
+            let isRef = !(r.assetLocalID ?? "").isEmpty
+            let img: Data
+            if isRef {
+                img = Data()   // pixels live in Photos; restored as a reference
+            } else {
+                guard let owned = try? Data(contentsOf: folder.appendingPathComponent("images/\(r.id).jpg")) else { continue }
+                img = owned
+            }
             let photo = Photo(id: r.id, imageData: img, createdAt: r.createdAt,
                               latitude: r.latitude, longitude: r.longitude,
                               humanTags: r.humanTags, project: r.project,
-                              importedAt: r.importedAt, labelImageData: label)
+                              importedAt: r.importedAt, labelImageData: label,
+                              assetLocalID: r.assetLocalID, isCameraShot: r.isCameraShot ?? false)
             context.insert(photo)
             added += 1
         }

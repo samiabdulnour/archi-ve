@@ -215,9 +215,10 @@ struct LibraryView: View {
         if selecting { withAnimation { selecting = false; selected.removeAll() } }
     }
 
-    /// A reference left untagged means the user skipped — drop it.
+    /// A *library* reference left untagged means the user skipped — drop it.
+    /// Camera shots (also references) are intentional and never auto-removed.
     private func cleanupIfSkipped() {
-        for p in allPhotos where p.isReference && p.isUntagged {
+        for p in allPhotos where p.isReference && p.isUntagged && !p.isCameraShot {
             modelContext.delete(p)
         }
         try? modelContext.save()

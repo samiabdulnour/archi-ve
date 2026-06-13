@@ -600,21 +600,34 @@ struct CameraView: View {
         camera.capture(cropRatio: currentCropRatio()) { data in
             guard let data else { return }
             let coord = LocationProvider.shared.last
-            let photo = Photo(imageData: data,
-                              latitude: coord?.latitude,
-                              longitude: coord?.longitude,
-                              humanTags: prefilledTags(),
-                              project: camera.mode == .project ? camera.currentProject : nil)
-            modelContext.insert(photo)
-            try? modelContext.save()
-            savedCount += 1
-            if tagMode == .full {
-                camera.stop()
-                tagTarget = photo
-            } else {
-                // Lite mode: no tag sheet — confirm with a toast offering a
-                // one-tap "Tag now" (like the old app).
-                showSavedToast(photo)
+            let proj = camera.mode == .project ? camera.currentProject : nil
+            Task { @MainActor in
+                // Save the shot into Photos and keep only a reference — one copy,
+                // no duplicate. If saving isn't permitted, fall back to storing
+                // the pixels in-app so the shot is never lost.
+                let localID = await PhotosLibrary.saveImage(data)
+                let photo: Photo
+                if let localID {
+                    photo = Photo(imageData: Data(),
+                                  latitude: coord?.latitude, longitude: coord?.longitude,
+                                  humanTags: prefilledTags(), project: proj,
+                                  assetLocalID: localID, isCameraShot: true)
+                } else {
+                    photo = Photo(imageData: data,
+                                  latitude: coord?.latitude, longitude: coord?.longitude,
+                                  humanTags: prefilledTags(), project: proj)
+                }
+                modelContext.insert(photo)
+                try? modelContext.save()
+                savedCount += 1
+                if tagMode == .full {
+                    camera.stop()
+                    tagTarget = photo
+                } else {
+                    // Lite mode: no tag sheet — confirm with a toast offering a
+                    // one-tap "Tag now" (like the old app).
+                    showSavedToast(photo)
+                }
             }
         }
     }

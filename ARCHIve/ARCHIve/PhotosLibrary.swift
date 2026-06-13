@@ -27,6 +27,33 @@ enum PhotosLibrary {
         }
     }
 
+    /// Permission to *add* to the library (a subset of read/write — granted
+    /// implicitly if the user already allowed full access).
+    static func requestAddAuthorization() async -> PHAuthorizationStatus {
+        let cur = PHPhotoLibrary.authorizationStatus(for: .addOnly)
+        if cur != .notDetermined { return cur }
+        return await withCheckedContinuation { cont in
+            PHPhotoLibrary.requestAuthorization(for: .addOnly) { cont.resume(returning: $0) }
+        }
+    }
+
+    /// Save JPEG data into the Photos library and return its local identifier
+    /// (so we can store a reference, not a duplicate). nil if not permitted/failed.
+    static func saveImage(_ data: Data) async -> String? {
+        let status = await requestAddAuthorization()
+        guard status == .authorized || status == .limited else { return nil }
+        return await withCheckedContinuation { cont in
+            var localID: String?
+            PHPhotoLibrary.shared().performChanges {
+                let req = PHAssetCreationRequest.forAsset()
+                req.addResource(with: .photo, data: data, options: nil)
+                localID = req.placeholderForCreatedAsset?.localIdentifier
+            } completionHandler: { success, _ in
+                cont.resume(returning: success ? localID : nil)
+            }
+        }
+    }
+
     /// All photos (images only), newest first.
     static func fetchImages() -> PHFetchResult<PHAsset> {
         let opts = PHFetchOptions()

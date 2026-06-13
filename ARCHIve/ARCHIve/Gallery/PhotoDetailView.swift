@@ -112,7 +112,7 @@ private struct PhotoPage: View {
                                      set: { photo.project = $0.isEmpty ? nil : $0; try? modelContext.save() }),
                     labelImage: Binding(get: { photo.labelImageData.flatMap { UIImage(data: $0) } },
                                         set: { photo.labelImageData = $0?.jpegData(compressionQuality: 0.85); try? modelContext.save() }),
-                    isReference: photo.isReference
+                    isLibraryPhoto: photo.isReference && !photo.isCameraShot
                 )
                 .padding(.horizontal, 16)
             }

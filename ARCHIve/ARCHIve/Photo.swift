@@ -46,6 +46,13 @@ final class Photo: Identifiable {
     /// Set when the photo was brought in via Import rather than the camera.
     var importedAt: Date?
 
+    /// True when this reference was created by the in-app camera (the shot was
+    /// saved into the Photos library and we keep only a reference). Distinguishes
+    /// it from an existing library photo tagged in place — camera shots are never
+    /// auto-removed by the library's untagged cleanup, and still use "Capture
+    /// label" (camera) rather than "Select label" (library picker).
+    var isCameraShot: Bool = false
+
     /// An optional second photo of an info placard / wall label (e.g. the
     /// painting's caption at an exhibition) — captured instead of typing the
     /// title/artist. Stored outside the main store file like the main image.
@@ -61,7 +68,8 @@ final class Photo: Identifiable {
         project: String? = nil,
         importedAt: Date? = nil,
         labelImageData: Data? = nil,
-        assetLocalID: String? = nil
+        assetLocalID: String? = nil,
+        isCameraShot: Bool = false
     ) {
         self.id = id
         self.imageData = imageData
@@ -74,6 +82,7 @@ final class Photo: Identifiable {
         self.importedAt = importedAt
         self.labelImageData = labelImageData
         self.assetLocalID = assetLocalID
+        self.isCameraShot = isCameraShot
     }
 
     /// True when the photo's pixels live in the system Photos library.

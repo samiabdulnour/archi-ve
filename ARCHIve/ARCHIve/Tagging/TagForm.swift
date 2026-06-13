@@ -10,9 +10,9 @@ struct TagForm: View {
     @Binding var tags: HumanTags
     @Binding var project: String
     @Binding var labelImage: UIImage?
-    /// Library reference → the label is *selected* from Photos; a captured photo
-    /// → the label is *shot* with the camera.
-    var isReference: Bool
+    /// An existing library photo → the label is *selected* from Photos; a
+    /// camera shot → the label is *shot* with the camera.
+    var isLibraryPhoto: Bool
 
     @Query private var allPhotos: [Photo]
     @State private var showLabelCamera = false
@@ -193,7 +193,7 @@ struct TagForm: View {
                     Text("Tap to view").font(.caption).foregroundStyle(Palette.ink3)
                 }
                 Spacer()
-                if isReference {
+                if isLibraryPhoto {
                     PhotosPicker(selection: $labelPickerItem, matching: .images) {
                         Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 16))
                     }
@@ -209,7 +209,7 @@ struct TagForm: View {
             .fullScreenCover(isPresented: $showFullscreenLabel) {
                 IntrospectionView(image: labelImage) { showFullscreenLabel = false }
             }
-        } else if isReference {
+        } else if isLibraryPhoto {
             // Tagging from the library: pick the label from the library too.
             PhotosPicker(selection: $labelPickerItem, matching: .images) {
                 Label("Select label", systemImage: "photo.on.rectangle.angled")

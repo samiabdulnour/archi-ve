@@ -34,7 +34,7 @@ struct TagSheetView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     if let prev = previousTags, prev.type != nil { usePreviousButton(prev) }
                     TagForm(tags: $tags, project: $project, labelImage: $labelImage,
-                            isReference: photo.isReference)
+                            isLibraryPhoto: photo.isReference && !photo.isCameraShot)
                 }
                 .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 28)
             }
