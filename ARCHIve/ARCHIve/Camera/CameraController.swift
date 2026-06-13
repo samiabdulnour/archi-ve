@@ -47,7 +47,7 @@ final class CameraController: NSObject {
     var maxZoom: CGFloat = 1.0
     /// Architectural keystone: when on, the live preview is warped (and the
     /// saved photo corrected) to keep verticals straight as the phone tilts.
-    var keystoneOn = false
+    var keystoneOn = true   // always available; the slider amount (0 = none) governs it
     /// Manual keystone amount (−1…1), set by the slider. 0 = none.
     var keystoneStrength: Double = 0
 

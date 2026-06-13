@@ -25,7 +25,9 @@ struct CameraView: View {
     @State private var toastHideItem: DispatchWorkItem?
     @State private var showSettings = false
     @State private var showProjectPicker = false
-    @State private var showLooks = false
+    @State private var tool: CameraTool = .none
+
+    enum CameraTool { case none, looks, keystone }
 
     enum TagMode { case lite, full }
 
@@ -183,8 +185,7 @@ struct CameraView: View {
                 // In full-bleed (16:9) the zoom bar floats above the shutter;
                 // in framed modes it rides the crop window's bottom edge instead.
                 if isFullBleed && camera.maxZoom > 1.5 { zoomBar }
-                if showLooks { looksStrip }
-                if camera.keystoneOn { keystoneSlider }
+                toolTray
                 shutterButton
                 ZStack {
                     HStack {
@@ -239,7 +240,12 @@ struct CameraView: View {
             pillButton("arrow.2.squarepath", active: reuseTags != nil) {
                 reuseTags = (reuseTags == nil) ? latest?.humanTags : nil
             }
-            pillButton("camera.filters", active: camera.colorLook != .standard) { showLooks.toggle() }
+            pillButton("camera.filters", active: tool == .looks || camera.colorLook != .standard) {
+                tool = (tool == .looks) ? .none : .looks
+            }
+            pillButton("skew", active: tool == .keystone || camera.keystoneStrength != 0) {
+                tool = (tool == .keystone) ? .none : .keystone
+            }
             pillButton("circle.grid.3x3.fill", active: false) { showSettings = true }
         }
         .padding(.horizontal, 10).padding(.vertical, 3)
@@ -429,6 +435,16 @@ struct CameraView: View {
         }
     }
 
+    /// One effects panel above the shutter — looks OR keystone, never both, so
+    /// the core controls (zoom, shutter) stay uncrowded.
+    @ViewBuilder private var toolTray: some View {
+        switch tool {
+        case .looks:    looksStrip
+        case .keystone: keystoneSlider
+        case .none:     EmptyView()
+        }
+    }
+
     /// Film-look picker strip (shown when the looks button is toggled).
     private var looksStrip: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -569,7 +585,6 @@ private struct CameraSettingsSheet: View {
                 item("ASPECT", "aspectratio", active: camera.aspect != .fourThree, badge: camera.aspect.rawValue) { cycleAspect() }
                 item("GRID", "grid", active: camera.gridOn) { camera.gridOn.toggle() }
                 item("LEVEL", "level", active: camera.levelOn) { camera.levelOn.toggle() }
-                item("KEYSTONE", "skew", active: camera.keystoneOn) { camera.setKeystoneEnabled(!camera.keystoneOn) }
                 item("SETTINGS", "gearshape", active: false) { showAppSettings = true }
             }
             .padding(.horizontal, 22)
@@ -578,7 +593,7 @@ private struct CameraSettingsSheet: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .environment(\.colorScheme, .dark)
         .sheet(isPresented: $showAppSettings) { SettingsView() }
-        .presentationDetents([.height(340)])
+        .presentationDetents([.height(246)])
         // Liquid-glass: a forced-dark frosted material so the blurred feed
         // shows through, like the native Camera control sheet.
         .presentationBackground {
