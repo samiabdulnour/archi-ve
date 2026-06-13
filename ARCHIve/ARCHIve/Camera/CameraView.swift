@@ -185,6 +185,7 @@ struct CameraView: View {
                 // In full-bleed (16:9) the zoom bar floats above the shutter;
                 // in framed modes it rides the crop window's bottom edge instead.
                 if isFullBleed && camera.maxZoom > 1.5 { zoomBar }
+                if camera.keystoneOn { keystoneSlider }
                 shutterButton
                 ZStack {
                     HStack {
@@ -426,6 +427,20 @@ struct CameraView: View {
             .padding(.top, 58)   // clear the top control row
             .transition(.move(edge: .top).combined(with: .opacity))
         }
+    }
+
+    /// Strength control for the keystone correction (shown only when on).
+    private var keystoneSlider: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "skew").font(.system(size: 14)).foregroundStyle(.white.opacity(0.85))
+            Slider(value: Binding(
+                get: { camera.keystoneStrength },
+                set: { camera.keystoneStrength = $0; camera.setKeystonePitch(motion.pitch) }
+            ), in: 0...1)
+            .tint(Palette.coral)
+        }
+        .padding(.horizontal, 24)
+        .frame(maxWidth: 340)
     }
 
     private var permissionView: some View {

@@ -48,6 +48,8 @@ final class CameraController: NSObject {
     /// Architectural keystone: when on, the live preview is warped (and the
     /// saved photo corrected) to keep verticals straight as the phone tilts.
     var keystoneOn = false
+    /// Manual strength multiplier (0…1) for the keystone, set by the slider.
+    var keystoneStrength: Double = 0.5
 
     // Capture context (mirrors the web app's camera modes).
     var mode: CaptureMode = .reference
@@ -59,7 +61,7 @@ final class CameraController: NSObject {
     @ObservationIgnored weak var previewLayer: AVCaptureVideoPreviewLayer?
 
     @ObservationIgnored private var keystonePitch: Double = 0   // latest pitch (deg)
-    @ObservationIgnored private var pendingKeystone: Double?    // pitch to correct at capture
+    @ObservationIgnored private var pendingKeystone: (pitch: Double, strength: Double)?
 
     @ObservationIgnored private let photoOutput = AVCapturePhotoOutput()
     @ObservationIgnored private var videoDevice: AVCaptureDevice?
@@ -252,7 +254,9 @@ final class CameraController: NSObject {
         CATransaction.begin(); CATransaction.setDisableActions(true)
         if keystoneOn {
             let clamped = max(-25, min(25, keystonePitch))
-            let angle = clamped * .pi / 180 * 1.05         // counter-rotate the preview plane
+            let factor = 0.8 + 3.2 * keystoneStrength      // slider 0…1 → 0.8…4.0
+            var angle = clamped * .pi / 180 * factor       // counter-rotate the preview plane
+            angle = max(-0.7, min(0.7, angle))             // clamp to ~±40°
             var t = CATransform3DIdentity
             t.m34 = -1.0 / 1500                            // perspective
             t = CATransform3DRotate(t, CGFloat(angle), 1, 0, 0)
@@ -274,13 +278,14 @@ final class CameraController: NSObject {
 
     /// Straighten converging verticals by widening the compressed edge, then
     /// crop back to the original frame. Approximate (pitch-driven), tunable.
-    static func correctKeystone(_ image: UIImage, pitchDegrees: Double) -> UIImage {
+    static func correctKeystone(_ image: UIImage, pitchDegrees: Double, strength: Double) -> UIImage {
         guard abs(pitchDegrees) > 0.5 else { return image }
         let upright = normalized(image)
         guard let cg = upright.cgImage else { return image }
         let ci = CIImage(cgImage: cg)
         let W = ci.extent.width, H = ci.extent.height
-        let k = min(0.5, abs(tan(pitchDegrees * .pi / 180)) * 1.2) * W
+        let factor = 0.8 + 3.2 * strength   // match the preview factor (slider 0…1)
+        let k = min(0.6, abs(tan(pitchDegrees * .pi / 180)) * factor) * W
         let widenTop = pitchDegrees < 0   // tilted up → verticals converge upward
         let f = CIFilter(name: "CIPerspectiveTransform")!
         f.setValue(ci, forKey: kCIInputImageKey)
@@ -307,7 +312,7 @@ final class CameraController: NSObject {
         captureHandler = completion
         let aspect = self.aspect
         let flash = self.flashMode
-        let keystone = keystoneOn ? keystonePitch : nil
+        let keystone: (pitch: Double, strength: Double)? = keystoneOn ? (keystonePitch, keystoneStrength) : nil
 
         sessionQueue.async { [weak self] in
             guard let self else { return }
@@ -364,7 +369,9 @@ extension CameraController: AVCapturePhotoCaptureDelegate {
             onMain { self.deliver(nil) }
             return
         }
-        let corrected = pendingKeystone.map { CameraController.correctKeystone(image, pitchDegrees: $0) } ?? image
+        let corrected = pendingKeystone.map {
+            CameraController.correctKeystone(image, pitchDegrees: $0.pitch, strength: $0.strength)
+        } ?? image
         let cropped = CameraController.crop(corrected, to: aspect)
         let jpeg = cropped.jpegData(compressionQuality: 0.9)
         onMain { self.deliver(jpeg) }
