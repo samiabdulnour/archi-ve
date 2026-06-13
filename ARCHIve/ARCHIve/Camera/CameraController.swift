@@ -79,7 +79,9 @@ final class CameraController: NSObject {
     @ObservationIgnored private let sessionQueue = DispatchQueue(label: "archive.camera.session")
     @ObservationIgnored private var configured = false
     @ObservationIgnored private var captureHandler: ((Data?) -> Void)?
-    @ObservationIgnored private var pendingAspect: CaptureAspect = .fourThree
+    /// Portrait crop ratio (width/height) the saved photo is cropped to. Set by
+    /// the view from the live framing geometry so the save matches the preview.
+    @ObservationIgnored private var pendingCropRatio: CGFloat = 3.0 / 4.0
 
     private func onMain(_ work: @escaping () -> Void) {
         if Thread.isMainThread { work() } else { DispatchQueue.main.async(execute: work) }
@@ -301,10 +303,11 @@ final class CameraController: NSObject {
     }
 
     /// Call on the main thread. `completion` is delivered on the main thread.
-    func capture(completion: @escaping (Data?) -> Void) {
+    /// `cropRatio` (portrait width/height) is the exact region the preview is
+    /// showing, so the saved photo matches the frame.
+    func capture(cropRatio: CGFloat, completion: @escaping (Data?) -> Void) {
         guard configured else { completion(nil); return }
         captureHandler = completion
-        let aspect = self.aspect
         let flash = self.flashMode
         let keystone: Double? = keystoneOn ? keystoneStrength : nil
         let look = self.colorLook
@@ -313,6 +316,7 @@ final class CameraController: NSObject {
             guard let self else { return }
             self.pendingKeystone = keystone
             self.pendingLook = look
+            self.pendingCropRatio = cropRatio
             // No camera (e.g. the Simulator) → safe no-op instead of throwing.
             guard self.session.isRunning, self.photoOutput.connection(with: .video) != nil else {
                 self.onMain { self.deliver(nil) }
@@ -328,7 +332,6 @@ final class CameraController: NSObject {
                 settings.flashMode = flash
             }
             settings.photoQualityPrioritization = .quality
-            self.pendingAspect = aspect
             self.photoOutput.capturePhoto(with: settings, delegate: self)
         }
     }
@@ -339,9 +342,8 @@ final class CameraController: NSObject {
         handler?(data)
     }
 
-    /// Center-crop a UIImage to the given portrait aspect ratio.
-    static func crop(_ image: UIImage, to aspect: CaptureAspect) -> UIImage {
-        let ratio = aspect.portraitRatio
+    /// Center-crop a UIImage to the given portrait ratio (width / height).
+    static func crop(_ image: UIImage, toRatio ratio: CGFloat) -> UIImage {
         guard let cg = image.cgImage else { return image }
         let w = CGFloat(cg.width), h = CGFloat(cg.height)
         // Match orientation: if the pixel buffer is landscape, invert ratio.
@@ -359,14 +361,14 @@ extension CameraController: AVCapturePhotoCaptureDelegate {
     func photoOutput(_ output: AVCapturePhotoOutput,
                      didFinishProcessingPhoto photo: AVCapturePhoto,
                      error: Error?) {
-        let aspect = pendingAspect   // set on session queue before capture; safe here
+        let ratio = pendingCropRatio   // set on session queue before capture; safe here
         guard error == nil, let data = photo.fileDataRepresentation(),
               let image = UIImage(data: data) else {
             onMain { self.deliver(nil) }
             return
         }
         let processed = processedStill(image, keystone: pendingKeystone ?? 0, look: pendingLook)
-        let cropped = CameraController.crop(processed, to: aspect)
+        let cropped = CameraController.crop(processed, toRatio: ratio)
         let jpeg = cropped.jpegData(compressionQuality: 0.9)
         onMain { self.deliver(jpeg) }
     }

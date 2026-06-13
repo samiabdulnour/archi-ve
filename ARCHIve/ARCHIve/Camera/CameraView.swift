@@ -26,6 +26,9 @@ struct CameraView: View {
     @State private var showSettings = false
     @State private var showProjectPicker = false
     @State private var tool: CameraTool = .none
+    /// Physical screen size (incl. safe areas) — used to crop full-bleed captures
+    /// to the exact on-screen ratio.
+    @State private var screenSize: CGSize = .zero
 
     enum CameraTool { case none, looks, keystone }
 
@@ -46,6 +49,8 @@ struct CameraView: View {
                 }
             }
             .overlay(alignment: .top) { savedToastView }
+            .onAppear { updateScreenSize(geo) }
+            .onChange(of: geo.size) { _, _ in updateScreenSize(geo) }
         }
         .statusBarHidden(true)
         .onAppear {
@@ -70,6 +75,21 @@ struct CameraView: View {
                 camera.mode = .project
             }
         }
+    }
+
+    private func updateScreenSize(_ geo: GeometryProxy) {
+        screenSize = CGSize(width: geo.size.width,
+                            height: geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom)
+    }
+
+    /// The portrait ratio (w/h) the capture should be cropped to so it matches
+    /// what the preview shows: the chosen aspect in framed modes, the actual
+    /// screen ratio in full-bleed (16:9) mode.
+    private func currentCropRatio() -> CGFloat {
+        if camera.aspect == .sixteenNine, screenSize.height > 0 {
+            return screenSize.width / screenSize.height
+        }
+        return camera.aspect.portraitRatio
     }
 
     private var existingProjects: [String] {
@@ -107,8 +127,17 @@ struct CameraView: View {
         let frameBottom = frameTop + frameH
 
         ZStack {
-            MetalCameraPreview(controller: camera)
-                .ignoresSafeArea()
+            // The live feed renders INSIDE the framing window (framed modes) so
+            // what's shown is the exact crop that gets saved. Full-bleed (16:9)
+            // fills the whole screen. Capture crops to the same region.
+            if isFullBleed {
+                MetalCameraPreview(controller: camera)
+                    .ignoresSafeArea()
+            } else {
+                MetalCameraPreview(controller: camera)
+                    .frame(width: frameW, height: frameH)
+                    .position(x: frameCx, y: frameCy)
+            }
 
             if isFullBleed {
                 // No crop window: full-screen grid + centred level, controls
@@ -508,7 +537,7 @@ struct CameraView: View {
             try? await Task.sleep(nanoseconds: 90_000_000)
             withAnimation(.easeOut(duration: 0.18)) { shutterFlash = false }
         }
-        camera.capture { data in
+        camera.capture(cropRatio: currentCropRatio()) { data in
             guard let data else { return }
             let coord = LocationProvider.shared.last
             let photo = Photo(imageData: data,
@@ -791,7 +820,11 @@ private struct FocusExposureView: View {
                     // First touch inside the frame = tap-to-focus at that point.
                     point = value.startLocation
                     bias = 0
-                    camera.focusAndExpose(atLayerPoint: value.startLocation)
+                    // The preview layer is offset to the framing window, so map
+                    // the screen tap into the window's coordinate space.
+                    let lp = CGPoint(x: value.startLocation.x - focusRegion.minX,
+                                     y: value.startLocation.y - focusRegion.minY)
+                    camera.focusAndExpose(atLayerPoint: lp)
                     camera.setExposureBias(0)
                     reveal()
                 }

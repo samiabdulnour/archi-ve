@@ -28,27 +28,28 @@ enum CameraProcessing {
         case .original:                                // untouched
             return ci
 
-        case .portra:                                  // warm, soft, low-contrast, creamy
-            var x = temperature(ci, from: 6500, to: 6150)   // warm
-            x = controls(x, sat: 0.94, con: 0.95)
-            x = vibrance(x, 0.08)
-            return curve(x, [p(0,0.04), p(0.25,0.27), p(0.5,0.5), p(0.75,0.76), p(1,0.98)])
+        case .portra:                                  // Portra 400: barely-warm, soft, creamy
+            var x = temperature(ci, from: 6500, to: 6380)   // a touch warm
+            x = controls(x, sat: 0.97, con: 0.99)
+            x = vibrance(x, 0.05)
+            // faintly lifted blacks, gentle highlight rolloff — the faded-film look
+            return curve(x, [p(0,0.022), p(0.25,0.255), p(0.5,0.5), p(0.75,0.745), p(1,0.985)])
 
-        case .cinestill:                               // tungsten cinema: teal shadows, cool, moody
-            var x = temperature(ci, from: 6500, to: 6900)   // cooler
-            x = controls(x, sat: 0.95, con: 1.07)
+        case .cinestill:                               // CineStill 800T: cool tungsten, subtle teal shadows
+            var x = temperature(ci, from: 6500, to: 6640)   // slightly cool
+            x = controls(x, sat: 0.99, con: 1.02)
             x = splitTone(x)
-            return curve(x, [p(0,0.03), p(0.25,0.22), p(0.5,0.5), p(0.78,0.82), p(1,0.99)])
+            return curve(x, [p(0,0.03), p(0.25,0.238), p(0.5,0.5), p(0.78,0.788), p(1,0.985)])
 
-        case .ektar:                                   // vivid, crisp, saturated
-            var x = controls(ci, sat: 1.26, con: 1.10)
-            x = vibrance(x, 0.18)
-            return curve(x, [p(0,0.01), p(0.25,0.2), p(0.5,0.5), p(0.75,0.81), p(1,1)])
+        case .ektar:                                   // Ektar 100: clean, crisp, a little vivid
+            var x = controls(ci, sat: 1.10, con: 1.03)
+            x = vibrance(x, 0.10)
+            return curve(x, [p(0,0.015), p(0.25,0.242), p(0.5,0.5), p(0.75,0.765), p(1,0.997)])
 
-        case .trix:                                    // contrasty classic B&W
+        case .trix:                                    // Tri-X 400: classic B&W, moderate contrast
             let m = CIFilter.photoEffectMono(); m.inputImage = ci
-            let base = controls(m.outputImage ?? ci, sat: 1, con: 1.12)
-            return curve(base, [p(0,0.0), p(0.25,0.18), p(0.5,0.5), p(0.75,0.82), p(1,1)])
+            let base = controls(m.outputImage ?? ci, sat: 1, con: 1.05)
+            return curve(base, [p(0,0.02), p(0.25,0.222), p(0.5,0.5), p(0.75,0.78), p(1,0.99)])
         }
     }
 
@@ -89,10 +90,11 @@ enum CameraProcessing {
     /// via gentle per-channel polynomials.
     private static func splitTone(_ ci: CIImage) -> CIImage {
         let f = CIFilter.colorPolynomial(); f.inputImage = ci
-        // out = c0 + c1·in + c2·in² + c3·in³  (per channel)
-        f.redCoefficients   = CIVector(x: -0.02, y: 1.06, z: 0.00, w: 0)   // warmer highlights
-        f.greenCoefficients = CIVector(x:  0.00, y: 1.00, z: 0.00, w: 0)
-        f.blueCoefficients  = CIVector(x:  0.05, y: 0.98, z: -0.04, w: 0)  // teal shadows, cooler-down highs
+        // out = c0 + c1·in + c2·in² + c3·in³  (per channel). Kept gentle — a hint
+        // of teal in the shadows, a hint of warmth in the highlights.
+        f.redCoefficients   = CIVector(x: -0.01, y: 1.03, z:  0.00, w: 0)  // softly warmer highlights
+        f.greenCoefficients = CIVector(x:  0.00, y: 1.00, z:  0.00, w: 0)
+        f.blueCoefficients  = CIVector(x:  0.025, y: 0.99, z: -0.02, w: 0) // faint teal shadows
         return f.outputImage ?? ci
     }
 
