@@ -1,11 +1,15 @@
 import UIKit
 import CoreImage
+import Metal
 
 /// Applies a photo's non-destructive edits (rotation → crop → tilt → colour look)
 /// to a source image. A no-op when the photo has no edits, so untouched photos
 /// pay nothing. The original pixels are never modified.
 enum PhotoEdits {
-    private static let ctx = CIContext()
+    private static let ctx: CIContext = {
+        if let dev = MTLCreateSystemDefaultDevice() { return CIContext(mtlDevice: dev) }
+        return CIContext()
+    }()
 
     static func render(_ base: UIImage, _ photo: Photo) -> UIImage {
         guard photo.hasEdits else { return base }

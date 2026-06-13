@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import CoreImage
+import Metal
 
 /// Non-destructive photo editor: rotate / crop / tilt / colour look. Edits are
 /// stored as parameters on the Photo (applied on display), so the original is
@@ -22,11 +23,16 @@ struct PhotoEditorView: View {
     @State private var preview: UIImage?    // source + rotation + tilt + look (no crop)
     @State private var keystoneWasZero = true
     @State private var moveStart: CGRect?   // crop at the start of a move-drag
+    @State private var renderTask: Task<Void, Never>?
 
     enum Tool: String, CaseIterable { case crop = "Crop", tilt = "Tilt", color = "Color" }
     private enum Corner { case tl, tr, bl, br }
 
-    private static let ciContext = CIContext()
+    // Metal-backed (matches the live camera path, which renders these looks fine).
+    private static let ciContext: CIContext = {
+        if let dev = MTLCreateSystemDefaultDevice() { return CIContext(mtlDevice: dev) }
+        return CIContext()
+    }()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -324,17 +330,22 @@ struct PhotoEditorView: View {
         source = base.map(normalizedUp)
     }
 
-    /// Rebuild the preview: source + rotation + tilt + look (crop is an overlay).
+    /// Rebuild the preview off the main thread: source + rotation + tilt + look
+    /// (crop is an overlay). Cancels any in-flight render so rapid taps don't pile up.
     private func recompute() {
-        guard let source, let cg = source.cgImage else { return }
-        var ci = CIImage(cgImage: cg)
-        if rotation % 360 != 0 {
-            ci = ci.transformed(by: CGAffineTransform(rotationAngle: -CGFloat(rotation) * .pi / 180))
-            ci = ci.transformed(by: CGAffineTransform(translationX: -ci.extent.minX, y: -ci.extent.minY))
-        }
-        ci = CameraProcessing.apply(to: ci, keystone: keystone, look: look)
-        if let out = Self.ciContext.createCGImage(ci, from: ci.extent) {
-            preview = UIImage(cgImage: out)
+        renderTask?.cancel()
+        let src = source, rot = rotation, ks = keystone, lk = look
+        renderTask = Task.detached(priority: .userInitiated) {
+            guard let src, let cg = src.cgImage else { return }
+            var ci = CIImage(cgImage: cg)
+            if rot % 360 != 0 {
+                ci = ci.transformed(by: CGAffineTransform(rotationAngle: -CGFloat(rot) * .pi / 180))
+                ci = ci.transformed(by: CGAffineTransform(translationX: -ci.extent.minX, y: -ci.extent.minY))
+            }
+            ci = CameraProcessing.apply(to: ci, keystone: ks, look: lk)
+            guard !Task.isCancelled, let out = Self.ciContext.createCGImage(ci, from: ci.extent) else { return }
+            let img = UIImage(cgImage: out)
+            await MainActor.run { preview = img }
         }
     }
 

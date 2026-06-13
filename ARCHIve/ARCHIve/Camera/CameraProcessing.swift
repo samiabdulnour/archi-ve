@@ -33,32 +33,36 @@ enum CameraProcessing {
             return ci
 
         case .portra:                                  // Kodak Portra 400
-            var x = temperature(ci, from: 6500, to: 6300)     // warm
-            x = applyCube(x, data: portraCube)                // reds→orange (peachy), muted greens/blues
-            x = controls(x, sat: 0.96, con: 0.97)
-            x = vibrance(x, 0.05)
-            // blacks kept (no big lift), just a soft highlight rolloff
-            return curve(x, [p(0,0.012), p(0.25,0.255), p(0.5,0.5), p(0.75,0.745), p(1,0.96)])
+            var x = temperature(ci, from: 6500, to: 6350)     // warm, moderate
+            x = applyCube(x, data: portraCube)                // reds→orange (restrained), greens eased
+            x = controls(x, sat: 0.99, con: 1.02)             // crisp, not flat
+            x = splitTone(x, strength: 0.7)                   // COOL shadows / warm highs → depth, not yellow
+            // deep blacks, soft highlight rolloff
+            let y = curve(x, [p(0,0.0), p(0.25,0.25), p(0.5,0.5), p(0.75,0.745), p(1,0.965)])
+            return finish(y, clarity: 0.3, grain: 0.06)
 
         case .gold:                                    // Kodak Gold 200 (gently golden)
-            var x = temperature(ci, from: 6500, to: 6320)     // warm, not heavy
+            var x = temperature(ci, from: 6500, to: 6330)
             x = applyCube(x, data: goldCube)
             x = controls(x, sat: 1.02, con: 1.03)
-            return curve(x, [p(0,0.025), p(0.25,0.25), p(0.5,0.5), p(0.75,0.755), p(1,0.975)])
+            let y = curve(x, [p(0,0.005), p(0.25,0.245), p(0.5,0.5), p(0.75,0.755), p(1,0.975)])
+            return finish(y, clarity: 0.25, grain: 0.05)
 
         case .ektar:                                   // Kodak Ektar 100 (clean, lightly vivid)
             var x = temperature(ci, from: 6500, to: 6560)
             x = applyCube(x, data: ektarCube)
-            x = controls(x, sat: 1.06, con: 1.04)
+            x = controls(x, sat: 1.07, con: 1.05)
             x = vibrance(x, 0.05)
-            return curve(x, [p(0,0.02), p(0.25,0.24), p(0.5,0.5), p(0.75,0.77), p(1,0.997)])
+            let y = curve(x, [p(0,0.005), p(0.25,0.24), p(0.5,0.5), p(0.75,0.775), p(1,0.998)])
+            return finish(y, clarity: 0.35, grain: 0.04)
 
         case .pro400h:                                 // Fuji Pro 400H: cold, bright, green-leaning
             var x = temperature(ci, from: 6500, to: 6750, tint: -8)   // cool + slight green
             x = applyCube(x, data: pro400hCube)               // clean, present greens
-            x = controls(x, sat: 0.93, con: 0.94)             // pastel, low contrast
-            // bright & airy: lift blacks a little, raise the mids
-            return curve(x, [p(0,0.05), p(0.27,0.31), p(0.5,0.54), p(0.75,0.78), p(1,0.975)])
+            x = controls(x, sat: 0.95, con: 1.0)
+            // DEEP blacks; airy comes from raised highlights, not a milky lift
+            let y = curve(x, [p(0,0.0), p(0.25,0.255), p(0.5,0.52), p(0.78,0.83), p(1,0.99)])
+            return finish(y, clarity: 0.3, grain: 0.06)
 
         case .cinestill:                               // CineStill 800T (tungsten)
             var x = temperature(ci, from: 6500, to: 6850)     // tungsten → cool/blue
@@ -66,14 +70,40 @@ enum CameraProcessing {
             x = controls(x, sat: 0.98, con: 1.05)
             x = splitTone(x, strength: 1.5)                   // teal shadows, warm highlights
             x = bloom(x)                                      // gentle halation glow
-            return curve(x, [p(0,0.035), p(0.25,0.235), p(0.5,0.5), p(0.78,0.795), p(1,0.975)])
+            let y = curve(x, [p(0,0.01), p(0.25,0.23), p(0.5,0.5), p(0.78,0.795), p(1,0.975)])
+            return finish(y, clarity: 0.2, grain: 0.07)
 
         case .trix:                                    // Kodak Tri-X 400 (soft contrast)
             let m = CIFilter.photoEffectMono(); m.inputImage = ci
             let base = controls(m.outputImage ?? ci, sat: 1, con: 1.0)
-            return curve(base, [p(0,0.04), p(0.25,0.235), p(0.5,0.5), p(0.75,0.77), p(1,0.97)])
+            let y = curve(base, [p(0,0.012), p(0.25,0.235), p(0.5,0.5), p(0.75,0.775), p(1,0.97)])
+            return finish(y, clarity: 0.35, grain: 0.10)   // B&W carries more grain
         }
     }
+
+    /// Final touches: a little clarity (crisp edges) and fine film grain. Both
+    /// kept subtle — iPhone frames are already sharp, so a light hand reads best.
+    private static func finish(_ ci: CIImage, clarity c: Float, grain g: Float) -> CIImage {
+        var x = ci
+        if c > 0 {
+            let f = CIFilter.unsharpMask(); f.inputImage = x; f.radius = 2.4; f.intensity = c
+            x = f.outputImage ?? x
+        }
+        if g > 0 {
+            let n = grainNoise.cropped(to: x.extent)
+                .applyingFilter("CIColorMatrix", parameters: ["inputAVector": CIVector(x: 0, y: 0, z: 0, w: CGFloat(g))])
+            let b = CIFilter.softLightBlendMode(); b.backgroundImage = x; b.inputImage = n
+            x = (b.outputImage ?? x).cropped(to: ci.extent)
+        }
+        return x
+    }
+
+    /// Monochrome static noise for grain (deterministic, so it doesn't shimmer live).
+    private static let grainNoise: CIImage = {
+        let r = CIFilter.randomGenerator().outputImage ?? CIImage()
+        let c = CIFilter.colorControls(); c.inputImage = r; c.saturation = 0; c.brightness = 0; c.contrast = 1
+        return c.outputImage ?? r
+    }()
 
     /// Soft highlight glow — CineStill's halation, kept subtle. Bloom enlarges
     /// the extent, so crop back to the input's frame.
@@ -157,14 +187,13 @@ enum CameraProcessing {
         return cube.withUnsafeBufferPointer { Data(buffer: $0) }
     }
 
-    // Portra: reds shifted toward orange (peachy), greens muted yellow-green,
-    // blues gently toward cyan.
+    // Portra: a restrained red→orange (peachy, not yellow), greens only lightly
+    // eased. The cool-shadow split-tone in the recipe keeps it crisp.
     private static let portraCube = makeCube { rgb in
         var hsv = rgb2hsv(rgb)
         let h = hsv.x
-        if h <= 25 { hsv.x = h + 15 }                                // reds → orange
-        else if h > 70 && h < 175 { hsv.x = h - 12; hsv.y *= 0.80 } // greens → yellow-green, muted
-        else if h > 185 && h < 265 { hsv.x = h - 8; hsv.y *= 0.86 } // blues → cyan, muted
+        if h <= 20 { hsv.x = h + 8 }                                 // reds → orange (subtle)
+        else if h > 85 && h < 165 { hsv.y *= 0.92 }                 // greens slightly eased
         return hsv2rgb(hsv)
     }
 
