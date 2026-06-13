@@ -123,8 +123,8 @@ struct CameraView: View {
         // Reserve extra room when the looks/keystone tray (or the active-effect
         // reminder chips) sit above the shutter, so nothing touches the 4:3 border.
         let trayOpen = tool != .none
-        let effectActive = camera.colorLook != .original || camera.keystoneStrength != 0
-        let bottomReserve = botSafe + 172 + (trayOpen ? 70 : (effectActive ? 44 : 0))
+        let tiltActive = camera.keystoneStrength != 0
+        let bottomReserve = botSafe + 172 + (trayOpen ? 70 : (tiltActive ? 44 : 0))
         let availH = max(0, fullH - topReserve - bottomReserve)
         let frameH = min(availH, fullW / ratio)
         let frameW = min(fullW, frameH * ratio)
@@ -222,7 +222,7 @@ struct CameraView: View {
                 // in framed modes it rides the crop window's bottom edge instead.
                 if isFullBleed && camera.maxZoom > 1.5 { zoomBar }
                 toolTray
-                if tool == .none && (camera.colorLook != .original || camera.keystoneStrength != 0) {
+                if tool == .none && camera.keystoneStrength != 0 {
                     activeEffectChips
                 }
                 shutterButton
@@ -495,20 +495,14 @@ struct CameraView: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// Reminders that a look / tilt is currently applied, shown above the shutter
-    /// when no tool tray is open. Tap one to switch that effect off in one click.
-    private var activeEffectChips: some View {
-        HStack(spacing: 8) {
-            if camera.colorLook != .original {
-                effectChip(icon: "camera.filters", text: camera.colorLook.rawValue) {
-                    camera.setColorLook(.original)
-                }
-            }
-            if camera.keystoneStrength != 0 {
-                effectChip(icon: "skew", text: "Tilt") {
-                    camera.setKeystoneStrength(0)
-                    keystoneWasZero = true
-                }
+    /// Reminder that a tilt is currently applied, shown above the shutter when no
+    /// tool tray is open. Tap to switch it off in one click. (No chip for colour
+    /// looks — those are usually left on deliberately; the gear still lights up.)
+    @ViewBuilder private var activeEffectChips: some View {
+        if camera.keystoneStrength != 0 {
+            effectChip(icon: "skew", text: "Tilt") {
+                camera.setKeystoneStrength(0)
+                keystoneWasZero = true
             }
         }
     }
