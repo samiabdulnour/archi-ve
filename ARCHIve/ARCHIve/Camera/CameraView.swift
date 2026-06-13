@@ -119,7 +119,7 @@ struct CameraView: View {
         let botSafe = geo.safeAreaInsets.bottom
         let fullW = geo.size.width
         let fullH = geo.size.height + topSafe + botSafe   // physical screen height
-        let topReserve = topSafe + 50                     // top pill row
+        let topReserve = topSafe + 74                     // top pill row + breathing room so the frame sits a little lower
         // Reserve extra room when the looks/keystone tray (or the active-effect
         // reminder chips) sit above the shutter, so nothing touches the 4:3 border.
         let trayOpen = tool != .none
