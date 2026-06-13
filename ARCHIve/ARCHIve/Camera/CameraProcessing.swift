@@ -95,25 +95,35 @@ enum CameraProcessing {
         return x
     }
 
-    /// Film grain: monochrome noise scaled to a film-like cell size (so it reads
-    /// as texture, not per-pixel digital noise) and blended over the image.
+    /// Film grain: a FINITE noise bitmap scaled to cover the frame (constant grain
+    /// count → looks consistent across resolutions) and overlay-blended.
     private static func grain(_ ci: CIImage, _ amount: Float) -> CIImage {
         let e = ci.extent
-        let cell = max(1.0, e.width / 1100)       // ~1.5–2.5px grains depending on resolution
-        let n = grainNoise
-            .transformed(by: CGAffineTransform(scaleX: cell, y: cell))
+        let t = grainTile.extent
+        let s = max(e.width / t.width, e.height / t.height)
+        let n = grainTile
+            .transformed(by: CGAffineTransform(scaleX: s, y: s))
             .cropped(to: e)
             .applyingFilter("CIColorMatrix", parameters: ["inputAVector": CIVector(x: 0, y: 0, z: 0, w: CGFloat(amount))])
         let b = CIFilter.overlayBlendMode(); b.backgroundImage = ci; b.inputImage = n
         return (b.outputImage ?? ci).cropped(to: e)
     }
 
-    /// Monochrome static noise for grain (deterministic — doesn't shimmer live).
-    /// Higher contrast = punchier speckle.
-    private static let grainNoise: CIImage = {
-        let r = CIFilter.randomGenerator().outputImage ?? CIImage()
-        let c = CIFilter.colorControls(); c.inputImage = r; c.saturation = 0; c.brightness = -0.05; c.contrast = 2.2
-        return c.outputImage ?? r
+    /// A finite monochrome noise bitmap, rendered ONCE. Using a real bitmap (not a
+    /// live procedural generator) keeps every render's memory bounded — the
+    /// infinite generator was spiking memory and getting the app jetsam-killed.
+    private static let grainTile: CIImage = {
+        let dim: CGFloat = 1024
+        let ctx = CIContext(options: [.useSoftwareRenderer: false])
+        let raw = (CIFilter.randomGenerator().outputImage ?? CIImage())
+            .cropped(to: CGRect(x: 0, y: 0, width: dim, height: dim))
+        let mono = CIFilter.colorControls(); mono.inputImage = raw
+        mono.saturation = 0; mono.brightness = -0.05; mono.contrast = 2.2
+        let out = mono.outputImage ?? raw
+        if let cg = ctx.createCGImage(out, from: CGRect(x: 0, y: 0, width: dim, height: dim)) {
+            return CIImage(cgImage: cg)
+        }
+        return out
     }()
 
     /// Soft highlight glow — CineStill's halation, kept subtle. Bloom enlarges

@@ -349,6 +349,7 @@ struct PhotoEditorView: View {
             ci = CameraProcessing.apply(to: ci, keystone: ks, look: lk)
             guard let out = Self.ciContext.createCGImage(ci, from: ci.extent) else { return }
             let img = UIImage(cgImage: out)
+            Self.ciContext.clearCaches()   // don't let rapid re-renders accumulate
             DispatchQueue.main.async { if seq == renderSeq { preview = img } }
         }
     }
