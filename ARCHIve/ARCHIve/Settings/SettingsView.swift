@@ -10,6 +10,7 @@ struct SettingsView: View {
     @Query(sort: \Photo.createdAt, order: .reverse) private var photos: [Photo]
 
     @AppStorage("appearance") private var appearance = "auto"
+    @AppStorage("launchScreen") private var launchScreen = "camera"
     @AppStorage("customProjects") private var customProjectsRaw = ""
 
     @State private var newProject = ""
@@ -34,6 +35,9 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section { launchBody } header: { header("On launch") } footer: {
+                    Text("Choose what Archi.vé opens to.")
+                }
                 Section { projectsBody } header: { header("Projects") }
                 Section { appearanceBody } header: { header("Appearance") }
                 Section { captureStepsBody } header: { header("Capture flow steps") }
@@ -178,6 +182,16 @@ struct SettingsView: View {
                 customProjectsRaw = Settings.join(custom); newProject = ""
             }.disabled(newProject.trimmingCharacters(in: .whitespaces).isEmpty)
         }
+    }
+
+    // MARK: On launch
+    private var launchBody: some View {
+        Picker("On launch", selection: $launchScreen) {
+            Label("Camera", systemImage: "camera.fill").tag("camera")
+            Label("Gallery", systemImage: "square.grid.2x2").tag("gallery")
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
     }
 
     // MARK: Appearance

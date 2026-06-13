@@ -9,6 +9,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("appearance") private var appearance = "auto"
     @AppStorage("welcomed") private var welcomed = false
+    @AppStorage("launchScreen") private var launchScreen = "camera"   // camera | gallery
 
     var body: some View {
         NavigationStack {
@@ -30,12 +31,12 @@ struct ContentView: View {
                     }
                     #endif
                 }
-                // Launch straight into capture (once per launch) when the user
-                // has already seen the welcome screen.
+                // Launch into capture or the gallery per the user's preference
+                // (once per launch), after they've seen the welcome screen.
                 .onAppear {
                     if !didAutoOpen && welcomed {
                         didAutoOpen = true
-                        showCamera = true
+                        if launchScreen == "camera" { showCamera = true }
                     }
                 }
         }

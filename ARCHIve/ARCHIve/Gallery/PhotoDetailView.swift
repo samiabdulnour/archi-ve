@@ -3,7 +3,8 @@ import SwiftData
 
 /// Swipeable detail: pages horizontally through the archive (newest first),
 /// starting at the tapped photo. Each page shows the image (tap to pinch-zoom
-/// fullscreen) and the tags it was captured with.
+/// fullscreen) and its tags as an **editable form** that auto-saves — so you can
+/// retag straight away without a separate edit screen.
 struct PhotoDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -11,7 +12,6 @@ struct PhotoDetailView: View {
 
     @State private var selection: String
     @State private var introspecting = false
-    @State private var editing = false
     @State private var confirmDelete = false
     @State private var showShare = false
     @State private var currentImage: UIImage?
@@ -33,20 +33,6 @@ struct PhotoDetailView: View {
             if let c = current { currentImage = await PhotoImage.full(for: c) }
         }
         .background(Palette.paper.ignoresSafeArea())
-        .safeAreaInset(edge: .bottom) {
-            if let current {
-                Button { editing = true } label: {
-                    Label(current.isUntagged ? "Add tags" : "Edit tags", systemImage: "tag")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(Palette.coral)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 8)
-            }
-        }
         .navigationTitle(current.map { $0.createdAt.formatted(date: .abbreviated, time: .shortened) } ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -71,11 +57,6 @@ struct PhotoDetailView: View {
         .fullScreenCover(isPresented: $introspecting) {
             IntrospectionView(image: currentImage) { introspecting = false }
         }
-        .fullScreenCover(isPresented: $editing) {
-            if let current {
-                TagSheetView(photo: current) { editing = false }
-            }
-        }
         .sheet(isPresented: $showShare) {
             if let img = currentImage { ActivityView(items: [img]) }
         }
@@ -98,19 +79,18 @@ struct PhotoDetailView: View {
     }
 }
 
-/// A single detail page: tappable image + its tag rows.
+/// A single detail page: tappable image + its tags as an inline, auto-saving
+/// editor.
 private struct PhotoPage: View {
     @Bindable var photo: Photo
     var onZoom: (UIImage) -> Void
 
-    @State private var showLabel = false
+    @Environment(\.modelContext) private var modelContext
     @State private var image: UIImage?
-
-    private var labelImage: UIImage? { photo.labelImageData.flatMap { UIImage(data: $0) } }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 18) {
                 if let image {
                     Button { onZoom(image) } label: {
                         Image(uiImage: image)
@@ -124,88 +104,22 @@ private struct PhotoPage: View {
                         .overlay(ProgressView())
                 }
 
-                VStack(alignment: .leading, spacing: 14) {
-                    ForEach(tagRows, id: \.label) { row in
-                        DetailRow(label: row.label, value: row.value)
-                    }
-                }
+                // Editable tags, right here — changes save automatically.
+                TagForm(
+                    tags: Binding(get: { photo.humanTags },
+                                  set: { photo.humanTags = $0; try? modelContext.save() }),
+                    project: Binding(get: { photo.project ?? "" },
+                                     set: { photo.project = $0.isEmpty ? nil : $0; try? modelContext.save() }),
+                    labelImage: Binding(get: { photo.labelImageData.flatMap { UIImage(data: $0) } },
+                                        set: { photo.labelImageData = $0?.jpegData(compressionQuality: 0.85); try? modelContext.save() }),
+                    isReference: photo.isReference
+                )
                 .padding(.horizontal, 16)
-
-                if let labelImage {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Label").font(.subheadline).foregroundStyle(.secondary)
-                        Button { showLabel = true } label: {
-                            Image(uiImage: labelImage)
-                                .resizable().scaledToFit()
-                                .frame(maxWidth: .infinity)
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
-                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Palette.hairline, lineWidth: 0.5))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(.horizontal, 16)
-                }
             }
-            .padding(.bottom, 24)
+            .padding(.bottom, 28)
         }
         .task(id: photo.id) {
             if image == nil { image = await PhotoImage.full(for: photo) }
-        }
-        .fullScreenCover(isPresented: $showLabel) {
-            IntrospectionView(image: labelImage) { showLabel = false }
-        }
-    }
-
-    // MARK: Tag rows
-
-    private struct Row { let label: String; let value: String }
-
-    private var tagRows: [Row] {
-        let t = photo.humanTags
-        var rows: [Row] = []
-        func add(_ label: String, _ value: String?) {
-            if let v = value, !v.isEmpty { rows.append(Row(label: label, value: v)) }
-        }
-        func addList(_ label: String, _ values: [String]) {
-            if !values.isEmpty { rows.append(Row(label: label, value: values.joined(separator: ", "))) }
-        }
-        add("Kind", t.type?.capitalized)
-        add("Typology", t.typology)
-        add("Room", t.room?.capitalized)
-        addList("Concept", t.concepts.map { $0.capitalized })
-        add("Category", t.elementCategory)
-        add("Element", t.element)
-        addList("Materiality", t.materials)
-        addList("Colour", t.colors.map { $0.capitalized })
-        add("Graphic kind", t.graphicKind?.capitalized)
-        add("Title", t.title)
-        add("Creator", t.creator)
-        add("Year", t.year)
-        add("Source", t.source)
-        add("Contact", [t.contactName, t.contactCompany].compactMap { $0 }.joined(separator: " · "))
-        addList("Visual", t.visual)
-        add("Author & year", t.authorYear)
-        add("Rating", t.rating.map { String(repeating: "★", count: $0) + String(repeating: "☆", count: 5 - $0) })
-        add("Note", t.note)
-        addList("Keywords", t.keywords)
-        add("Project", photo.project)
-        if photo.latitude != nil { rows.append(Row(label: "Location", value: "Tagged")) }
-        if rows.isEmpty { rows.append(Row(label: "Untagged", value: "Tap ⋯ to add tags")) }
-        return rows
-    }
-}
-
-private struct DetailRow: View {
-    let label: String
-    let value: String
-    var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(label)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .frame(width: 120, alignment: .leading)
-            Text(value).font(.subheadline)
-            Spacer()
         }
     }
 }
