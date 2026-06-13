@@ -85,26 +85,29 @@ struct TagSheetView: View {
     // MARK: Header
 
     /// Tap the thumbnail to inspect the shot fullscreen (pinch-zoom) before
-    /// committing tags.
+    /// committing tags. A large, centred square — vertical phone photos read far
+    /// better here than in a short wide banner.
     private var thumbnail: some View {
         Button { showFullscreen = true } label: {
             Group {
                 if let img = headerImage {
-                    Image(uiImage: img)
-                        .resizable().scaledToFill()
-                        .frame(height: 140)
-                        .frame(maxWidth: .infinity)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Palette.tile)
+                        .aspectRatio(1, contentMode: .fit)
+                        .overlay { Image(uiImage: img).resizable().scaledToFill() }
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
                         .overlay(alignment: .bottomTrailing) {
                             Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.system(size: 12, weight: .bold))
                                 .foregroundStyle(.white)
-                                .padding(5)
-                                .background(Circle().fill(.black.opacity(0.45)))
                                 .padding(6)
+                                .background(Circle().fill(.black.opacity(0.45)))
+                                .padding(8)
                         }
+                        .frame(maxWidth: 300)
                 }
             }
+            .frame(maxWidth: .infinity)   // centre the square in the column
         }
         .buttonStyle(.plain)
     }
