@@ -120,9 +120,11 @@ struct CameraView: View {
         let fullW = geo.size.width
         let fullH = geo.size.height + topSafe + botSafe   // physical screen height
         let topReserve = topSafe + 50                     // top pill row
-        // Reserve extra room when the looks/keystone tray is open so it sits
-        // clear below the crop frame (never touching the 4:3 border).
-        let bottomReserve = botSafe + 172 + (tool == .none ? 0 : 70)
+        // Reserve extra room when the looks/keystone tray (or the active-effect
+        // reminder chips) sit above the shutter, so nothing touches the 4:3 border.
+        let trayOpen = tool != .none
+        let effectActive = camera.colorLook != .original || camera.keystoneStrength != 0
+        let bottomReserve = botSafe + 172 + (trayOpen ? 70 : (effectActive ? 44 : 0))
         let availH = max(0, fullH - topReserve - bottomReserve)
         let frameH = min(availH, fullW / ratio)
         let frameW = min(fullW, frameH * ratio)
@@ -220,6 +222,9 @@ struct CameraView: View {
                 // in framed modes it rides the crop window's bottom edge instead.
                 if isFullBleed && camera.maxZoom > 1.5 { zoomBar }
                 toolTray
+                if tool == .none && (camera.colorLook != .original || camera.keystoneStrength != 0) {
+                    activeEffectChips
+                }
                 shutterButton
                 ZStack {
                     HStack {
@@ -488,6 +493,41 @@ struct CameraView: View {
             HStack { Spacer(); trayCloseButton }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    /// Reminders that a look / tilt is currently applied, shown above the shutter
+    /// when no tool tray is open. Tap one to switch that effect off in one click.
+    private var activeEffectChips: some View {
+        HStack(spacing: 8) {
+            if camera.colorLook != .original {
+                effectChip(icon: "camera.filters", text: camera.colorLook.rawValue) {
+                    camera.setColorLook(.original)
+                }
+            }
+            if camera.keystoneStrength != 0 {
+                effectChip(icon: "skew", text: "Tilt") {
+                    camera.setKeystoneStrength(0)
+                    keystoneWasZero = true
+                }
+            }
+        }
+    }
+
+    private func effectChip(icon: String, text: String, _ clear: @escaping () -> Void) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.18)) { clear() }
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: icon).font(.system(size: 11, weight: .semibold))
+                Text(text.uppercased()).font(.system(size: 11, weight: .semibold)).tracking(0.5)
+                Image(systemName: "xmark").font(.system(size: 9, weight: .heavy)).opacity(0.85)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 11).padding(.vertical, 6)
+            .background(Capsule().fill(Palette.coral.opacity(0.92)))
+        }
+        .buttonStyle(.plain)
     }
 
     private var trayCloseButton: some View {
