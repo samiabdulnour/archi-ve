@@ -63,6 +63,8 @@ final class CameraController: NSObject {
     /// Hidden preview layer used only to convert taps to device points for focus.
     @ObservationIgnored weak var previewLayer: AVCaptureVideoPreviewLayer?
     @ObservationIgnored weak var metalView: CameraMetalView?
+    /// Latest raw preview frame (for rendering the look-picker thumbnails).
+    @ObservationIgnored var latestFrame: CIImage?
 
     // Plain snapshots read on the video queue (avoid touching observable state off-main).
     @ObservationIgnored private var liveKeystone: Double = 0
@@ -374,8 +376,11 @@ extension CameraController: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
         guard let pb = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        let processed = CameraProcessing.apply(to: CIImage(cvPixelBuffer: pb),
-                                               keystone: liveKeystone, look: liveLook)
-        DispatchQueue.main.async { [weak self] in self?.metalView?.update(processed) }
+        let raw = CIImage(cvPixelBuffer: pb)
+        let processed = CameraProcessing.apply(to: raw, keystone: liveKeystone, look: liveLook)
+        DispatchQueue.main.async { [weak self] in
+            self?.metalView?.update(processed)
+            self?.latestFrame = raw
+        }
     }
 }

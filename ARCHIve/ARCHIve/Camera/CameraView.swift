@@ -439,31 +439,10 @@ struct CameraView: View {
     /// the core controls (zoom, shutter) stay uncrowded.
     @ViewBuilder private var toolTray: some View {
         switch tool {
-        case .looks:    looksStrip
+        case .looks:    LooksCarousel(camera: camera)
         case .keystone: keystoneSlider
         case .none:     EmptyView()
         }
-    }
-
-    /// Film-look picker strip (shown when the looks button is toggled).
-    private var looksStrip: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(CameraLook.allCases) { look in
-                    let on = camera.colorLook == look
-                    Button { camera.setColorLook(look) } label: {
-                        Text(look.rawValue)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(on ? .black : .white)
-                            .padding(.horizontal, 12).padding(.vertical, 7)
-                            .background(Capsule().fill(on ? Palette.lemon : .white.opacity(0.18)))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 16)
-        }
-        .frame(height: 40)
     }
 
     /// Strength control for the keystone correction (shown only when on).
