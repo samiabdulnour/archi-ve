@@ -11,6 +11,12 @@ struct TagSheetView: View {
     /// When set, Save applies the chosen tags to *every* photo here (batch
     /// tagging from the library); `photo` is just the one shown in the card.
     var batchPhotos: [Photo]? = nil
+    /// Sequential ("one by one") tagging: the previous photo's tags/project for
+    /// one-tap reuse, the N-of-M progress, and an exit hook.
+    var previousTags: HumanTags? = nil
+    var previousProject: String? = nil
+    var progress: (current: Int, total: Int)? = nil
+    var onExit: (() -> Void)? = nil
     var onDone: () -> Void
 
     @Environment(\.modelContext) private var modelContext
@@ -41,10 +47,12 @@ struct TagSheetView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if let progress { sequentialBar(progress) }
             header
             Divider().overlay(Palette.hairline)
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
+                    if let prev = previousTags, prev.type != nil { usePreviousButton(prev) }
                     typePicker
                     switch tags.type {
                     case "building": buildingSections
@@ -83,6 +91,35 @@ struct TagSheetView: View {
             ImagePicker { data in labelImage = UIImage(data: data) }
                 .ignoresSafeArea()
         }
+    }
+
+    /// "One by one" session header: progress + an exit out of the whole run.
+    private func sequentialBar(_ p: (current: Int, total: Int)) -> some View {
+        HStack {
+            Text("\(p.current) of \(p.total)")
+                .font(.subheadline.weight(.semibold)).foregroundStyle(Palette.ink3)
+            Spacer()
+            Button("Done") { onExit?() }
+                .font(.subheadline.weight(.semibold)).foregroundStyle(Palette.coral)
+        }
+        .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 2)
+    }
+
+    /// One-tap reuse of the previous photo's tags — the fast path for a "cleaning"
+    /// run where many photos share the same tagging.
+    private func usePreviousButton(_ prev: HumanTags) -> some View {
+        Button {
+            tags = prev
+            if let pp = previousProject { project = pp }
+        } label: {
+            Label("Use previous tags", systemImage: "arrow.uturn.backward")
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Palette.coral.opacity(0.14)))
+                .foregroundStyle(Palette.coral)
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: Header — Skip · photo · Save (no scrolling to reach the actions)
@@ -592,7 +629,42 @@ struct TagSheetView: View {
         // If nothing was chosen beyond type, the record simply stays sparse —
         // it's already persisted, so the photo is never lost.
         onDone()
-        dismiss()
+        // In a sequential run, onDone advances to the next photo and the host
+        // keeps the cover up; otherwise clear the presentation.
+        if progress == nil { dismiss() }
+    }
+}
+
+/// Drives a "one by one" tagging run over a queue of photos: shows each in turn,
+/// advancing on Save/Skip, and offers the previous photo's tags for reuse.
+struct SequentialTagView: View {
+    let queue: [Photo]
+    var onFinished: () -> Void
+    @State private var index = 0
+    @State private var previousTags: HumanTags?
+    @State private var previousProject: String?
+
+    var body: some View {
+        Group {
+            if index < queue.count {
+                let photo = queue[index]
+                TagSheetView(photo: photo,
+                             previousTags: previousTags,
+                             previousProject: previousProject,
+                             progress: (index + 1, queue.count),
+                             onExit: { index = queue.count },
+                             onDone: {
+                                if photo.humanTags.type != nil {
+                                    previousTags = photo.humanTags
+                                    previousProject = photo.project
+                                }
+                                index += 1
+                             })
+                    .id(photo.id)   // fresh tag state for each photo
+            } else {
+                Color.clear.onAppear { onFinished() }
+            }
+        }
     }
 }
 

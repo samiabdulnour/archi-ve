@@ -14,6 +14,7 @@ struct LibraryView: View {
     @State private var assets: [PHAsset] = []
     @State private var tagTarget: Photo?
     @State private var batchTargets: [Photo] = []
+    @State private var sequentialQueue: [Photo] = []   // "one by one" run
     @State private var columns = 3                  // grid density; pinch to change
     @State private var selecting = false
     @State private var selected: Set<String> = []   // asset localIdentifiers
@@ -59,6 +60,12 @@ struct LibraryView: View {
             TagSheetView(photo: photo,
                          batchPhotos: batchTargets.count > 1 ? batchTargets : nil) { tagTarget = nil }
         }
+        .fullScreenCover(isPresented: Binding(
+            get: { !sequentialQueue.isEmpty },
+            set: { if !$0 { sequentialQueue = [] } }
+        ), onDismiss: endTagging) {
+            SequentialTagView(queue: sequentialQueue) { sequentialQueue = [] }
+        }
     }
 
     private var grid: some View {
@@ -91,16 +98,26 @@ struct LibraryView: View {
     }
 
     private var selectionBar: some View {
-        HStack {
+        HStack(spacing: 10) {
             Button("Clear") { selected.removeAll() }
+                .font(.subheadline)
                 .disabled(selected.isEmpty)
                 .foregroundStyle(selected.isEmpty ? Palette.ink3 : Palette.coral)
             Spacer()
-            Button { startBatchTagging() } label: {
-                Text(selected.isEmpty ? "Select photos to tag"
-                                      : "Tag \(selected.count) photo\(selected.count == 1 ? "" : "s")")
+            // One by one: step through each, with "use previous" for fast cleaning.
+            Button { startSequential() } label: {
+                Text("One by one")
                     .font(.subheadline.weight(.semibold))
-                    .padding(.horizontal, 18).padding(.vertical, 10)
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                    .background(Capsule().fill(Palette.tile))
+                    .foregroundStyle(selected.isEmpty ? Palette.ink3 : Palette.ink)
+            }
+            .disabled(selected.isEmpty)
+            // Same tag applied to all selected at once.
+            Button { startBatchTagging() } label: {
+                Text("Same tag")
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 14).padding(.vertical, 10)
                     .background(Capsule().fill(selected.isEmpty ? Palette.tile : Palette.coral))
                     .foregroundStyle(selected.isEmpty ? Palette.ink3 : .white)
             }
@@ -153,9 +170,9 @@ struct LibraryView: View {
         tagTarget = photo
     }
 
-    /// Tag everything currently selected in one pass: build a reference per asset
-    /// (reusing any already tagged), then open the sheet on a representative.
-    private func startBatchTagging() {
+    /// Build a Photo reference for each selected asset (reusing any already
+    /// referenced), in the on-screen order.
+    private func buildTargets() -> [Photo] {
         var targets: [Photo] = []
         for asset in assets where selected.contains(asset.localIdentifier) {
             if let existing = referenced[asset.localIdentifier] {
@@ -166,9 +183,22 @@ struct LibraryView: View {
                 targets.append(p)
             }
         }
+        return targets
+    }
+
+    /// Same tag → all selected at once.
+    private func startBatchTagging() {
+        let targets = buildTargets()
         guard let first = targets.first else { return }
         batchTargets = targets
         tagTarget = first
+    }
+
+    /// One by one → step through each selected photo.
+    private func startSequential() {
+        let targets = buildTargets()
+        guard !targets.isEmpty else { return }
+        sequentialQueue = targets
     }
 
     private func makeReference(for asset: PHAsset) -> Photo {
