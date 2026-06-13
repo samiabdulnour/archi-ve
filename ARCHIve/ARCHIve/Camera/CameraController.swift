@@ -251,8 +251,8 @@ final class CameraController: NSObject {
         guard let layer = previewLayer else { return }
         CATransaction.begin(); CATransaction.setDisableActions(true)
         if keystoneOn {
-            let clamped = max(-22, min(22, keystonePitch))
-            let angle = clamped * .pi / 180 * 0.7          // counter-rotate the preview plane
+            let clamped = max(-25, min(25, keystonePitch))
+            let angle = clamped * .pi / 180 * 1.05         // counter-rotate the preview plane
             var t = CATransform3DIdentity
             t.m34 = -1.0 / 1500                            // perspective
             t = CATransform3DRotate(t, CGFloat(angle), 1, 0, 0)
@@ -275,12 +275,12 @@ final class CameraController: NSObject {
     /// Straighten converging verticals by widening the compressed edge, then
     /// crop back to the original frame. Approximate (pitch-driven), tunable.
     static func correctKeystone(_ image: UIImage, pitchDegrees: Double) -> UIImage {
-        guard abs(pitchDegrees) > 1 else { return image }
+        guard abs(pitchDegrees) > 0.5 else { return image }
         let upright = normalized(image)
         guard let cg = upright.cgImage else { return image }
         let ci = CIImage(cgImage: cg)
         let W = ci.extent.width, H = ci.extent.height
-        let k = min(0.32, abs(tan(pitchDegrees * .pi / 180)) * 0.5) * W
+        let k = min(0.5, abs(tan(pitchDegrees * .pi / 180)) * 1.2) * W
         let widenTop = pitchDegrees < 0   // tilted up → verticals converge upward
         let f = CIFilter(name: "CIPerspectiveTransform")!
         f.setValue(ci, forKey: kCIInputImageKey)
