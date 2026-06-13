@@ -41,20 +41,22 @@ enum CameraProcessing {
             let y = curve(x, [p(0,0.0), p(0.25,0.25), p(0.5,0.5), p(0.75,0.745), p(1,0.965)])
             return finish(y, clarity: 0.3, grain: 0.06)
 
-        case .gold:                                    // Kodak Gold 200 (gently golden)
-            var x = temperature(ci, from: 6500, to: 6330)
-            x = applyCube(x, data: goldCube)
-            x = controls(x, sat: 1.02, con: 1.03)
-            let y = curve(x, [p(0,0.005), p(0.25,0.245), p(0.5,0.5), p(0.75,0.755), p(1,0.975)])
-            return finish(y, clarity: 0.25, grain: 0.05)
+        case .gold:                                    // Kodak Gold 200 — warm, golden, nostalgic
+            var x = temperature(ci, from: 6500, to: 6300, tint: 3)   // warm, a hint amber-green
+            x = applyCube(x, data: goldCube)                          // greens→gold, punchy yellows
+            x = controls(x, sat: 1.04, con: 1.04)
+            // deep blacks; warm, gently glowing highlights
+            let y = curve(x, [p(0,0.0), p(0.25,0.24), p(0.5,0.5), p(0.75,0.76), p(1,0.975)])
+            return finish(y, clarity: 0.28, grain: 0.06)
 
-        case .ektar:                                   // Kodak Ektar 100 (clean, lightly vivid)
-            var x = temperature(ci, from: 6500, to: 6560)
-            x = applyCube(x, data: ektarCube)
-            x = controls(x, sat: 1.07, con: 1.05)
-            x = vibrance(x, 0.05)
-            let y = curve(x, [p(0,0.005), p(0.25,0.24), p(0.5,0.5), p(0.75,0.775), p(1,0.998)])
-            return finish(y, clarity: 0.35, grain: 0.04)
+        case .ektar:                                   // Kodak Ektar 100 — vivid, clean, crisp
+            var x = temperature(ci, from: 6500, to: 6580)            // clean, slightly cool
+            x = applyCube(x, data: ektarCube)                         // vivid reds + deep blues
+            x = controls(x, sat: 1.10, con: 1.06)
+            x = vibrance(x, 0.06)
+            // deep blacks, crisp highlights, fine grain
+            let y = curve(x, [p(0,0.0), p(0.25,0.235), p(0.5,0.5), p(0.75,0.78), p(1,0.998)])
+            return finish(y, clarity: 0.4, grain: 0.04)
 
         case .pro400h:                                 // Fuji Pro 400H: cold, bright, green-leaning
             var x = temperature(ci, from: 6500, to: 6750, tint: -8)   // cool + slight green
@@ -64,20 +66,22 @@ enum CameraProcessing {
             let y = curve(x, [p(0,0.0), p(0.25,0.255), p(0.5,0.52), p(0.78,0.83), p(1,0.99)])
             return finish(y, clarity: 0.3, grain: 0.06)
 
-        case .cinestill:                               // CineStill 800T (tungsten)
+        case .cinestill:                               // CineStill 800T — tungsten, teal/orange, halation
             var x = temperature(ci, from: 6500, to: 6850)     // tungsten → cool/blue
             x = applyCube(x, data: cinestillCube)             // greens → teal
             x = controls(x, sat: 0.98, con: 1.05)
             x = splitTone(x, strength: 1.5)                   // teal shadows, warm highlights
             x = bloom(x)                                      // gentle halation glow
-            let y = curve(x, [p(0,0.01), p(0.25,0.23), p(0.5,0.5), p(0.78,0.795), p(1,0.975)])
+            // deep blacks
+            let y = curve(x, [p(0,0.0), p(0.25,0.225), p(0.5,0.5), p(0.78,0.8), p(1,0.975)])
             return finish(y, clarity: 0.2, grain: 0.07)
 
-        case .trix:                                    // Kodak Tri-X 400 (soft contrast)
+        case .trix:                                    // Kodak Tri-X 400 — classic B&W
             let m = CIFilter.photoEffectMono(); m.inputImage = ci
-            let base = controls(m.outputImage ?? ci, sat: 1, con: 1.0)
-            let y = curve(base, [p(0,0.012), p(0.25,0.235), p(0.5,0.5), p(0.75,0.775), p(1,0.97)])
-            return finish(y, clarity: 0.35, grain: 0.10)   // B&W carries more grain
+            // rich mids, deep blacks, not crushed; the grain is the character.
+            let base = controls(m.outputImage ?? ci, sat: 1, con: 1.04)
+            let y = curve(base, [p(0,0.0), p(0.25,0.225), p(0.5,0.5), p(0.75,0.785), p(1,0.975)])
+            return finish(y, clarity: 0.4, grain: 0.11)
         }
     }
 
@@ -197,21 +201,22 @@ enum CameraProcessing {
         return hsv2rgb(hsv)
     }
 
-    // Gold: greens drift gently to gold; yellows a touch punchier.
+    // Gold: greens drift to gold, yellows punchier — the warm golden cast.
     private static let goldCube = makeCube { rgb in
         var hsv = rgb2hsv(rgb)
         let h = hsv.x
-        if h > 75 && h < 160 { hsv.x = h - 10; hsv.y *= 0.90 }        // greens → golden (gentle)
-        else if h >= 40 && h <= 70 { hsv.y = min(hsv.y * 1.06, 1) }  // yellows
+        if h > 75 && h < 160 { hsv.x = h - 12; hsv.y *= 0.88 }        // greens → golden
+        else if h >= 38 && h <= 70 { hsv.y = min(hsv.y * 1.10, 1) }  // yellows punchier
         return hsv2rgb(hsv)
     }
 
-    // Ektar: a light lift of the primaries — clean, not garish.
+    // Ektar: vivid reds + deep blues, greens eased — clean and punchy, not garish.
     private static let ektarCube = makeCube { rgb in
         var hsv = rgb2hsv(rgb)
         let h = hsv.x
-        if h < 35 || h > 330 { hsv.y = min(hsv.y * 1.06, 1) }        // reds
-        else if h > 185 && h < 265 { hsv.y = min(hsv.y * 1.05, 1) }  // blues
+        if h < 30 || h > 335 { hsv.y = min(hsv.y * 1.12, 1) }        // reds (Ektar's signature)
+        else if h > 195 && h < 260 { hsv.y = min(hsv.y * 1.10, 1) }  // blues
+        else if h > 80 && h < 165 { hsv.y *= 0.96 }                  // greens slightly eased
         return hsv2rgb(hsv)
     }
 
