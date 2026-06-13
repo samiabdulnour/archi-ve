@@ -213,26 +213,29 @@ struct PhotoEditorView: View {
     }
 
     private var cropControls: some View {
-        VStack(spacing: 10) {
-            Button {
-                rotation = (rotation + 90) % 360
-                crop = CGRect(x: 0, y: 0, width: 1, height: 1)   // reset crop on rotate
-            } label: {
-                Label("Rotate", systemImage: "rotate.right")
-                    .font(.subheadline.weight(.medium)).foregroundStyle(.white)
+        HStack(spacing: 12) {
+            // Rotate lives here as a compact icon — a crop-tab action, out of the way.
+            Button { rotate90() } label: {
+                Image(systemName: "rotate.right")
+                    .font(.system(size: 17, weight: .medium)).foregroundStyle(.white)
+                    .frame(width: 44, height: 36)
+                    .background(Capsule().fill(.white.opacity(0.14)))
             }
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    aspectButton("Free", nil)
-                    aspectButton("1:1", 1)
-                    aspectButton("4:3", 4.0/3.0)
-                    aspectButton("3:4", 3.0/4.0)
-                    aspectButton("16:9", 16.0/9.0)
-                    aspectButton("3:2", 3.0/2.0)
-                    aspectButton("2:3", 2.0/3.0)
-                }
+            Rectangle().fill(.white.opacity(0.18)).frame(width: 1, height: 24)
+            // A short, essential set of ratios (orientation follows the photo).
+            HStack(spacing: 8) {
+                aspectButton("Free", nil)
+                aspectButton("1:1", 1)
+                aspectButton("4:3", 4.0 / 3.0)
+                aspectButton("16:9", 16.0 / 9.0)
             }
+            .frame(maxWidth: .infinity)
         }
+    }
+
+    private func rotate90() {
+        rotation = (rotation + 90) % 360
+        crop = CGRect(x: 0, y: 0, width: 1, height: 1)   // reset crop on rotate
     }
 
     private func aspectButton(_ label: String, _ ar: CGFloat?) -> some View {
@@ -297,8 +300,11 @@ struct PhotoEditorView: View {
         guard let preview else { return }
         guard let ar else { crop = CGRect(x: 0, y: 0, width: 1, height: 1); return }
         let imgAR = preview.size.width / preview.size.height
+        // Follow the photo's orientation: a portrait image gets the tall form of
+        // the ratio (4:3 → 3:4), so the crop matches how the shot is framed.
+        let ratio = imgAR < 1 ? 1 / ar : ar
         var w = 1.0, h = 1.0
-        if ar >= imgAR { h = Double(imgAR / ar) } else { w = Double(ar / imgAR) }
+        if ratio >= imgAR { h = Double(imgAR / ratio) } else { w = Double(ratio / imgAR) }
         crop = CGRect(x: (1 - w) / 2, y: (1 - h) / 2, width: w, height: h)
     }
 
