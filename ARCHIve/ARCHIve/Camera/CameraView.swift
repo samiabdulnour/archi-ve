@@ -26,6 +26,7 @@ struct CameraView: View {
     @State private var showSettings = false
     @State private var showProjectPicker = false
     @State private var tool: CameraTool = .none
+    @State private var keystoneWasZero = true       // for the tilt slider's centre-snap haptic
     /// Physical screen size (incl. safe areas) — used to crop full-bleed captures
     /// to the exact on-screen ratio.
     @State private var screenSize: CGSize = .zero
@@ -473,13 +474,20 @@ struct CameraView: View {
     /// (since the entry points moved into the settings sheet).
     @ViewBuilder private var toolTray: some View {
         switch tool {
-        case .looks:
-            HStack(spacing: 6) { LooksWheel(camera: camera); trayCloseButton }
-        case .keystone:
-            HStack(spacing: 6) { keystoneSlider; trayCloseButton }
-        case .none:
-            EmptyView()
+        case .looks:    trayContainer { LooksWheel(camera: camera) }
+        case .keystone: trayContainer { keystoneSlider }
+        case .none:     EmptyView()
         }
+    }
+
+    /// Centres the control on screen (so its middle lands exactly above the
+    /// shutter) while the ✕ floats at the trailing edge without nudging it.
+    private func trayContainer<C: View>(@ViewBuilder _ content: () -> C) -> some View {
+        ZStack {
+            content()
+            HStack { Spacer(); trayCloseButton }
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private var trayCloseButton: some View {
@@ -490,25 +498,29 @@ struct CameraView: View {
                 .frame(width: 30, height: 30)
                 .background(Circle().fill(.white.opacity(0.16)))
         }
-        .padding(.trailing, 4)
     }
 
-    /// Strength control for the keystone correction (shown only when on).
+    /// Strength control for the keystone correction. Snaps to the middle
+    /// (0 = no tilt) so cancelling is one easy drag back to centre, and the
+    /// centre tick sits exactly above the shutter.
     private var keystoneSlider: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "skew").font(.system(size: 14)).foregroundStyle(.white.opacity(0.85))
-            Slider(value: Binding(
-                get: { camera.keystoneStrength },
-                set: { camera.setKeystoneStrength($0) }
-            ), in: -1...1)
-            .tint(Palette.coral)
-        }
+        Slider(value: Binding(
+            get: { camera.keystoneStrength },
+            set: { raw in
+                let v = abs(raw) < 0.07 ? 0 : raw      // sticky centre detent
+                if v == 0 && !keystoneWasZero {
+                    UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+                }
+                keystoneWasZero = (v == 0)
+                camera.setKeystoneStrength(v)
+            }
+        ), in: -1...1)
+        .tint(Palette.coral)
         .overlay(alignment: .center) {
-            // a subtle centre tick (0 = no correction)
-            Rectangle().fill(.white.opacity(0.3)).frame(width: 1, height: 12)
+            // centre tick = 0 (no correction), aligned above the shutter
+            Rectangle().fill(.white.opacity(0.4)).frame(width: 1.5, height: 16)
         }
-        .padding(.horizontal, 24)
-        .frame(maxWidth: 340)
+        .frame(maxWidth: 280)
     }
 
     private var permissionView: some View {
