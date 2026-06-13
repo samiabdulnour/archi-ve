@@ -240,11 +240,16 @@ struct CameraView: View {
             pillButton("arrow.2.squarepath", active: reuseTags != nil) {
                 reuseTags = (reuseTags == nil) ? latest?.humanTags : nil
             }
-            pillButton("camera.filters", active: tool == .looks || camera.colorLook != .neutral) {
+            pillButton("camera.filters", active: tool == .looks || camera.colorLook != .original) {
                 tool = (tool == .looks) ? .none : .looks
             }
             pillButton("skew", active: tool == .keystone || camera.keystoneStrength != 0) {
-                tool = (tool == .keystone) ? .none : .keystone
+                if tool == .keystone {
+                    tool = .none
+                    camera.setKeystoneStrength(0)   // tapping again cancels the tilt
+                } else {
+                    tool = .keystone
+                }
             }
             pillButton("circle.grid.3x3.fill", active: false) { showSettings = true }
         }

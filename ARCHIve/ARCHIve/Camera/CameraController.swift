@@ -58,7 +58,7 @@ final class CameraController: NSObject {
     var position: AVCaptureDevice.Position = .back
 
     /// Selected colour look (film-simulation style), applied live + on capture.
-    var colorLook: CameraLook = .neutral
+    var colorLook: CameraLook = .original
 
     /// Hidden preview layer used only to convert taps to device points for focus.
     @ObservationIgnored weak var previewLayer: AVCaptureVideoPreviewLayer?
@@ -68,9 +68,9 @@ final class CameraController: NSObject {
 
     // Plain snapshots read on the video queue (avoid touching observable state off-main).
     @ObservationIgnored private var liveKeystone: Double = 0
-    @ObservationIgnored private var liveLook: CameraLook = .neutral
+    @ObservationIgnored private var liveLook: CameraLook = .original
     @ObservationIgnored private var pendingKeystone: Double?   // strength to correct at capture
-    @ObservationIgnored private var pendingLook: CameraLook = .neutral
+    @ObservationIgnored private var pendingLook: CameraLook = .original
 
     @ObservationIgnored private let photoOutput = AVCapturePhotoOutput()
     @ObservationIgnored private let videoOutput = AVCaptureVideoDataOutput()

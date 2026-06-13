@@ -7,7 +7,7 @@ struct LooksWheel: View {
     @Bindable var camera: CameraController
     @State private var centered: CameraLook?
 
-    private let itemWidth: CGFloat = 116
+    private let itemWidth: CGFloat = 120
 
     var body: some View {
         GeometryReader { geo in
@@ -17,9 +17,9 @@ struct LooksWheel: View {
                     ForEach(CameraLook.allCases) { look in
                         let on = centered == look
                         Text(look.rawValue.uppercased())
-                            .font(.system(size: 15, weight: on ? .bold : .regular))
-                            .tracking(2)
-                            .foregroundStyle(on ? Palette.lemon : .white.opacity(0.55))
+                            .font(.system(size: 11, weight: on ? .semibold : .regular))
+                            .tracking(1.4)
+                            .foregroundStyle(on ? Palette.lemon : .white.opacity(0.5))
                             .frame(width: itemWidth)
                             .id(look)
                     }
@@ -36,6 +36,6 @@ struct LooksWheel: View {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }
         }
-        .frame(height: 34)
+        .frame(height: 22)
     }
 }
