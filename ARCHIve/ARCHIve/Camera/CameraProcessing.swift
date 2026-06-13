@@ -43,21 +43,21 @@ enum CameraProcessing {
             x = splitTone(x, strength: 0.6)            // gentle cool shadows / warm highlights
             // deep blacks, smooth highlight rolloff (highlights compress, don't clip)
             let y = curve(x, [p(0,0.0), p(0.25,0.25), p(0.5,0.5), p(0.78,0.78), p(1,0.94)])
-            return finish(y, clarity: 0.15, grain: 0.05)
+            return finish(y, clarity: 0.15, grain: 0.17)
 
         case .gold:                                    // Gold 200 — gently warm, nostalgic
             var x = temperature(ci, from: 6500, to: 6360)
             x = applyCube(x, data: goldCube)
             x = controls(x, sat: 1.02, con: 1.0)
             let y = curve(x, [p(0,0.0), p(0.25,0.245), p(0.5,0.5), p(0.78,0.79), p(1,0.95)])
-            return finish(y, clarity: 0.15, grain: 0.05)
+            return finish(y, clarity: 0.15, grain: 0.17)
 
         case .ektar:                                   // Ektar 100 — clean, lightly vivid (the punchy one)
             var x = temperature(ci, from: 6500, to: 6560)
             x = applyCube(x, data: ektarCube)
             x = controls(x, sat: 1.06, con: 1.03)
             let y = curve(x, [p(0,0.0), p(0.25,0.24), p(0.5,0.5), p(0.78,0.8), p(1,0.99)])
-            return finish(y, clarity: 0.25, grain: 0.04)
+            return finish(y, clarity: 0.25, grain: 0.13)
 
         case .pro400h:                                 // Fuji Pro 400H — the Fuji look: soft, green-leaning
             var x = temperature(ci, from: 6500, to: 6650, tint: -6)   // gently cool + green
@@ -65,7 +65,7 @@ enum CameraProcessing {
             x = controls(x, sat: 0.97, con: 0.97)                     // soft, refined
             x = splitTone(x, strength: 1.0)                           // cool shadows / warm highlights (Superia)
             let y = curve(x, [p(0,0.0), p(0.25,0.255), p(0.5,0.51), p(0.78,0.79), p(1,0.94)])
-            return finish(y, clarity: 0.15, grain: 0.05)
+            return finish(y, clarity: 0.15, grain: 0.17)
 
         case .cinestill:                               // CineStill 800T — moody tungsten
             var x = temperature(ci, from: 6500, to: 6800)
@@ -74,37 +74,45 @@ enum CameraProcessing {
             x = splitTone(x, strength: 1.2)                   // teal shadows, warm highlights
             x = bloom(x)                                      // subtle halation glow
             let y = curve(x, [p(0,0.0), p(0.25,0.23), p(0.5,0.5), p(0.78,0.79), p(1,0.95)])
-            return finish(y, clarity: 0.15, grain: 0.06)
+            return finish(y, clarity: 0.15, grain: 0.20)
 
         case .trix:                                    // Tri-X 400 — soft black & white
             let m = CIFilter.photoEffectMono(); m.inputImage = ci
             let base = controls(m.outputImage ?? ci, sat: 1, con: 1.02)
             let y = curve(base, [p(0,0.0), p(0.25,0.23), p(0.5,0.5), p(0.78,0.79), p(1,0.95)])
-            return finish(y, clarity: 0.2, grain: 0.10)
+            return finish(y, clarity: 0.2, grain: 0.28)
         }
     }
 
-    /// Final touches: a little clarity (crisp edges) and fine film grain. Both
-    /// kept subtle — iPhone frames are already sharp, so a light hand reads best.
+    /// Final touches: a little clarity (crisp edges) and real film grain.
     private static func finish(_ ci: CIImage, clarity c: Float, grain g: Float) -> CIImage {
         var x = ci
         if c > 0 {
             let f = CIFilter.unsharpMask(); f.inputImage = x; f.radius = 2.4; f.intensity = c
             x = f.outputImage ?? x
         }
-        if g > 0 {
-            let n = grainNoise.cropped(to: x.extent)
-                .applyingFilter("CIColorMatrix", parameters: ["inputAVector": CIVector(x: 0, y: 0, z: 0, w: CGFloat(g))])
-            let b = CIFilter.softLightBlendMode(); b.backgroundImage = x; b.inputImage = n
-            x = (b.outputImage ?? x).cropped(to: ci.extent)
-        }
+        if g > 0 { x = grain(x, g) }
         return x
     }
 
-    /// Monochrome static noise for grain (deterministic, so it doesn't shimmer live).
+    /// Film grain: monochrome noise scaled to a film-like cell size (so it reads
+    /// as texture, not per-pixel digital noise) and blended over the image.
+    private static func grain(_ ci: CIImage, _ amount: Float) -> CIImage {
+        let e = ci.extent
+        let cell = max(1.0, e.width / 1100)       // ~1.5–2.5px grains depending on resolution
+        let n = grainNoise
+            .transformed(by: CGAffineTransform(scaleX: cell, y: cell))
+            .cropped(to: e)
+            .applyingFilter("CIColorMatrix", parameters: ["inputAVector": CIVector(x: 0, y: 0, z: 0, w: CGFloat(amount))])
+        let b = CIFilter.overlayBlendMode(); b.backgroundImage = ci; b.inputImage = n
+        return (b.outputImage ?? ci).cropped(to: e)
+    }
+
+    /// Monochrome static noise for grain (deterministic — doesn't shimmer live).
+    /// Higher contrast = punchier speckle.
     private static let grainNoise: CIImage = {
         let r = CIFilter.randomGenerator().outputImage ?? CIImage()
-        let c = CIFilter.colorControls(); c.inputImage = r; c.saturation = 0; c.brightness = 0; c.contrast = 1
+        let c = CIFilter.colorControls(); c.inputImage = r; c.saturation = 0; c.brightness = -0.05; c.contrast = 2.2
         return c.outputImage ?? r
     }()
 
