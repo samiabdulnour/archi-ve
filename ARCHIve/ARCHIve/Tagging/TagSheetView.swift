@@ -7,6 +7,9 @@ import SwiftData
 /// pick one option, Save.
 struct TagSheetView: View {
     @Bindable var photo: Photo
+    /// When set, Save applies the chosen tags to *every* photo here (batch
+    /// tagging from the library); `photo` is just the one shown in the card.
+    var batchPhotos: [Photo]? = nil
     var onDone: () -> Void
 
     @Environment(\.modelContext) private var modelContext
@@ -116,6 +119,16 @@ struct TagSheetView: View {
                         .padding(7)
                         .background(Circle().fill(.black.opacity(0.4)))
                         .padding(10)
+                }
+                .overlay(alignment: .topLeading) {
+                    if let n = batchPhotos?.count, n > 1 {
+                        Text("Tagging \(n) photos")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 9).padding(.vertical, 5)
+                            .background(Capsule().fill(Palette.coral))
+                            .padding(10)
+                    }
                 }
         }
         .buttonStyle(.plain)
@@ -535,9 +548,13 @@ struct TagSheetView: View {
     // MARK: Persist
 
     private func commit() {
-        photo.humanTags = tags
         let trimmed = project.trimmingCharacters(in: .whitespacesAndNewlines)
-        photo.project = trimmed.isEmpty ? nil : trimmed
+        let proj = trimmed.isEmpty ? nil : trimmed
+        // Apply to the whole batch (just this one in the normal case).
+        for p in (batchPhotos ?? [photo]) {
+            p.humanTags = tags
+            p.project = proj
+        }
         photo.labelImageData = labelImage?.jpegData(compressionQuality: 0.85)
         try? modelContext.save()
         finish()

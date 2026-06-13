@@ -13,8 +13,16 @@ struct LibraryView: View {
     @State private var status: PHAuthorizationStatus = PhotosLibrary.status
     @State private var assets: [PHAsset] = []
     @State private var tagTarget: Photo?
+    @State private var batchTargets: [Photo] = []
+    @State private var columns = 3                  // grid density; pinch to change
+    @State private var selecting = false
+    @State private var selected: Set<String> = []   // asset localIdentifiers
 
-    private let cols = Array(repeating: GridItem(.flexible(), spacing: 2), count: 3)
+    private var authorized: Bool { status == .authorized || status == .limited }
+
+    private var cols: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 2), count: columns)
+    }
 
     private var referenced: [String: Photo] {
         var m: [String: Photo] = [:]
@@ -31,14 +39,25 @@ struct LibraryView: View {
                 default: ProgressView()
                 }
             }
-            .navigationTitle("Tag from Photos")
+            .navigationTitle(selecting ? "\(selected.count) selected" : "Tag from Photos")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    if authorized {
+                        Button(selecting ? "Cancel" : "Select") {
+                            withAnimation { selecting.toggle(); selected.removeAll() }
+                        }
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+            }
+            .safeAreaInset(edge: .bottom) { if selecting { selectionBar } }
             .background(Palette.paper.ignoresSafeArea())
         }
         .task { await loadAssets() }
-        .fullScreenCover(item: $tagTarget, onDismiss: cleanupIfSkipped) { photo in
-            TagSheetView(photo: photo) { tagTarget = nil }
+        .fullScreenCover(item: $tagTarget, onDismiss: endTagging) { photo in
+            TagSheetView(photo: photo,
+                         batchPhotos: batchTargets.count > 1 ? batchTargets : nil) { tagTarget = nil }
         }
     }
 
@@ -47,14 +66,48 @@ struct LibraryView: View {
             LazyVGrid(columns: cols, spacing: 2) {
                 ForEach(assets, id: \.localIdentifier) { asset in
                     let existing = referenced[asset.localIdentifier]
-                    Button { tap(asset, existing: existing) } label: {
-                        LibraryCell(asset: asset, tagged: existing != nil)
+                    Button { tapCell(asset, existing: existing) } label: {
+                        LibraryCell(asset: asset, tagged: existing != nil,
+                                    selecting: selecting,
+                                    selected: selected.contains(asset.localIdentifier))
                     }
                     .buttonStyle(.plain)
                 }
             }
             .padding(2)
+            .animation(.snappy(duration: 0.25), value: columns)
         }
+        .simultaneousGesture(zoomGesture)
+    }
+
+    /// Pinch to change grid density (zoom out → more photos per screen).
+    private var zoomGesture: some Gesture {
+        MagnifyGesture().onEnded { v in
+            withAnimation(.snappy(duration: 0.25)) {
+                if v.magnification > 1.15 { columns = max(2, columns - 1) }
+                else if v.magnification < 0.85 { columns = min(7, columns + 1) }
+            }
+        }
+    }
+
+    private var selectionBar: some View {
+        HStack {
+            Button("Clear") { selected.removeAll() }
+                .disabled(selected.isEmpty)
+                .foregroundStyle(selected.isEmpty ? Palette.ink3 : Palette.coral)
+            Spacer()
+            Button { startBatchTagging() } label: {
+                Text(selected.isEmpty ? "Select photos to tag"
+                                      : "Tag \(selected.count) photo\(selected.count == 1 ? "" : "s")")
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 18).padding(.vertical, 10)
+                    .background(Capsule().fill(selected.isEmpty ? Palette.tile : Palette.coral))
+                    .foregroundStyle(selected.isEmpty ? Palette.ink3 : .white)
+            }
+            .disabled(selected.isEmpty)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 10)
+        .background(.ultraThinMaterial)
     }
 
     private var deniedView: some View {
@@ -83,15 +136,53 @@ struct LibraryView: View {
         assets = arr
     }
 
+    private func tapCell(_ asset: PHAsset, existing: Photo?) {
+        if selecting {
+            let id = asset.localIdentifier
+            if selected.contains(id) { selected.remove(id) } else { selected.insert(id) }
+        } else {
+            tap(asset, existing: existing)
+        }
+    }
+
     private func tap(_ asset: PHAsset, existing: Photo?) {
+        batchTargets = []
         if let existing { tagTarget = existing; return }
-        let photo = Photo(imageData: Data(),
-                          createdAt: asset.creationDate ?? .now,
-                          latitude: asset.location?.coordinate.latitude,
-                          longitude: asset.location?.coordinate.longitude,
-                          assetLocalID: asset.localIdentifier)
+        let photo = makeReference(for: asset)
         modelContext.insert(photo)
         tagTarget = photo
+    }
+
+    /// Tag everything currently selected in one pass: build a reference per asset
+    /// (reusing any already tagged), then open the sheet on a representative.
+    private func startBatchTagging() {
+        var targets: [Photo] = []
+        for asset in assets where selected.contains(asset.localIdentifier) {
+            if let existing = referenced[asset.localIdentifier] {
+                targets.append(existing)
+            } else {
+                let p = makeReference(for: asset)
+                modelContext.insert(p)
+                targets.append(p)
+            }
+        }
+        guard let first = targets.first else { return }
+        batchTargets = targets
+        tagTarget = first
+    }
+
+    private func makeReference(for asset: PHAsset) -> Photo {
+        Photo(imageData: Data(),
+              createdAt: asset.creationDate ?? .now,
+              latitude: asset.location?.coordinate.latitude,
+              longitude: asset.location?.coordinate.longitude,
+              assetLocalID: asset.localIdentifier)
+    }
+
+    private func endTagging() {
+        cleanupIfSkipped()
+        batchTargets = []
+        if selecting { withAnimation { selecting = false; selected.removeAll() } }
     }
 
     /// A reference left untagged means the user skipped — drop it.
@@ -106,6 +197,8 @@ struct LibraryView: View {
 private struct LibraryCell: View {
     let asset: PHAsset
     let tagged: Bool
+    var selecting: Bool = false
+    var selected: Bool = false
     @State private var image: UIImage?
 
     var body: some View {
@@ -126,6 +219,23 @@ private struct LibraryCell: View {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.white, Palette.coral)
                         .padding(4).shadow(radius: 1)
+                }
+            }
+            .overlay {
+                if selecting {
+                    ZStack(alignment: .bottomLeading) {
+                        Color.black.opacity(selected ? 0.3 : 0)
+                        Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 20))
+                            .foregroundStyle(selected ? .white : .white.opacity(0.9),
+                                             selected ? Palette.coral : .clear)
+                            .padding(5).shadow(radius: 1)
+                    }
+                }
+            }
+            .overlay {
+                if selecting && selected {
+                    Rectangle().strokeBorder(Palette.coral, lineWidth: 2)
                 }
             }
             .task(id: asset.localIdentifier) {
