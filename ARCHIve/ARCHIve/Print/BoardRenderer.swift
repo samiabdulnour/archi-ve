@@ -1,5 +1,8 @@
 import UIKit
 
+/// Which printed artefact to render from a selection.
+enum BoardFormat { case poster, journal }
+
 /// One plate on a board: the image plus the caption fields (mapped from a Photo).
 struct BoardPlate {
     let image: UIImage?
@@ -140,6 +143,123 @@ enum BoardRenderer {
         s.append(NSAttributedString(string: "\(plates.count) plates · \(range)\n", attributes: [.font: reg(8.5), .foregroundColor: ink, .paragraphStyle: para]))
         s.append(NSAttributedString(string: String(format: "sequence 01–%02d", plates.count), attributes: [.font: reg(8.5), .foregroundColor: ink, .paragraphStyle: para]))
         s.draw(with: CGRect(x: x, y: y, width: w, height: 15 * mm), options: [.usesLineFragmentOrigin], context: nil)
+    }
+
+    // MARK: Journal (A4-landscape spread = 2× A5, chronological flow)
+
+    private struct JBlock { let isDivider: Bool; let month: String; let rec: BoardPlate? }
+
+    static func journalPDF(_ plates: [BoardPlate]) -> Data {
+        // chronological by date (stable on original order)
+        let recs = plates.enumerated()
+            .sorted { ($0.element.dateLine, $0.offset) < ($1.element.dateLine, $1.offset) }
+            .map { $0.element }
+
+        // A5 page geometry (mm), spread is two of these side by side
+        let PGw = 148.5 * mm, PGh = 210 * mm
+        let top = 15 * mm, bottom = 14 * mm, outer = 16 * mm, inner = 10 * mm
+        let footH = 7.5 * mm, plateGap = 6 * mm, colGap = 6 * mm, divH = 7.5 * mm, capGap = 1.5 * mm
+        let COLS = 4
+        let contentW = PGw - outer - inner
+        let colW = (contentW - colGap * CGFloat(COLS - 1)) / CGFloat(COLS)
+        let colH = PGh - top - bottom - footH
+
+        func plateH(_ r: BoardPlate) -> CGFloat { colW / max(0.2, r.ar) + capGap + capHeight(r, colW) }
+        func blockH(_ b: JBlock) -> CGFloat { b.isDivider ? divH : (b.rec.map(plateH) ?? 0) }
+
+        // flatten to blocks, inserting a month divider whenever the month changes
+        var blocks: [JBlock] = []
+        var lastMonth = ""
+        for r in recs {
+            let m = String(r.dateLine.prefix(7))
+            if m != lastMonth { blocks.append(JBlock(isDivider: true, month: m, rec: nil)); lastMonth = m }
+            blocks.append(JBlock(isDivider: false, month: m, rec: r))
+        }
+
+        // greedy column packing by height
+        var cols: [[JBlock]] = [], cur: [JBlock] = []; var used: CGFloat = 0
+        for b in blocks {
+            let h = blockH(b), gap = cur.isEmpty ? 0 : plateGap
+            if !cur.isEmpty && used + gap + h > colH { cols.append(cur); cur = []; used = 0 }
+            cur.append(b); used += (cur.count > 1 ? plateGap : 0) + h
+        }
+        if !cur.isEmpty { cols.append(cur) }
+        // never let a column end on a divider (orphan) — carry it to the next column
+        for i in cols.indices.dropLast() where cols[i].last?.isDivider == true {
+            let d = cols[i].removeLast(); cols[i + 1].insert(d, at: 0)
+        }
+        if cols.last?.last?.isDivider == true { cols[cols.count - 1].removeLast() }
+        cols.removeAll { $0.isEmpty }
+
+        let spreadW = 297 * mm, spreadH = 210 * mm
+        let perSpread = COLS * 2
+        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: spreadW, height: spreadH))
+        return renderer.pdfData { ctx in
+            var ci = 0
+            while ci < cols.count {
+                ctx.beginPage()
+                let cg = ctx.cgContext
+                UIColor.white.setFill(); cg.fill(CGRect(x: 0, y: 0, width: spreadW, height: spreadH))
+
+                for slot in 0..<perSpread {
+                    let idx = ci + slot
+                    if idx >= cols.count { break }
+                    let page = slot / COLS                  // 0 = left A5, 1 = right A5
+                    let colInPage = slot % COLS
+                    let pageX = page == 0 ? 0 : PGw
+                    let contentX = pageX + (page == 0 ? outer : inner)
+                    let x = contentX + CGFloat(colInPage) * (colW + colGap)
+                    var y = top
+                    for b in cols[idx] {
+                        if b.isDivider {
+                            drawDivider(b.month, x: x, w: colW, y: y, cg)
+                            y += divH + plateGap
+                        } else if let r = b.rec {
+                            let imgH = colW / max(0.2, r.ar), ch = capHeight(r, colW)
+                            let imgRect = CGRect(x: x, y: y, width: colW, height: imgH)
+                            drawCover(r.image, in: imgRect, cg)
+                            hair.setStroke()
+                            let o = UIBezierPath(rect: imgRect.insetBy(dx: 0.15 * mm, dy: 0.15 * mm)); o.lineWidth = 0.3 * mm; o.stroke()
+                            caption(r).draw(with: CGRect(x: x, y: y + imgH + capGap, width: colW, height: ch + 4),
+                                            options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil)
+                            y += imgH + capGap + ch + plateGap
+                        }
+                    }
+                }
+                // per-page date footers, aligned to each page's outer edge
+                for page in 0..<2 {
+                    let base = ci + page * COLS
+                    guard base < cols.count else { break }
+                    let pageCols = cols[base..<min(base + COLS, cols.count)]
+                    let dates = pageCols.flatMap { $0.compactMap { $0.rec?.dateLine } }
+                    let pageX = page == 0 ? CGFloat(0) : PGw
+                    let fx = pageX + (page == 0 ? outer : inner)
+                    journalFoot(dates, x: fx, w: contentW, y: PGh - bottom - footH + 1 * mm, alignRight: page == 1, cg)
+                }
+                ci += perSpread
+            }
+        }
+    }
+
+    private static func monthLabel(_ ym: String) -> String {
+        let f = DateFormatter(); f.dateFormat = "yyyy.MM"
+        guard let d = f.date(from: ym) else { return ym }
+        let o = DateFormatter(); o.dateFormat = "MMMM yyyy"; return o.string(from: d).lowercased()
+    }
+    private static func drawDivider(_ month: String, x: CGFloat, w: CGFloat, y: CGFloat, _ cg: CGContext) {
+        NSAttributedString(string: monthLabel(month), attributes: [.font: semi(7), .foregroundColor: ink])
+            .draw(at: CGPoint(x: x, y: y))
+        let ly = y + 5.5 * mm
+        let p = UIBezierPath(); p.move(to: CGPoint(x: x, y: ly)); p.addLine(to: CGPoint(x: x + w, y: ly)); p.lineWidth = 0.3 * mm
+        UIColor(red: 22/255, green: 20/255, blue: 15/255, alpha: 0.35).setStroke(); p.stroke()
+    }
+    private static func journalFoot(_ dates: [String], x: CGFloat, w: CGFloat, y: CGFloat, alignRight: Bool, _ cg: CGContext) {
+        let ds = dates.filter { !$0.isEmpty }.sorted()
+        guard let lo = ds.first, let hi = ds.last else { return }
+        let range = lo == hi ? lo : "\(lo) – \(hi)"
+        let para = NSMutableParagraphStyle(); para.alignment = alignRight ? .right : .left
+        NSAttributedString(string: range, attributes: [.font: reg(7.5), .foregroundColor: muted, .paragraphStyle: para])
+            .draw(with: CGRect(x: x, y: y, width: w, height: 6 * mm), options: [.usesLineFragmentOrigin], context: nil)
     }
 
     // MARK: Map a Photo → a plate

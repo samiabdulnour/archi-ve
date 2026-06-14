@@ -39,6 +39,7 @@ struct GalleryView: View {
     @State private var showShare = false
     @State private var boardURL: URL?
     @State private var showBoardShare = false
+    @State private var showBoardFormat = false
     @State private var makingBoard = false
     // drag-to-paint selection
     @State private var gridWidth: CGFloat = 0
@@ -125,6 +126,12 @@ struct GalleryView: View {
         } message: { Text("This can't be undone.") }
         .sheet(isPresented: $showShare) { ActivityView(items: shareItems) }
         .sheet(isPresented: $showBoardShare) { if let boardURL { ActivityView(items: [boardURL]) } }
+        .confirmationDialog("Make from \(selected.count) photo\(selected.count == 1 ? "" : "s")",
+                            isPresented: $showBoardFormat, titleVisibility: .visible) {
+            Button("Catalogue poster · B1") { Task { await makeBoard(.poster) } }
+            Button("Journal · A4 landscape (2× A5)") { Task { await makeBoard(.journal) } }
+            Button("Cancel", role: .cancel) {}
+        }
         .overlay { if makingBoard {
             ZStack { Color.black.opacity(0.35).ignoresSafeArea()
                 VStack(spacing: 12) { ProgressView().tint(.white)
@@ -356,7 +363,7 @@ struct GalleryView: View {
             Button { shareSelected() } label: { Label("Share", systemImage: "square.and.arrow.up") }
                 .disabled(selected.isEmpty)
             Spacer()
-            Button { Task { await makeBoard() } } label: { Label("Board", systemImage: "doc.richtext") }
+            Button { showBoardFormat = true } label: { Label("Board", systemImage: "doc.richtext") }
                 .disabled(selected.isEmpty || makingBoard)
             Spacer()
             Button(role: .destructive) { confirmDelete = true } label: { Label("Delete", systemImage: "trash") }
@@ -366,9 +373,9 @@ struct GalleryView: View {
         .background(.bar)
     }
 
-    /// Build a B1 catalogue poster PDF from the selected photos and open the
-    /// share sheet (print / save to Files / send).
-    @MainActor private func makeBoard() async {
+    /// Build the chosen artefact (B1 poster or A4-landscape journal) as a PDF from
+    /// the selected photos and open the share sheet (print / save to Files / send).
+    @MainActor private func makeBoard(_ format: BoardFormat) async {
         let chosen = filtered.filter { selected.contains($0.id) }   // gallery order
         guard !chosen.isEmpty else { return }
         makingBoard = true
@@ -376,8 +383,9 @@ struct GalleryView: View {
         for p in chosen {
             if let img = await PhotoImage.full(for: p) { plates.append(BoardRenderer.plate(for: p, image: img)) }
         }
-        let data = BoardRenderer.posterPDF(plates)
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Archive Board.pdf")
+        let data = format == .poster ? BoardRenderer.posterPDF(plates) : BoardRenderer.journalPDF(plates)
+        let name = format == .poster ? "Archive Poster.pdf" : "Archive Journal.pdf"
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
         try? data.write(to: url)
         boardURL = url
         makingBoard = false
