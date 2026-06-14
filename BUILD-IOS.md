@@ -165,18 +165,42 @@ Review takes 1–7 days. Common rejection reasons for this app:
 
 ---
 
-## 9. Updating the app after launch
+## 9. Updating the app after launch (native SwiftUI app)
 
-For web-only changes (CSS, HTML, JS):
+> ⚠️ Sections 1–8 above describe the **old Capacitor web-wrapper**. The app is now a
+> native SwiftUI / SwiftData app, so updates follow these steps instead.
 
-```bash
-# Edit index.html as normal, push to main, the website updates automatically.
-# For the iOS app, copy the new web assets in and re-archive:
-npx cap sync ios
-# Then in Xcode: Product → Archive → upload → submit new build.
-```
+1. **Bump the version.** Xcode → target **ARCHIve** → General (or `project.pbxproj`):
+   - `MARKETING_VERSION` (e.g. 1.0 → 1.1) — must be higher than the live version to
+     create a new App Store version.
+   - `CURRENT_PROJECT_VERSION` (build) — must be higher than any build already uploaded.
+   - Set the **same** version + build on the **ArchiveWidgets** target — the widget's
+     numbers must match the app's or App Store Connect rejects the upload.
 
-Bumping the version: in Xcode, **General** tab, bump **Version** (e.g. 1.0.0 → 1.0.1) and **Build** (incremental, e.g. 1 → 2). Apple requires the build number to increase with every upload.
+2. **Deploy the CloudKit schema** — *only if the data model changed since the last
+   release.* CloudKit Console → the app's container → **Schema** → **Deploy Schema
+   Changes…** (Development → Production). SwiftData+CloudKit fields are additive and
+   optional, so it's safe, but the live app can't sync a new field until it exists in
+   Production. (New keys inside the `humanTagsData` JSON blob — e.g. the place/city —
+   need **no** deploy; that field already exists in the schema.)
+
+3. **Archive (Release).** Xcode → Product → **Archive**. Or CLI:
+   ```bash
+   xcodebuild -project ARCHIve/ARCHIve.xcodeproj -scheme ARCHIve \
+     -configuration Release -destination 'generic/platform=iOS' \
+     -archivePath build/Archive.xcarchive -allowProvisioningUpdates archive
+   ```
+
+4. **Upload.** In the Xcode **Organizer** (Window → Organizer → Archives) pick the
+   archive → **Distribute App → App Store Connect → Upload**. Wait ~10–30 min for
+   Apple to finish processing the build.
+
+5. **Submit.** App Store Connect → the app → **(+) version** with the string from
+   step 1 → write **What's New** → attach the processed build → **Add for Review** →
+   **Submit**.
+
+Review is usually ~1–3 days. SwiftData/CloudKit stores survive updates — the owner's
+photos and tags are preserved across the upgrade.
 
 ---
 
