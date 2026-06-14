@@ -40,6 +40,10 @@ struct GalleryView: View {
     @State private var boardURL: URL?
     @State private var showBoardShare = false
     @State private var makingBoard = false
+    // drag-to-paint selection
+    @State private var gridWidth: CGFloat = 0
+    @State private var dragMode: Bool? = nil          // true = selecting, false = deselecting
+    @State private var dragPainted: Set<String> = []
 
     // Import
     @State private var importItems: [PhotosPickerItem] = []
@@ -210,6 +214,13 @@ struct GalleryView: View {
                 ForEach(items) { cell($0) }
             }
             .animation(.easeInOut(duration: 0.2), value: gridCols)
+            .background(GeometryReader { p in Color.clear
+                .onAppear { gridWidth = p.size.width }
+                .onChange(of: p.size.width) { _, w in gridWidth = w } })
+            .coordinateSpace(name: "galgrid")
+            // Press-and-drag to paint a selection across thumbnails (a quick flick
+            // still scrolls). Active only in selection mode.
+            .simultaneousGesture(paintSelect(items), including: selecting ? .all : .subviews)
         }
         // Pinch to change photos-per-row: spread = bigger/fewer, pinch = smaller/more.
         .simultaneousGesture(
@@ -222,6 +233,30 @@ struct GalleryView: View {
                 }
                 .onEnded { _ in pinchBaseCols = nil }
         )
+    }
+
+    /// Press-and-drag selection: hold briefly on a thumbnail then drag across the
+    /// grid to paint-select (or deselect) the cells the finger passes over.
+    private func paintSelect(_ items: [Photo]) -> some Gesture {
+        LongPressGesture(minimumDuration: 0.15)
+            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named("galgrid")))
+            .onChanged { value in
+                guard case .second(true, let drag?) = value, gridWidth > 0, gridCols > 0 else { return }
+                let cw = (gridWidth - CGFloat(gridCols - 1) * 2) / CGFloat(gridCols)
+                let step = cw + 2
+                let col = Int(drag.location.x / step), row = Int(drag.location.y / step)
+                guard col >= 0, col < gridCols, row >= 0 else { return }
+                let idx = row * gridCols + col
+                guard idx >= 0, idx < items.count else { return }
+                let id = items[idx].id
+                if dragMode == nil { dragMode = !selected.contains(id) }
+                if !dragPainted.contains(id) {
+                    dragPainted.insert(id)
+                    if dragMode == true { selected.insert(id) } else { selected.remove(id) }
+                    UISelectionFeedbackGenerator().selectionChanged()
+                }
+            }
+            .onEnded { _ in dragMode = nil; dragPainted.removeAll() }
     }
 
     // MARK: Cell + badges

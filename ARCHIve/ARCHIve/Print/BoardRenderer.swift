@@ -58,18 +58,27 @@ enum BoardRenderer {
         let GUT = max(5, min(16, 16 - CGFloat(n - 6) * (11.0 / 34.0))) * mm
         let capGap = 1.5 * mm
 
-        func fit(_ c: Int) -> (used: Int, colW: CGFloat) {
+        // Balanced column layout (emulates CSS column-count): fill each of c
+        // columns to ~equal height, so the grid spans the FULL content width with
+        // any surplus falling to the bottom — never a staircase that empties the
+        // right side. Pick the fewest columns (largest photos) that still fit.
+        func layout(_ c: Int) -> (cols: [[Int]], colW: CGFloat, maxH: CGFloat) {
             let w = (bodyW - GUT * CGFloat(c - 1)) / CGFloat(c)
-            var used = 1, h: CGFloat = 0
-            for p in plates {
-                let block = w / max(0.2, p.ar) + capGap + capHeight(p, w)
-                let gap = h > 0 ? GUT : 0
-                if h > 0 && h + gap + block > bodyH { used += 1; h = block } else { h += gap + block }
+            let blocks = plates.map { w / max(0.2, $0.ar) + capGap + capHeight($0, w) }
+            let total = blocks.reduce(0, +) + GUT * CGFloat(max(0, plates.count - 1))
+            let target = total / CGFloat(c)
+            var cols: [[Int]] = [], cur: [Int] = []; var h: CGFloat = 0
+            for i in plates.indices {
+                cur.append(i); h += (cur.count > 1 ? GUT : 0) + blocks[i]
+                if h >= target && cols.count < c - 1 { cols.append(cur); cur = []; h = 0 }
             }
-            return (used, w)
+            if !cur.isEmpty { cols.append(cur) }
+            let maxH = cols.map { col in col.reduce(0) { $0 + blocks[$1] } + GUT * CGFloat(max(0, col.count - 1)) }.max() ?? 0
+            return (cols, w, maxH)
         }
-        var cols = 7, colW = bodyW
-        for c in 2...7 { let r = fit(c); if r.used <= c { cols = c; colW = r.colW; break } }
+        var chosen = layout(7)
+        for c in 2...7 { let l = layout(c); if l.maxH <= bodyH { chosen = l; break } }
+        let colW = chosen.colW
 
         let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: W, height: H))
         return renderer.pdfData { ctx in
@@ -77,19 +86,20 @@ enum BoardRenderer {
             let cg = ctx.cgContext
             UIColor.white.setFill(); cg.fill(CGRect(x: 0, y: 0, width: W, height: H))
 
-            var colY = [CGFloat](repeating: bodyY, count: cols), col = 0
-            for p in plates {
-                let imgH = colW / max(0.2, p.ar), ch = capHeight(p, colW), block = imgH + capGap + ch
-                if colY[col] > bodyY && colY[col] + GUT + block > bodyY + bodyH && col < cols - 1 { col += 1 }
-                if colY[col] > bodyY { colY[col] += GUT }
-                let x = bodyX + CGFloat(col) * (colW + GUT), y = colY[col]
-                let imgRect = CGRect(x: x, y: y, width: colW, height: imgH)
-                drawCover(p.image, in: imgRect, cg)
-                hair.setStroke()
-                let o = UIBezierPath(rect: imgRect.insetBy(dx: 0.15 * mm, dy: 0.15 * mm)); o.lineWidth = 0.3 * mm; o.stroke()
-                caption(p).draw(with: CGRect(x: x, y: y + imgH + capGap, width: colW, height: ch + 4),
-                                options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil)
-                colY[col] += block
+            for (ci, colIdx) in chosen.cols.enumerated() {
+                let x = bodyX + CGFloat(ci) * (colW + GUT)
+                var y = bodyY
+                for i in colIdx {
+                    let p = plates[i]
+                    let imgH = colW / max(0.2, p.ar), ch = capHeight(p, colW)
+                    let imgRect = CGRect(x: x, y: y, width: colW, height: imgH)
+                    drawCover(p.image, in: imgRect, cg)
+                    hair.setStroke()
+                    let o = UIBezierPath(rect: imgRect.insetBy(dx: 0.15 * mm, dy: 0.15 * mm)); o.lineWidth = 0.3 * mm; o.stroke()
+                    caption(p).draw(with: CGRect(x: x, y: y + imgH + capGap, width: colW, height: ch + 4),
+                                    options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil)
+                    y += imgH + capGap + ch + GUT
+                }
             }
             drawFooter(plates: plates, x: bodyX, w: bodyW, y: H - MB - 15 * mm, cg: cg)
         }
