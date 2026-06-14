@@ -1,7 +1,6 @@
 import Photos
 import UIKit
 import CoreLocation
-import ImageIO
 
 /// Thin wrapper over the Photos framework for the "tag your existing library"
 /// flow: authorisation, fetching assets, and loading images by local identifier
@@ -47,20 +46,16 @@ enum PhotosLibrary {
     }
 
     /// Save JPEG data into the Photos library and return its local identifier
-    /// (so we can store a reference, not a duplicate). `coordinate` stamps the
-    /// asset's location; `caption`/`keywords` are embedded as IPTC metadata so the
-    /// shot is findable in the native Photos search (which indexes the caption).
-    /// nil if not permitted/failed.
-    static func saveImage(_ data: Data, coordinate: CLLocationCoordinate2D? = nil,
-                          caption: String? = nil, keywords: [String] = []) async -> String? {
+    /// (so we can store a reference, not a duplicate). `coordinate`, if given,
+    /// stamps the asset's location like a Camera shot. nil if not permitted/failed.
+    static func saveImage(_ data: Data, coordinate: CLLocationCoordinate2D? = nil) async -> String? {
         let status = await requestAddAuthorization()
         guard status == .authorized || status == .limited else { return nil }
-        let payload = embedMetadata(data, caption: caption, keywords: keywords)
         return await withCheckedContinuation { cont in
             var localID: String?
             PHPhotoLibrary.shared().performChanges {
                 let req = PHAssetCreationRequest.forAsset()
-                req.addResource(with: .photo, data: payload, options: nil)
+                req.addResource(with: .photo, data: data, options: nil)
                 if let c = coordinate {
                     req.location = CLLocation(coordinate: c, altitude: 0,
                                               horizontalAccuracy: kCLLocationAccuracyHundredMeters,
@@ -71,32 +66,6 @@ enum PhotosLibrary {
                 cont.resume(returning: success ? localID : nil)
             }
         }
-    }
-
-    /// Re-encode the JPEG with an IPTC caption + keywords (and mirror the caption
-    /// into TIFF/EXIF description fields). Returns the original data if nothing to
-    /// embed or on failure.
-    private static func embedMetadata(_ data: Data, caption: String?, keywords: [String]) -> Data {
-        guard caption != nil || !keywords.isEmpty,
-              let src = CGImageSourceCreateWithData(data as CFData, nil),
-              let type = CGImageSourceGetType(src) else { return data }
-        let out = NSMutableData()
-        guard let dest = CGImageDestinationCreateWithData(out, type, 1, nil) else { return data }
-        var props = (CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [CFString: Any]) ?? [:]
-        var iptc = (props[kCGImagePropertyIPTCDictionary] as? [CFString: Any]) ?? [:]
-        if let caption { iptc[kCGImagePropertyIPTCCaptionAbstract] = caption }
-        if !keywords.isEmpty { iptc[kCGImagePropertyIPTCKeywords] = keywords }
-        props[kCGImagePropertyIPTCDictionary] = iptc
-        if let caption {
-            var tiff = (props[kCGImagePropertyTIFFDictionary] as? [CFString: Any]) ?? [:]
-            tiff[kCGImagePropertyTIFFImageDescription] = caption
-            props[kCGImagePropertyTIFFDictionary] = tiff
-            var exif = (props[kCGImagePropertyExifDictionary] as? [CFString: Any]) ?? [:]
-            exif[kCGImagePropertyExifUserComment] = caption
-            props[kCGImagePropertyExifDictionary] = exif
-        }
-        CGImageDestinationAddImageFromSource(dest, src, 0, props as CFDictionary)
-        return CGImageDestinationFinalize(dest) ? (out as Data) : data
     }
 
     /// All photos (images only), newest first.
