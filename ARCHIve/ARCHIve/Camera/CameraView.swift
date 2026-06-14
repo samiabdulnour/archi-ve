@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import AVFoundation
+import CoreLocation
 
 struct CameraView: View {
     @Environment(\.modelContext) private var modelContext
@@ -65,7 +66,7 @@ struct CameraView: View {
             LocationProvider.shared.stop()
         }
         .fullScreenCover(item: $tagTarget, onDismiss: { camera.start() }) { photo in
-            TagSheetView(photo: photo) { tagTarget = nil }
+            TagSheetView(photo: photo) { finalizeCameraShot(photo); tagTarget = nil }
         }
         .sheet(isPresented: $showSettings) {
             CameraSettingsSheet(camera: camera) { selected in
@@ -601,35 +602,64 @@ struct CameraView: View {
             guard let data else { return }
             let coord = LocationProvider.shared.last
             let proj = camera.mode == .project ? camera.currentProject : nil
-            Task { @MainActor in
-                // Save the shot into Photos and keep only a reference — one copy,
-                // no duplicate. If saving isn't permitted, fall back to storing
-                // the pixels in-app so the shot is never lost.
-                let localID = await PhotosLibrary.saveImage(data, coordinate: coord)
-                let photo: Photo
-                if let localID {
-                    photo = Photo(imageData: Data(),
-                                  latitude: coord?.latitude, longitude: coord?.longitude,
-                                  humanTags: prefilledTags(), project: proj,
-                                  assetLocalID: localID, isCameraShot: true)
-                } else {
-                    photo = Photo(imageData: data,
-                                  latitude: coord?.latitude, longitude: coord?.longitude,
-                                  humanTags: prefilledTags(), project: proj)
-                }
-                modelContext.insert(photo)
-                try? modelContext.save()
-                savedCount += 1
-                if tagMode == .full {
-                    camera.stop()
-                    tagTarget = photo
-                } else {
-                    // Lite mode: no tag sheet — confirm with a toast offering a
-                    // one-tap "Tag now" (like the old app).
-                    showSavedToast(photo)
-                }
+            // Hold the pixels in-app until tagging is done; we then save to Photos
+            // with the tags embedded as a caption (so it's findable in Photos
+            // search) and convert to a reference. isCameraShot marks it pending.
+            let photo = Photo(imageData: data,
+                              latitude: coord?.latitude, longitude: coord?.longitude,
+                              humanTags: prefilledTags(), project: proj)
+            photo.isCameraShot = true
+            modelContext.insert(photo)
+            try? modelContext.save()
+            savedCount += 1
+            if tagMode == .full {
+                camera.stop()
+                tagTarget = photo          // finalized when the tag sheet is done
+            } else {
+                showSavedToast(photo)
+                finalizeCameraShot(photo)  // lite: save now with the Type as caption
             }
         }
+    }
+
+    /// Save a freshly-captured shot into Photos with its tags embedded as a
+    /// caption, then convert the record to a reference (single copy, no duplicate).
+    /// No-op once it's already a reference. Falls back to staying in-app on failure.
+    private func finalizeCameraShot(_ photo: Photo) {
+        guard photo.isCameraShot, !photo.isReference, !photo.imageData.isEmpty else { return }
+        let data = photo.imageData
+        let coord: CLLocationCoordinate2D? = (photo.latitude != nil && photo.longitude != nil)
+            ? CLLocationCoordinate2D(latitude: photo.latitude!, longitude: photo.longitude!) : nil
+        let (caption, keywords) = searchMetadata(for: photo)
+        Task { @MainActor in
+            if let localID = await PhotosLibrary.saveImage(data, coordinate: coord,
+                                                           caption: caption, keywords: keywords) {
+                photo.assetLocalID = localID
+                photo.imageData = Data()   // pixels now live in Photos — drop the in-app copy
+                try? modelContext.save()
+            }
+        }
+    }
+
+    /// Build a readable caption + keyword list from a photo's tags for Photos search.
+    private func searchMetadata(for photo: Photo) -> (String, [String]) {
+        let t = photo.humanTags
+        var parts: [String] = []
+        func add(_ s: String?) { if let s, !s.isEmpty { parts.append(s) } }
+        func addAll(_ a: [String]) { for s in a where !s.isEmpty { parts.append(s) } }
+        add(t.type?.capitalized)
+        add(t.typology); add(t.room?.capitalized)
+        addAll(t.concepts.map { $0.capitalized })
+        add(t.elementCategory); add(t.element)
+        addAll(t.materials); addAll(t.colors.map { $0.capitalized })
+        add(t.graphicKind?.capitalized)
+        add(t.title); add(t.creator); add(t.year)
+        addAll(t.visual)
+        add(t.authorYear); add(t.note)
+        addAll(t.keywords)
+        if let p = photo.project, !p.isEmpty { parts.append(p) }
+        let caption = "Archi.vé — " + parts.joined(separator: " · ")
+        return (caption, parts)
     }
 
     private func showSavedToast(_ photo: Photo) {
