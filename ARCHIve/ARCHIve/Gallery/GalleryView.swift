@@ -219,9 +219,12 @@ struct GalleryView: View {
                 .onAppear { gridWidth = p.size.width }
                 .onChange(of: p.size.width) { _, w in gridWidth = w } })
             .coordinateSpace(name: "galgrid")
-            // Press-and-drag to paint a selection across thumbnails (a quick flick
-            // still scrolls). Active only in selection mode.
-            .simultaneousGesture(paintSelect(items), including: selecting ? .all : .subviews)
+            // Drag horizontally across thumbnails to paint a selection; vertical
+            // drags still scroll. The UIKit pan recognizer is told to coexist with
+            // the scroll view's own pan, so scrolling keeps working. Select mode only.
+            .paintSelectable(active: selecting,
+                onChange: { loc, t in paintAt(loc, translation: t, items: items) },
+                onEnd: endPaint)
         }
         // Pinch to change photos-per-row: spread = bigger/fewer, pinch = smaller/more.
         .simultaneousGesture(
@@ -236,31 +239,29 @@ struct GalleryView: View {
         )
     }
 
-    /// Drag-to-paint selection: slide horizontally across thumbnails to select (or
-    /// deselect) the cells the finger passes over. A vertical drag is left to the
-    /// scroll view, so the grid still scrolls normally.
-    private func paintSelect(_ items: [Photo]) -> some Gesture {
-        DragGesture(minimumDistance: 8, coordinateSpace: .named("galgrid"))
-            .onChanged { v in
-                // Decide once which way this drag is going: across = paint, down = scroll.
-                if dragAxis == nil { dragAxis = abs(v.translation.width) >= abs(v.translation.height) }
-                guard dragAxis == true, gridWidth > 0, gridCols > 0 else { return }
-                let cw = (gridWidth - CGFloat(gridCols - 1) * 2) / CGFloat(gridCols)
-                let step = cw + 2
-                let col = Int(v.location.x / step), row = Int(v.location.y / step)
-                guard col >= 0, col < gridCols, row >= 0 else { return }
-                let idx = row * gridCols + col
-                guard idx >= 0, idx < items.count else { return }
-                let id = items[idx].id
-                if dragMode == nil { dragMode = !selected.contains(id) }
-                if !dragPainted.contains(id) {
-                    dragPainted.insert(id)
-                    if dragMode == true { selected.insert(id) } else { selected.remove(id) }
-                    UISelectionFeedbackGenerator().selectionChanged()
-                }
-            }
-            .onEnded { _ in dragAxis = nil; dragMode = nil; dragPainted.removeAll() }
+    /// Paint one drag sample: decide the axis once (across = select, down = scroll),
+    /// then for a horizontal drag mark the thumbnail under the finger.
+    private func paintAt(_ location: CGPoint, translation: CGSize, items: [Photo]) {
+        if dragAxis == nil {
+            guard abs(translation.width) > 6 || abs(translation.height) > 6 else { return }
+            dragAxis = abs(translation.width) >= abs(translation.height)
+        }
+        guard dragAxis == true, gridWidth > 0, gridCols > 0 else { return }
+        let cw = (gridWidth - CGFloat(gridCols - 1) * 2) / CGFloat(gridCols)
+        let step = cw + 2
+        let col = Int(location.x / step), row = Int(location.y / step)
+        guard col >= 0, col < gridCols, row >= 0 else { return }
+        let idx = row * gridCols + col
+        guard idx >= 0, idx < items.count else { return }
+        let id = items[idx].id
+        if dragMode == nil { dragMode = !selected.contains(id) }
+        if !dragPainted.contains(id) {
+            dragPainted.insert(id)
+            if dragMode == true { selected.insert(id) } else { selected.remove(id) }
+            UISelectionFeedbackGenerator().selectionChanged()
+        }
     }
+    private func endPaint() { dragAxis = nil; dragMode = nil; dragPainted.removeAll() }
 
     // MARK: Cell + badges
 
@@ -577,6 +578,54 @@ struct ActivityView: UIViewControllerRepresentable {
         UIActivityViewController(activityItems: items, applicationActivities: nil)
     }
     func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
+}
+
+// MARK: - Drag-to-paint selection (UIKit pan that coexists with scrolling)
+
+/// A UIKit pan recognizer bridged into SwiftUI. Its delegate allows simultaneous
+/// recognition with the scroll view's own pan, so a horizontal paint-drag and a
+/// vertical scroll can both work — something a plain SwiftUI DragGesture can't do
+/// inside a ScrollView (it steals the touch and kills scrolling).
+@available(iOS 18.0, *)
+struct PaintPanGesture: UIGestureRecognizerRepresentable {
+    var onChange: (CGPoint, CGSize) -> Void
+    var onEnd: () -> Void
+
+    func makeUIGestureRecognizer(context: Context) -> UIPanGestureRecognizer {
+        let g = UIPanGestureRecognizer()
+        g.delegate = context.coordinator
+        g.cancelsTouchesInView = false
+        return g
+    }
+    func handleUIGestureRecognizerAction(_ g: UIPanGestureRecognizer, context: Context) {
+        switch g.state {
+        case .began, .changed:
+            let t = g.translation(in: g.view)
+            onChange(g.location(in: g.view), CGSize(width: t.x, height: t.y))
+        case .ended, .cancelled, .failed:
+            onEnd()
+        default: break
+        }
+    }
+    func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator { Coordinator() }
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        func gestureRecognizer(_ g: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
+    }
+}
+
+extension View {
+    /// Attach the paint-select pan when `active` (iOS 18+); otherwise unchanged.
+    @ViewBuilder
+    func paintSelectable(active: Bool,
+                         onChange: @escaping (CGPoint, CGSize) -> Void,
+                         onEnd: @escaping () -> Void) -> some View {
+        if #available(iOS 18.0, *), active {
+            self.gesture(PaintPanGesture(onChange: onChange, onEnd: onEnd))
+        } else {
+            self
+        }
+    }
 }
 
 // MARK: - Thumbnail
