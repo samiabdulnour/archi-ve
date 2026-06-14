@@ -44,6 +44,7 @@ struct GalleryView: View {
     @State private var gridWidth: CGFloat = 0
     @State private var dragMode: Bool? = nil          // true = selecting, false = deselecting
     @State private var dragPainted: Set<String> = []
+    @State private var dragAxis: Bool? = nil          // true = horizontal (paint), false = vertical (scroll)
 
     // Import
     @State private var importItems: [PhotosPickerItem] = []
@@ -235,16 +236,18 @@ struct GalleryView: View {
         )
     }
 
-    /// Press-and-drag selection: hold briefly on a thumbnail then drag across the
-    /// grid to paint-select (or deselect) the cells the finger passes over.
+    /// Drag-to-paint selection: slide horizontally across thumbnails to select (or
+    /// deselect) the cells the finger passes over. A vertical drag is left to the
+    /// scroll view, so the grid still scrolls normally.
     private func paintSelect(_ items: [Photo]) -> some Gesture {
-        LongPressGesture(minimumDuration: 0.15)
-            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named("galgrid")))
-            .onChanged { value in
-                guard case .second(true, let drag?) = value, gridWidth > 0, gridCols > 0 else { return }
+        DragGesture(minimumDistance: 8, coordinateSpace: .named("galgrid"))
+            .onChanged { v in
+                // Decide once which way this drag is going: across = paint, down = scroll.
+                if dragAxis == nil { dragAxis = abs(v.translation.width) >= abs(v.translation.height) }
+                guard dragAxis == true, gridWidth > 0, gridCols > 0 else { return }
                 let cw = (gridWidth - CGFloat(gridCols - 1) * 2) / CGFloat(gridCols)
                 let step = cw + 2
-                let col = Int(drag.location.x / step), row = Int(drag.location.y / step)
+                let col = Int(v.location.x / step), row = Int(v.location.y / step)
                 guard col >= 0, col < gridCols, row >= 0 else { return }
                 let idx = row * gridCols + col
                 guard idx >= 0, idx < items.count else { return }
@@ -256,7 +259,7 @@ struct GalleryView: View {
                     UISelectionFeedbackGenerator().selectionChanged()
                 }
             }
-            .onEnded { _ in dragMode = nil; dragPainted.removeAll() }
+            .onEnded { _ in dragAxis = nil; dragMode = nil; dragPainted.removeAll() }
     }
 
     // MARK: Cell + badges

@@ -65,12 +65,25 @@ enum BoardRenderer {
         func layout(_ c: Int) -> (cols: [[Int]], colW: CGFloat, maxH: CGFloat) {
             let w = (bodyW - GUT * CGFloat(c - 1)) / CGFloat(c)
             let blocks = plates.map { w / max(0.2, $0.ar) + capGap + capHeight($0, w) }
-            let total = blocks.reduce(0, +) + GUT * CGFloat(max(0, plates.count - 1))
-            let target = total / CGFloat(c)
+            // columns needed if no column may exceed height `cap` (order-preserving)
+            func need(_ cap: CGFloat) -> Int {
+                var cols = 1, h: CGFloat = 0
+                for b in blocks { let g = h > 0 ? GUT : 0
+                    if h > 0 && h + g + b > cap { cols += 1; h = b } else { h += g + b } }
+                return cols
+            }
+            // binary-search the SMALLEST column height that still fits in c columns
+            // → the most even split possible (min-max partition).
+            let maxBlock = blocks.max() ?? 0
+            let total = blocks.reduce(0, +) + GUT * CGFloat(max(0, blocks.count - 1))
+            var lo = maxBlock, hi = max(maxBlock, total)
+            for _ in 0..<48 { let mid = (lo + hi) / 2; if need(mid) <= c { hi = mid } else { lo = mid } }
+            let cap = hi
             var cols: [[Int]] = [], cur: [Int] = []; var h: CGFloat = 0
             for i in plates.indices {
-                cur.append(i); h += (cur.count > 1 ? GUT : 0) + blocks[i]
-                if h >= target && cols.count < c - 1 { cols.append(cur); cur = []; h = 0 }
+                let b = blocks[i], g = cur.isEmpty ? 0 : GUT
+                if !cur.isEmpty && h + g + b > cap { cols.append(cur); cur = []; h = 0 }
+                cur.append(i); h += (cur.count > 1 ? GUT : 0) + b
             }
             if !cur.isEmpty { cols.append(cur) }
             let maxH = cols.map { col in col.reduce(0) { $0 + blocks[$1] } + GUT * CGFloat(max(0, col.count - 1)) }.max() ?? 0
