@@ -1,0 +1,144 @@
+import UIKit
+
+/// One plate on a board: the image plus the caption fields (mapped from a Photo).
+struct BoardPlate {
+    let image: UIImage?
+    let ar: CGFloat          // native width / height — never cropped to a fixed ratio
+    let typology: String
+    let secondary: String    // e.g. "Building · Opening"
+    let materials: String
+    let dateLine: String     // "place · 2024.05" or "2024.05"
+    let project: String?
+    let credit: String?      // "title · creator · year", lowercased
+}
+
+/// Renders the PINŽENÝŘI catalog poster (B1, masonry) to a print-ready PDF.
+/// Ported 1:1 from the design handoff — all geometry in mm (1 mm = 2.8346 pt),
+/// type in pt, system font, native aspect ratios, full caption under each plate.
+enum BoardRenderer {
+    static let mm: CGFloat = 2.834645669   // pt per mm
+
+    private static let ink   = UIColor(red: 22/255, green: 20/255, blue: 15/255, alpha: 1)
+    private static let muted = UIColor(red: 22/255, green: 20/255, blue: 15/255, alpha: 0.62)
+    private static let hair  = UIColor(red: 22/255, green: 20/255, blue: 15/255, alpha: 0.10)
+
+    private static func reg(_ p: CGFloat) -> UIFont { .systemFont(ofSize: p, weight: .regular) }
+    private static func semi(_ p: CGFloat) -> UIFont { .systemFont(ofSize: p, weight: .semibold) }
+
+    // MARK: Caption (the shared .ccap language)
+
+    private static func caption(_ p: BoardPlate) -> NSAttributedString {
+        let para = NSMutableParagraphStyle(); para.lineHeightMultiple = 1.22
+        let cap: CGFloat = 6.6
+        var lines: [(String, UIFont, UIColor)] = [(p.typology, semi(cap), ink)]
+        if !p.secondary.isEmpty { lines.append((p.secondary, reg(cap), muted)) }
+        if !p.materials.isEmpty { lines.append((p.materials, reg(cap), muted)) }
+        lines.append((p.dateLine, reg(cap), muted))
+        if let proj = p.project, !proj.isEmpty { lines.append((proj.lowercased(), semi(cap), ink)) }
+        if let credit = p.credit, !credit.isEmpty { lines.append((credit, reg(cap), muted)) }
+        let s = NSMutableAttributedString()
+        for (i, l) in lines.enumerated() {
+            s.append(NSAttributedString(string: l.0 + (i == lines.count - 1 ? "" : "\n"),
+                attributes: [.font: l.1, .foregroundColor: l.2, .paragraphStyle: para]))
+        }
+        return s
+    }
+    private static func capHeight(_ p: BoardPlate, _ w: CGFloat) -> CGFloat {
+        ceil(caption(p).boundingRect(with: CGSize(width: w, height: .greatestFiniteMagnitude),
+              options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil).height)
+    }
+
+    // MARK: Poster (B1, masonry)
+
+    static func posterPDF(_ plates: [BoardPlate]) -> Data {
+        let W = 700 * mm, H = 1000 * mm
+        let MT = 32 * mm, MS = 30 * mm, MB = 28 * mm, FOOT = 16 * mm
+        let bodyX = MS, bodyY = MT, bodyW = W - 2 * MS, bodyH = H - MT - MB - FOOT
+        let n = max(1, plates.count)
+        let GUT = max(5, min(16, 16 - CGFloat(n - 6) * (11.0 / 34.0))) * mm
+        let capGap = 1.5 * mm
+
+        func fit(_ c: Int) -> (used: Int, colW: CGFloat) {
+            let w = (bodyW - GUT * CGFloat(c - 1)) / CGFloat(c)
+            var used = 1, h: CGFloat = 0
+            for p in plates {
+                let block = w / max(0.2, p.ar) + capGap + capHeight(p, w)
+                let gap = h > 0 ? GUT : 0
+                if h > 0 && h + gap + block > bodyH { used += 1; h = block } else { h += gap + block }
+            }
+            return (used, w)
+        }
+        var cols = 7, colW = bodyW
+        for c in 2...7 { let r = fit(c); if r.used <= c { cols = c; colW = r.colW; break } }
+
+        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: W, height: H))
+        return renderer.pdfData { ctx in
+            ctx.beginPage()
+            let cg = ctx.cgContext
+            UIColor.white.setFill(); cg.fill(CGRect(x: 0, y: 0, width: W, height: H))
+
+            var colY = [CGFloat](repeating: bodyY, count: cols), col = 0
+            for p in plates {
+                let imgH = colW / max(0.2, p.ar), ch = capHeight(p, colW), block = imgH + capGap + ch
+                if colY[col] > bodyY && colY[col] + GUT + block > bodyY + bodyH && col < cols - 1 { col += 1 }
+                if colY[col] > bodyY { colY[col] += GUT }
+                let x = bodyX + CGFloat(col) * (colW + GUT), y = colY[col]
+                let imgRect = CGRect(x: x, y: y, width: colW, height: imgH)
+                drawCover(p.image, in: imgRect, cg)
+                hair.setStroke()
+                let o = UIBezierPath(rect: imgRect.insetBy(dx: 0.15 * mm, dy: 0.15 * mm)); o.lineWidth = 0.3 * mm; o.stroke()
+                caption(p).draw(with: CGRect(x: x, y: y + imgH + capGap, width: colW, height: ch + 4),
+                                options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil)
+                colY[col] += block
+            }
+            drawFooter(plates: plates, x: bodyX, w: bodyW, y: H - MB - 15 * mm, cg: cg)
+        }
+    }
+
+    private static func drawCover(_ image: UIImage?, in rect: CGRect, _ cg: CGContext) {
+        guard let image else {
+            UIColor(red: 0.89, green: 0.87, blue: 0.835, alpha: 1).setFill(); cg.fill(rect); return
+        }
+        cg.saveGState(); cg.addRect(rect); cg.clip()
+        let isz = image.size
+        let scale = max(rect.width / isz.width, rect.height / isz.height)
+        let dw = isz.width * scale, dh = isz.height * scale
+        image.draw(in: CGRect(x: rect.midX - dw / 2, y: rect.midY - dh / 2, width: dw, height: dh))
+        cg.restoreGState()
+    }
+
+    private static func drawFooter(plates: [BoardPlate], x: CGFloat, w: CGFloat, y: CGFloat, cg: CGContext) {
+        let dates = plates.map { String($0.dateLine.suffix(7)) }
+            .filter { $0.contains(".") }.sorted()
+        let range = dates.isEmpty ? "" : (dates.first == dates.last ? dates.first! : "\(dates.first!)–\(dates.last!)")
+        let para = NSMutableParagraphStyle(); para.alignment = .right; para.lineHeightMultiple = 1.4
+        let s = NSMutableAttributedString()
+        s.append(NSAttributedString(string: "catalogue · b1\n", attributes: [.font: semi(8.5), .foregroundColor: ink, .paragraphStyle: para]))
+        s.append(NSAttributedString(string: "\(plates.count) plates · \(range)\n", attributes: [.font: reg(8.5), .foregroundColor: ink, .paragraphStyle: para]))
+        s.append(NSAttributedString(string: String(format: "sequence 01–%02d", plates.count), attributes: [.font: reg(8.5), .foregroundColor: ink, .paragraphStyle: para]))
+        s.draw(with: CGRect(x: x, y: y, width: w, height: 15 * mm), options: [.usesLineFragmentOrigin], context: nil)
+    }
+
+    // MARK: Map a Photo → a plate
+
+    static func plate(for photo: Photo, image: UIImage) -> BoardPlate {
+        let t = photo.humanTags
+        let typ = [t.typology, t.element, t.graphicKind?.capitalized, t.type?.capitalized]
+            .compactMap { $0 }.first(where: { !$0.isEmpty }) ?? "Untitled"
+        var secondary: [String] = []
+        if let ty = t.type { secondary.append(ty.capitalized) }
+        if let ec = t.elementCategory, !ec.isEmpty { secondary.append(ec) }
+        else if let room = t.room, !room.isEmpty { secondary.append(room.capitalized) }
+        let materials = t.materials.joined(separator: ", ")
+        let df = DateFormatter(); df.dateFormat = "yyyy.MM"
+        let project = (photo.project?.isEmpty == false) ? photo.project : nil
+        var credit: String? = nil
+        if let title = t.title, !title.isEmpty {
+            credit = [title, t.creator, t.year].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ").lowercased()
+        }
+        let ar = image.size.height > 0 ? image.size.width / image.size.height : 1
+        return BoardPlate(image: image, ar: ar, typology: typ, secondary: secondary.joined(separator: " · "),
+                          materials: materials, dateLine: df.string(from: photo.createdAt),
+                          project: project, credit: credit)
+    }
+}

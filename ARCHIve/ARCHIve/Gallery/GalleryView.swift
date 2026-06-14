@@ -37,6 +37,9 @@ struct GalleryView: View {
     @State private var confirmDelete = false
     @State private var shareItems: [UIImage] = []
     @State private var showShare = false
+    @State private var boardURL: URL?
+    @State private var showBoardShare = false
+    @State private var makingBoard = false
 
     // Import
     @State private var importItems: [PhotosPickerItem] = []
@@ -116,6 +119,14 @@ struct GalleryView: View {
             Button("Cancel", role: .cancel) {}
         } message: { Text("This can't be undone.") }
         .sheet(isPresented: $showShare) { ActivityView(items: shareItems) }
+        .sheet(isPresented: $showBoardShare) { if let boardURL { ActivityView(items: [boardURL]) } }
+        .overlay { if makingBoard {
+            ZStack { Color.black.opacity(0.35).ignoresSafeArea()
+                VStack(spacing: 12) { ProgressView().tint(.white)
+                    Text("Composing board…").font(.subheadline).foregroundStyle(.white) }
+                .padding(24).background(RoundedRectangle(cornerRadius: 14).fill(.black.opacity(0.6)))
+            }
+        } }
         .sheet(isPresented: $showSettings) { SettingsView() }
         .fullScreenCover(item: $editTarget) { photo in
             TagSheetView(photo: photo) { editTarget = nil }
@@ -306,13 +317,32 @@ struct GalleryView: View {
             Button { shareSelected() } label: { Label("Share", systemImage: "square.and.arrow.up") }
                 .disabled(selected.isEmpty)
             Spacer()
-            Text("\(selected.count) selected").font(.subheadline).foregroundStyle(Palette.ink2)
+            Button { Task { await makeBoard() } } label: { Label("Board", systemImage: "doc.richtext") }
+                .disabled(selected.isEmpty || makingBoard)
             Spacer()
             Button(role: .destructive) { confirmDelete = true } label: { Label("Delete", systemImage: "trash") }
                 .disabled(selected.isEmpty)
         }
         .padding(.horizontal, 24).padding(.vertical, 12)
         .background(.bar)
+    }
+
+    /// Build a B1 catalogue poster PDF from the selected photos and open the
+    /// share sheet (print / save to Files / send).
+    @MainActor private func makeBoard() async {
+        let chosen = filtered.filter { selected.contains($0.id) }   // gallery order
+        guard !chosen.isEmpty else { return }
+        makingBoard = true
+        var plates: [BoardPlate] = []
+        for p in chosen {
+            if let img = await PhotoImage.full(for: p) { plates.append(BoardRenderer.plate(for: p, image: img)) }
+        }
+        let data = BoardRenderer.posterPDF(plates)
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Archive Board.pdf")
+        try? data.write(to: url)
+        boardURL = url
+        makingBoard = false
+        showBoardShare = true
     }
 
     private func deleteSelected() {
