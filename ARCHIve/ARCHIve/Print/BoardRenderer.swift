@@ -10,7 +10,8 @@ struct BoardPlate {
     let typology: String
     let secondary: String    // e.g. "Building · Opening"
     let materials: String
-    let dateLine: String     // "place · 2024.05" or "2024.05"
+    let dateLine: String     // display: "place · 2024.05" or "2024.05"
+    let date: String         // sortable "2024.05" — used for ordering / month dividers
     let project: String?
     let credit: String?      // "title · creator · year", lowercased
 }
@@ -134,8 +135,7 @@ enum BoardRenderer {
     }
 
     private static func drawFooter(plates: [BoardPlate], x: CGFloat, w: CGFloat, y: CGFloat, cg: CGContext) {
-        let dates = plates.map { String($0.dateLine.suffix(7)) }
-            .filter { $0.contains(".") }.sorted()
+        let dates = plates.map { $0.date }.filter { !$0.isEmpty }.sorted()
         let range = dates.isEmpty ? "" : (dates.first == dates.last ? dates.first! : "\(dates.first!)–\(dates.last!)")
         let para = NSMutableParagraphStyle(); para.alignment = .right; para.lineHeightMultiple = 1.4
         let s = NSMutableAttributedString()
@@ -152,7 +152,7 @@ enum BoardRenderer {
     static func journalPDF(_ plates: [BoardPlate]) -> Data {
         // chronological by date (stable on original order)
         let recs = plates.enumerated()
-            .sorted { ($0.element.dateLine, $0.offset) < ($1.element.dateLine, $1.offset) }
+            .sorted { ($0.element.date, $0.offset) < ($1.element.date, $1.offset) }
             .map { $0.element }
 
         // A5 page geometry (mm), spread is two of these side by side
@@ -171,7 +171,7 @@ enum BoardRenderer {
         var blocks: [JBlock] = []
         var lastMonth = ""
         for r in recs {
-            let m = String(r.dateLine.prefix(7))
+            let m = String(r.date.prefix(7))
             if m != lastMonth { blocks.append(JBlock(isDivider: true, month: m, rec: nil)); lastMonth = m }
             blocks.append(JBlock(isDivider: false, month: m, rec: r))
         }
@@ -231,7 +231,7 @@ enum BoardRenderer {
                     let base = ci + page * COLS
                     guard base < cols.count else { break }
                     let pageCols = cols[base..<min(base + COLS, cols.count)]
-                    let dates = pageCols.flatMap { $0.compactMap { $0.rec?.dateLine } }
+                    let dates = pageCols.flatMap { $0.compactMap { $0.rec?.date } }
                     let pageX = page == 0 ? CGFloat(0) : PGw
                     let fx = pageX + (page == 0 ? outer : inner)
                     journalFoot(dates, x: fx, w: contentW, y: PGh - bottom - footH + 1 * mm, alignRight: page == 1, cg)
@@ -274,6 +274,9 @@ enum BoardRenderer {
         else if let room = t.room, !room.isEmpty { secondary.append(room.capitalized) }
         let materials = t.materials.joined(separator: ", ")
         let df = DateFormatter(); df.dateFormat = "yyyy.MM"
+        let dateStr = df.string(from: photo.createdAt)
+        let place = t.place?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let dateLine = (place?.isEmpty == false) ? "\(place!) · \(dateStr)" : dateStr
         let project = (photo.project?.isEmpty == false) ? photo.project : nil
         var credit: String? = nil
         if let title = t.title, !title.isEmpty {
@@ -281,7 +284,7 @@ enum BoardRenderer {
         }
         let ar = image.size.height > 0 ? image.size.width / image.size.height : 1
         return BoardPlate(image: image, ar: ar, typology: typ, secondary: secondary.joined(separator: " · "),
-                          materials: materials, dateLine: df.string(from: photo.createdAt),
+                          materials: materials, dateLine: dateLine, date: dateStr,
                           project: project, credit: credit)
     }
 }

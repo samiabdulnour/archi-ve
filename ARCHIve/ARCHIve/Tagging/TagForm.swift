@@ -18,6 +18,7 @@ struct TagForm: View {
     @State private var showLabelCamera = false
     @State private var labelPickerItem: PhotosPickerItem?
     @State private var showFullscreenLabel = false
+    @State private var placeSuggestions: [String] = []
 
     private var flow: String { tags.type ?? "building" }
     private func enabled(_ step: String) -> Bool { Settings.flowEnabled(flow, step) }
@@ -58,6 +59,20 @@ struct TagForm: View {
             ImagePicker { data in labelImage = UIImage(data: data) }
                 .ignoresSafeArea()
         }
+        .onAppear { if placeSuggestions.isEmpty { placeSuggestions = recentPlaces() } }
+    }
+
+    /// Distinct cities the owner has typed before — offered as one-tap chips so a
+    /// trip's photos reuse the same place without retyping. Computed once on
+    /// appear (decoding every photo's tags) to keep the text field responsive.
+    private func recentPlaces() -> [String] {
+        var seen = Set<String>(); var out: [String] = []
+        for p in allPhotos {
+            let name = (p.humanTags.place ?? "").trimmingCharacters(in: .whitespaces)
+            guard !name.isEmpty, !seen.contains(name) else { continue }
+            seen.insert(name); out.append(name)
+        }
+        return out.sorted()
     }
 
     /// Building / Element / Graphic as a single segmented toggle.
@@ -347,7 +362,25 @@ struct TagForm: View {
                 set: { tags.keywords = $0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty } }))
                 .textFieldStyle(.roundedBorder)
                 .autocorrectionDisabled()
+            placeSection
             projectSection
+        }
+    }
+
+    private var placeSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            TextField("Place / city", text: Binding(
+                get: { tags.place ?? "" },
+                set: { tags.place = $0.isEmpty ? nil : $0 }))
+                .textFieldStyle(.roundedBorder)
+                .autocorrectionDisabled()
+            if !placeSuggestions.isEmpty {
+                chipGrid(placeSuggestions.map { ($0, $0, nil as String?) }) { id in
+                    tags.place == id
+                } toggle: { id in
+                    tags.place = (tags.place == id) ? nil : id
+                }
+            }
         }
     }
 

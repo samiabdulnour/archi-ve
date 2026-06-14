@@ -126,7 +126,7 @@ final class Photo: Identifiable {
     var searchText: String {
         let t = humanTags
         var parts: [String?] = [t.type, t.typology, t.room, t.elementCategory, t.element, t.graphicKind,
-                                t.authorYear, t.note, t.title, t.creator, t.year,
+                                t.authorYear, t.note, t.place, t.title, t.creator, t.year,
                                 t.source, t.brand, t.model, t.contactName, t.contactCompany,
                                 project]
         parts += t.concepts + t.materials + t.colors + t.visual + t.keywords
@@ -168,6 +168,7 @@ struct HumanTags: Codable, Equatable {
     // Free-text extras (optional)
     var authorYear: String?        // "Aalto, 1939" etc.
     var note: String?              // personal note
+    var place: String?             // city / place name, typed by hand (shown in board captions)
     var keywords: [String] = []    // free user keywords
     var rating: Int?               // 1...5 stars (optional, off by default)
 
