@@ -1,6 +1,6 @@
 # Privacy Policy — Archi.vé
 
-_Last updated: 8 June 2026_
+_Last updated: 15 June 2026_
 
 Archi.vé is a private photo journal for architects, created by Sami Abdulnour
 ("we", "the developer"). This policy explains how the app handles your
@@ -44,4 +44,4 @@ The app is suitable for all ages (4+) and collects no data.
 We may update this policy; the date above will change accordingly.
 
 ## Contact
-Questions? Contact Sami Abdulnour at: _your email_
+Questions? Contact Sami Abdulnour at: sami.abdulnour@gmail.com

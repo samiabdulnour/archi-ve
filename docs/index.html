@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Archi.vé — a private photo journal for architects</title>
+  <meta name="description" content="Notice architecture everywhere, tag it in two taps, and find it again by what it is or where you found it. Private by design — your photos stay on your device and your own iCloud.">
+  <link rel="icon" href="favicon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Open Graph / social -->
+  <meta property="og:title" content="Archi.vé — a private photo journal for architects">
+  <meta property="og:description" content="Notice it, tag it in two taps, find it again. Private by design.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://archi-ve.app">
+  <meta property="og:image" content="https://archi-ve.app/icon.png">
+</head>
+<body>
+  <header class="site">
+    <div class="wrap">
+      <a class="brand" href="/"><img src="icon.png" alt="">Archi.vé</a>
+      <nav class="top">
+        <a class="muted" href="#features">Features</a>
+        <a class="muted" href="privacy.html">Privacy</a>
+        <a class="pill" href="#get">Get the app</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" style="border-top:none">
+      <div class="wrap">
+        <img class="icon" src="icon.png" alt="Archi.vé app icon">
+        <h1>Archi.vé</h1>
+        <p class="tagline">A private photo journal for architects.</p>
+        <p class="lede">You notice architecture everywhere — a façade on a walk, a joint at an exhibition, a plan in a book, a model on a desk. Archi.vé turns that habit into a structured, searchable archive. Take the photo, answer two quick prompts, and it files itself.</p>
+        <div class="btn-row" id="get">
+          <a class="btn" href="#" data-appstore>Download on the App&nbsp;Store</a>
+          <a class="btn ghost" href="#features">See how it works</a>
+        </div>
+        <p class="note">iPhone · iOS 17+ · Free</p>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="wrap">
+        <p class="eyebrow">Capture in seconds</p>
+        <h2>Built for the street, not the desk.</h2>
+        <p class="big">A focused native camera: tap the shutter, two taps to tag, done — fast enough to use while walking. Grid, level, aspect-ratio guides, tap-to-focus and exposure, pinch zoom, and film-inspired colour looks.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <p class="eyebrow">Structured tags, not typing</p>
+        <h2>A small, consistent vocabulary — two taps, filed.</h2>
+        <div class="grid">
+          <div class="card">
+            <p class="k">Building</p>
+            <h3>The whole thing</h3>
+            <p>Typology — residential, office, public, civic, hospitality, heritage, industrial, landscape — and room.</p>
+          </div>
+          <div class="card">
+            <p class="k">Element</p>
+            <h3>A part of it</h3>
+            <p>Structure, openings, envelope, finishes and details — with materials, concepts and colour.</p>
+          </div>
+          <div class="card">
+            <p class="k">Graphic</p>
+            <h3>Flat references</h3>
+            <p>Artwork, book, drawing, plan, render, model — capture the wall label instead of typing it.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap two">
+        <div>
+          <p class="eyebrow">Find it again</p>
+          <h2>By time, by what it is, or by where you found it.</h2>
+          <p class="big">Browse the archive on a timeline, by reference, by project, or on a map. Search across every tag and filter by type, project, favourites or rating.</p>
+        </div>
+        <ul class="ticks">
+          <li>Time — your whole archive, chronologically</li>
+          <li>Reference — grouped by what's in the photo</li>
+          <li>Project — a whole site shoot in one place</li>
+          <li>Place — pinned on a map</li>
+          <li>Search &amp; filters across every tag</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <p class="eyebrow">Boards &amp; Journals</p>
+        <h2>Turn a selection into something printable.</h2>
+        <p class="big">Pick a set of photos and lay them out as a clean editorial <strong>poster</strong> (B1) or a chronological <strong>journal</strong> (A4 landscape) — captions drawn straight from your tags. Export as a PDF to print, save, or share.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap two">
+        <div>
+          <p class="eyebrow">Private by design</p>
+          <h2>Your photos are yours.</h2>
+          <p class="big">Everything is stored on your device and syncs through your <strong>own iCloud</strong> across your devices. No accounts, no ads, no analytics, no third-party servers. Export a full backup to Files any time.</p>
+          <p style="margin-top:18px"><a class="btn ghost" href="privacy.html">Read the privacy policy</a></p>
+        </div>
+        <ul class="ticks">
+          <li>No account, no sign-in</li>
+          <li>No ads, no analytics, no tracking</li>
+          <li>No developer server — synced via your iCloud</li>
+          <li>The developer can't see your data</li>
+          <li>Designed for architects, by an architect</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site">
+    <div class="wrap">
+      <div>© <span id="yr">2026</span> Sami Abdulnour · Archi.vé</div>
+      <nav>
+        <a href="privacy.html">Privacy</a>
+        <a href="support.html">Support</a>
+        <a href="#get">Get the app</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('yr').textContent = new Date().getFullYear();
+    // TODO: replace href with the real App Store URL once live, e.g.
+    // https://apps.apple.com/app/idXXXXXXXXXX
+  </script>
+</body>
+</html>

@@ -81,9 +81,9 @@ architecture,reference,photo,archive,journal,tag,catalog,site,exhibition,materia
 
 | Field | Value | Notes |
 | --- | --- | --- |
-| **Support URL** (required) | _needs a public page_ | A simple page or contact page. See "URLs you must provide" below. |
-| **Privacy Policy URL** (required) | _needs a public page_ | Host `PRIVACY.md` (in repo) at a public URL. |
-| **Marketing URL** (optional) | — | Leave blank for now. |
+| **Support URL** (required) | https://archi-ve.app/support.html | Built in `docs/` → GitHub Pages. |
+| **Privacy Policy URL** (required) | https://archi-ve.app/privacy.html | Built in `docs/` → GitHub Pages. |
+| **Marketing URL** (optional) | https://archi-ve.app | Landing page. |
 
 ### URLs you must provide (the only real blockers for review)
 Apple requires a working **Support URL** and **Privacy Policy URL**. Cheap options:
